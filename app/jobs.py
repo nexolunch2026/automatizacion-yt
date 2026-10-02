@@ -16,6 +16,7 @@ from app.db import SessionLocal
 from app.models import STATUSES, Job, Project, StageResult
 from app.pipeline.research import run_research
 from app.providers.ai import AIProvider, GeminiProvider, ProviderError
+from app.providers.search import SearchProvider, WikipediaSearch
 from app.settings_store import get_api_key
 
 log = logging.getLogger(__name__)
@@ -34,8 +35,12 @@ def get_ai_provider(db: Session) -> AIProvider:
     return GeminiProvider(key)
 
 
+def get_search_provider() -> SearchProvider:
+    return WikipediaSearch()
+
+
 def _run_research(db: Session, project: Project, progress) -> dict:
-    return run_research(project, get_ai_provider(db), progress)
+    return run_research(project, get_ai_provider(db), progress, get_search_provider())
 
 
 RUNNERS: dict[str, Callable[[Session, Project, Callable[[int, str], None]], dict]] = {

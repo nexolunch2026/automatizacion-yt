@@ -5,8 +5,9 @@ import pytest
 from app import jobs, settings_web
 from app.db import SessionLocal
 from app.models import Job, Project, StageResult
-from app.pipeline.research import Angle, Fact, ResearchBrief
+from app.pipeline.research import Angle, Fact, ResearchBrief, SearchQueries
 from app.providers.ai import GroundedText, ProviderError, Source
+from tests.conftest import FakeSearch
 from tests.test_projects import create_channel, project_data
 
 
@@ -21,6 +22,8 @@ class FakeAI:
         return GroundedText("Enron quebró en 2001.[1]", self.sources, ["enron quiebra"])
 
     def generate_json(self, prompt, schema):
+        if schema is SearchQueries:
+            return SearchQueries(queries=["Enron", "quiebra de Enron"])
         assert schema is ResearchBrief
         return ResearchBrief(
             context="Grandes empresas que cayeron de golpe.",
@@ -158,12 +161,66 @@ def test_deleting_project_removes_jobs_and_results(project, monkeypatch):
         assert db.query(StageResult).count() == 0
 
 
-def test_failure_shows_technical_detail(project, monkeypatch):
-    class NoQuota(FakeAI):
+class NoGoogleSearch(FakeAI):
+    """Cuenta sin cuota para la búsqueda de Google, pero Gemini normal sí funciona."""
+
+    def grounded_research(self, prompt):
+        raise ProviderError(
+            "Google no permite más peticiones gratuitas con tu cuenta ahora mismo.",
+            detail="429 RESOURCE_EXHAUSTED",
+        )
+
+
+def test_falls_back_to_wikipedia_when_google_search_unavailable(project, monkeypatch):
+    search = FakeSearch()
+    monkeypatch.setattr(jobs, "get_ai_provider", lambda db: NoGoogleSearch(sources=0))
+    monkeypatch.setattr(jobs, "get_search_provider", lambda: search)
+    run_stage(project)
+    jobs.process_next_job()
+
+    with SessionLocal() as db:
+        data = db.query(StageResult).one().data
+    assert data["method"] == "wikipedia"
+    assert search.queries == ["Enron", "quiebra de Enron"]
+    assert data["sources"] == [
+        {"n": 1, "title": "Wikipedia: Enron", "uri": "https://es.wikipedia.org/wiki/Enron"}
+    ]
+    # Solo hay 1 documento: las referencias a la fuente 2 se descartan.
+    assert data["timeline"][0]["sources"] == [1]
+    assert "63.000 millones en activos (sin fuente)" in data["needs_verification"]
+    page = project.get("/proyectos/1").text
+    assert "se usó Wikipedia" in page
+
+
+def test_transient_google_error_does_not_fall_back(project, monkeypatch):
+    class Busy(FakeAI):
         def grounded_research(self, prompt):
+            raise ProviderError("Límite por minuto.", transient=True)
+
+    search = FakeSearch()
+    monkeypatch.setattr(jobs, "get_ai_provider", lambda db: Busy())
+    monkeypatch.setattr(jobs, "get_search_provider", lambda: search)
+    run_stage(project)
+    jobs.process_next_job()
+    assert search.queries is None  # se reintentará con Google más tarde
+    with SessionLocal() as db:
+        assert db.get(Job, 1).status == "queued"
+
+
+def test_wikipedia_without_results(project, monkeypatch):
+    monkeypatch.setattr(jobs, "get_ai_provider", lambda db: NoGoogleSearch())
+    monkeypatch.setattr(jobs, "get_search_provider", lambda: FakeSearch(documents=[]))
+    run_stage(project)
+    jobs.process_next_job()
+    assert "No se encontró información en Wikipedia" in project.get("/proyectos/1").text
+
+
+def test_failure_shows_technical_detail(project, monkeypatch):
+    class NoQuotaAtAll(NoGoogleSearch):
+        def generate_json(self, prompt, schema):
             raise ProviderError("Sin uso gratuito.", detail="429 RESOURCE_EXHAUSTED: limit: 0")
 
-    monkeypatch.setattr(jobs, "get_ai_provider", lambda db: NoQuota())
+    monkeypatch.setattr(jobs, "get_ai_provider", lambda db: NoQuotaAtAll())
     run_stage(project)
     jobs.process_next_job()
     page = project.get("/proyectos/1").text

@@ -149,3 +149,8 @@ code { background: var(--bg); padding: 2px 6px; border-radius: 4px; }
 .tech { margin-top: 8px; font-size: .8rem; }
 .tech summary { cursor: pointer; }
 .tech code { display: block; margin-top: 6px; white-space: pre-wrap; word-break: break-word; }
+.row-actions { display: flex; gap: 16px; align-items: center; margin: 8px 0; }
+.row-actions form { margin: 0; }
+.btn.secondary { background: transparent; border: 1px solid var(--line); color: var(--text); }
+.btn.secondary:hover { border-color: var(--muted); background: transparent; }
+.diagnostics { list-style: none; padding: 0; display: grid; gap: 10px; }

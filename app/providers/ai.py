@@ -137,6 +137,45 @@ class GeminiProvider:
             return response
         raise last_error or ProviderError("No hay ningún modelo de Gemini disponible.")
 
+    def diagnose(self, max_models: int = 2) -> list[dict]:
+        """Prueba cada función por separado para saber qué permite la cuenta del usuario."""
+        from google.genai import types
+
+        results = []
+        try:
+            models = self.models
+        except ProviderError as exc:
+            return [
+                {"name": "Clave de Gemini", "ok": False, "message": str(exc), "detail": exc.detail}
+            ]
+        results.append({"name": "Clave de Gemini", "ok": True, "message": "Válida"})
+
+        search = types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())])
+        for model in models[:max_models]:
+            for label, config in (("texto", None), ("búsqueda de Google", search)):
+                name = f"{model} — {label}"
+                try:
+                    self._call(
+                        lambda m=model, c=config: self._client.models.generate_content(
+                            model=m, contents="Responde solo: OK", config=c
+                        )
+                    )
+                    results.append({"name": name, "ok": True, "message": "Funciona"})
+                except ModelUnavailable as exc:
+                    results.append(
+                        {
+                            "name": name,
+                            "ok": False,
+                            "message": str(exc.error),
+                            "detail": exc.error.detail,
+                        }
+                    )
+                except ProviderError as exc:
+                    results.append(
+                        {"name": name, "ok": False, "message": str(exc), "detail": exc.detail}
+                    )
+        return results
+
     def grounded_research(self, prompt: str) -> GroundedText:
         from google.genai import types
 
@@ -188,8 +227,13 @@ class GeminiProvider:
         try:
             return fn()
         except errors.APIError as exc:
-            detail = f"{exc.code} {exc.status}: {exc.message}"[:400]
-            error = _friendly_error(exc.code, str(exc), detail)
+            quotas = quota_violations(exc.details)
+            detail = f"{exc.code} {exc.status}: {exc.message}"
+            if quotas:
+                detail += " | Cuotas: " + "; ".join(
+                    f"{q['id']} (límite {q['value']})" if q["value"] else q["id"] for q in quotas
+                )
+            error = _friendly_error(exc.code, str(exc), detail[:600], quotas)
             # Sin cuota para este modelo (429) o modelo inexistente (404): probar otro.
             if exc.code in (404, 429):
                 raise ModelUnavailable(error) from exc
@@ -208,27 +252,46 @@ class ModelUnavailable(Exception):
         self.error = error
 
 
-def _friendly_error(code: int | None, raw: str, detail: str = "") -> ProviderError:
+def quota_violations(details) -> list[dict]:
+    """Extrae qué cuota se agotó (por día, por minuto…) de la respuesta de error de Google."""
+    found = []
+    error = details.get("error", {}) if isinstance(details, dict) else {}
+    for item in error.get("details") or []:
+        for violation in (item or {}).get("violations") or []:
+            quota_id = violation.get("quotaId") or violation.get("quotaMetric")
+            if quota_id:
+                found.append({"id": quota_id, "value": str(violation.get("quotaValue") or "")})
+    return found
+
+
+def _friendly_error(
+    code: int | None, raw: str, detail: str = "", quotas: list[dict] | None = None
+) -> ProviderError:
     detail = detail or raw[:400]
+    quotas = quotas or []
     if code in (400, 401, 403) and ("API key" in raw or "API_KEY" in raw or code != 400):
         return ProviderError(
             "La clave de Gemini no es válida. Revísala en Configuración.", detail=detail
         )
     if code == 429:
-        if re.search(r"limit: 0\b", raw):
+        ids = " ".join(q["id"] for q in quotas)
+        if re.search(r"limit: 0\b", raw) or any(q["value"] == "0" for q in quotas):
             return ProviderError(
-                "Ningún modelo de Gemini disponible para tu cuenta tiene uso gratuito ahora mismo.",
-                detail=detail,
+                "Tu cuenta de Gemini no tiene uso gratuito para esta función.", detail=detail
             )
-        if "PerDay" in raw or "per day" in raw.lower():
+        if "PerDay" in ids or "PerDay" in raw or "per day" in raw.lower():
             return ProviderError(
                 "Se agotó el uso gratuito de Gemini de hoy. Vuelve a intentarlo mañana.",
                 detail=detail,
             )
+        if "PerMinute" in ids or "per minute" in raw.lower():
+            return ProviderError(
+                "Se alcanzó el límite por minuto de Gemini. Se reintentará en un momento.",
+                transient=True,
+                detail=detail,
+            )
         return ProviderError(
-            "Se alcanzó el límite por minuto de Gemini. Se reintentará en un momento.",
-            transient=True,
-            detail=detail,
+            "Google no permite más peticiones gratuitas con tu cuenta ahora mismo.", detail=detail
         )
     if code == 404:
         return ProviderError("Ese modelo de Gemini no está disponible.", detail=detail)

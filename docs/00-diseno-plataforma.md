@@ -450,3 +450,13 @@ generar una miniatura en el chat de ChatGPT o Gemini, etc.).
 - **Claves API**: se guardan cifradas (Fernet) desde la página Configuración; la clave
   de cifrado vive en `datos/encryption.key`. La interfaz solo muestra los 4 últimos
   caracteres.
+
+- **Plan B de investigación (v0.3.2)**: si la búsqueda de Google integrada en Gemini no
+  tiene cuota gratuita en la cuenta del usuario, la investigación usa Wikipedia
+  (`app/providers/search.py`, API pública de MediaWiki, sin clave): Gemini propone
+  búsquedas, se descargan los artículos y Gemini redacta el informe citando solo esos
+  documentos. Los errores temporales no activan el plan B (se reintenta con Google).
+- **Diagnóstico**: Configuración → «Probar conexión» prueba por separado la clave, la
+  generación de texto y la búsqueda de Google en los dos primeros modelos, y Wikipedia.
+- **Cuotas**: los errores 429 se clasifican con los `QuotaFailure.violations` de Google
+  (por minuto → reintento; por día o límite 0 → sin reintento, se prueba otro modelo).

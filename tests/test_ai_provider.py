@@ -11,6 +11,7 @@ from app.providers.ai import (
     candidate_models,
     insert_citations,
     pick_flash_model,
+    quota_violations,
 )
 
 
@@ -58,6 +59,34 @@ def test_friendly_errors():
     daily = _friendly_error(429, "GenerateRequestsPerDayPerProjectPerModel-FreeTier limit: 20")
     assert not daily.transient
     assert "mañana" in str(daily)
+
+    # Sin información de qué cuota es: no se reintenta en bucle.
+    generic = _friendly_error(429, "You exceeded your current quota, please check your plan")
+    assert not generic.transient
+
+
+def test_quota_details_are_extracted_and_classified():
+    details = {
+        "error": {
+            "code": 429,
+            "details": [
+                {"@type": "type.googleapis.com/google.rpc.Help"},
+                {
+                    "@type": "type.googleapis.com/google.rpc.QuotaFailure",
+                    "violations": [
+                        {
+                            "quotaId": "GenerateRequestsPerMinutePerProjectPerModel-FreeTier",
+                            "quotaValue": "10",
+                        }
+                    ],
+                },
+            ],
+        }
+    }
+    quotas = quota_violations(details)
+    assert quotas == [{"id": "GenerateRequestsPerMinutePerProjectPerModel-FreeTier", "value": "10"}]
+    assert _friendly_error(429, "quota", quotas=quotas).transient
+    assert quota_violations(None) == []
 
 
 def quota_error(model, limit=0):
@@ -124,3 +153,19 @@ def test_invalid_key_does_not_try_other_models():
         provider_with(fake).grounded_research("tema")
     assert "clave" in str(info.value)
     assert fake.calls == ["gemini-2.5-flash"]
+
+
+def test_diagnose_reports_each_function_separately():
+    class SearchBlocked(FakeModels):
+        def generate_content(self, model, contents, config):
+            if config is not None:  # la búsqueda de Google no tiene cuota
+                raise quota_error(model)
+            return super().generate_content(model, contents, config)
+
+    results = provider_with(SearchBlocked(["gemini-2.5-flash"], {})).diagnose()
+    assert [(r["name"], r["ok"]) for r in results] == [
+        ("Clave de Gemini", True),
+        ("gemini-2.5-flash — texto", True),
+        ("gemini-2.5-flash — búsqueda de Google", False),
+    ]
+    assert "limit: 0" in results[2]["detail"]

@@ -81,6 +81,7 @@
   {% endif %}
 
   {% if research %}
+    {% if research.notice %}<p class="alert info">{{ research.notice }}</p>{% endif %}
     {% if research.warning %}<p class="alert info">{{ research.warning }}</p>{% endif %}
     <h3>Contexto</h3>
     <p>{{ research.context }}</p>

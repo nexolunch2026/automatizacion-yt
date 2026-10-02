@@ -14,10 +14,34 @@
 
   {% if gemini_hint %}
   <p>Estado: <span class="badge ok">Conectado</span> <span class="muted small">Clave {{ gemini_hint }}</span></p>
-  <form method="post" action="/configuracion/gemini/borrar"
-        onsubmit="return confirm('¿Quitar la clave de Gemini?')">
-    <button class="btn-link">Quitar clave</button>
-  </form>
+  <div class="row-actions">
+    <form method="post" action="/configuracion/gemini/probar"
+          onsubmit="this.querySelector('button').textContent = 'Probando… (unos segundos)'">
+      <button class="btn secondary">Probar conexión</button>
+    </form>
+    <form method="post" action="/configuracion/gemini/borrar"
+          onsubmit="return confirm('¿Quitar la clave de Gemini?')">
+      <button class="btn-link">Quitar clave</button>
+    </form>
+  </div>
+
+  {% if diagnostics %}
+  <h3>Resultado de la prueba</h3>
+  <ul class="diagnostics">
+    {% for d in diagnostics %}
+    <li>
+      <span class="{{ 'status-done' if d.ok else 'status-failed' }}">{{ '✓' if d.ok else '✗' }}</span>
+      <strong>{{ d.name }}</strong>: {{ d.message }}
+      {% if d.detail %}
+      <details class="tech"><summary>Detalle técnico</summary><code>{{ d.detail }}</code></details>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="muted small">Si la «búsqueda de Google» falla pero el «texto» funciona, no pasa nada:
+    el programa usará Wikipedia para las fuentes. Si el «texto» también falla, Gemini no
+    está disponible gratis para tu cuenta ahora mismo.</p>
+  {% endif %}
   <hr>
   <p class="muted small">Si quieres cambiarla, pega una nueva:</p>
   {% else %}

@@ -13,6 +13,32 @@ from app.db import Base, engine  # noqa: E402
 from app.main import app  # noqa: E402
 
 
+class FakeSearch:
+    name = "fake-wikipedia"
+
+    def __init__(self, documents=None):
+        from app.providers.search import Document
+
+        self.documents = (
+            [Document("Enron", "https://es.wikipedia.org/wiki/Enron", "Enron quebró en 2001.")]
+            if documents is None
+            else documents
+        )
+        self.queries = None
+
+    def search(self, queries, language):
+        self.queries = queries
+        return self.documents
+
+
+@pytest.fixture(autouse=True)
+def no_real_internet(monkeypatch):
+    """Ningún test llama a Wikipedia de verdad."""
+    from app import jobs
+
+    monkeypatch.setattr(jobs, "get_search_provider", lambda: FakeSearch())
+
+
 @pytest.fixture
 def client():
     Base.metadata.drop_all(engine)

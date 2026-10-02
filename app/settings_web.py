@@ -5,7 +5,8 @@ from fastapi.responses import RedirectResponse
 
 from app.auth import DB, CurrentUser
 from app.providers.ai import GeminiProvider, ProviderError
-from app.settings_store import api_key_hint, delete_api_key, save_api_key
+from app.providers.search import WikipediaSearch
+from app.settings_store import api_key_hint, delete_api_key, get_api_key, save_api_key
 from app.templating import render
 
 router = APIRouter(prefix="/configuracion")
@@ -14,6 +15,19 @@ router = APIRouter(prefix="/configuracion")
 def check_gemini_key(api_key: str) -> str:
     """Prueba la clave contra Google. Se reemplaza en los tests."""
     return GeminiProvider(api_key).check()
+
+
+def run_diagnostics(api_key: str) -> list[dict]:
+    """Prueba Gemini (texto y búsqueda de Google) y Wikipedia. Se reemplaza en los tests."""
+    results = GeminiProvider(api_key).diagnose()
+    try:
+        WikipediaSearch(max_documents=1, max_chars=100).search(["Wikipedia"], "Español")
+        results.append({"name": "Wikipedia (plan B)", "ok": True, "message": "Funciona"})
+    except ProviderError as exc:
+        results.append(
+            {"name": "Wikipedia (plan B)", "ok": False, "message": str(exc), "detail": exc.detail}
+        )
+    return results
 
 
 def _page(request: Request, db: DB, status_code: int = 200, **ctx):
@@ -48,3 +62,11 @@ def save_gemini(request: Request, db: DB, user: CurrentUser, api_key: Annotated[
 def delete_gemini(db: DB, user: CurrentUser):
     delete_api_key(db, "gemini")
     return RedirectResponse("/configuracion", status_code=303)
+
+
+@router.post("/gemini/probar")
+def test_gemini(request: Request, db: DB, user: CurrentUser):
+    api_key = get_api_key(db, "gemini")
+    if not api_key:
+        return _page(request, db, 400, error="Primero guarda una clave.")
+    return _page(request, db, diagnostics=run_diagnostics(api_key))

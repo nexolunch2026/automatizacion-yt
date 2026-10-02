@@ -37,3 +37,34 @@ def test_delete_key(logged_in, monkeypatch):
 
 def test_settings_requires_login(client):
     assert client.get("/configuracion", follow_redirects=False).status_code == 303
+
+
+def test_connection_diagnostics(logged_in, monkeypatch):
+    monkeypatch.setattr(settings_web, "check_gemini_key", lambda key: "gemini-test")
+    logged_in.post("/configuracion/gemini", data={"api_key": "AIzaSecreta1234"})
+    seen = {}
+
+    def fake_diagnostics(key):
+        seen["key"] = key
+        return [
+            {"name": "gemini-2.5-flash — texto", "ok": True, "message": "Funciona"},
+            {
+                "name": "gemini-2.5-flash — búsqueda de Google",
+                "ok": False,
+                "message": "Sin cuota",
+                "detail": "429 RESOURCE_EXHAUSTED",
+            },
+        ]
+
+    monkeypatch.setattr(settings_web, "run_diagnostics", fake_diagnostics)
+    r = logged_in.post("/configuracion/gemini/probar")
+    assert seen["key"] == "AIzaSecreta1234"
+    assert "Resultado de la prueba" in r.text
+    assert "Sin cuota" in r.text
+    assert "429 RESOURCE_EXHAUSTED" in r.text
+
+
+def test_diagnostics_without_key(logged_in):
+    r = logged_in.post("/configuracion/gemini/probar")
+    assert r.status_code == 400
+    assert "Primero guarda una clave" in r.text
