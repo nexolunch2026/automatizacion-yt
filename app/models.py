@@ -53,8 +53,8 @@ WORDS_BY_DURATION = {
     "Short": 140,
     "3–5 min": 600,
     "5–10 min": 1100,
-    "10–15 min": 1800,
-    "15–30 min": 3200,
+    "10–15 min": 1900,
+    "15–30 min": 3300,
 }
 SCRIPT_TONES = [
     "Documental",

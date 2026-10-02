@@ -493,3 +493,11 @@ generar una miniatura en el chat de ChatGPT o Gemini, etc.).
 - **Archivos**: `datos/proyectos/<id>/`, servidos con sesión y protección de rutas.
 - **Pendiente**: Piper no se ha probado con una voz real en el entorno de desarrollo (sin
   acceso a HuggingFace); las pruebas usan una voz simulada.
+
+- **Extensión del guion (v0.5.1)**: los modelos rápidos escribían guiones muy cortos
+  (10–15 min salía en ~5 min). Ahora el guion se escribe en dos pasos: un esquema con
+  objetivo de palabras por sección (`plan_sections`: gancho 4 %, promesa 4 %, intro 8 %,
+  desarrollo 62 % repartido en 2–6 secciones, clímax 12 %, conclusión 7 %, llamada 3 %) y
+  luego cada sección por separado, con la anterior como contexto. Si una sección queda
+  por debajo del 75 % de su objetivo, se pide una versión más larga. Los errores
+  temporales se reintentan dentro de la misma tarea (20 s, 40 s) para no perder lo escrito.

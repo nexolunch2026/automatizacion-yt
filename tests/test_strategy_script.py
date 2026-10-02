@@ -62,9 +62,22 @@ def test_write_script_with_tone(logged_in, ai):
     data = script_data()
     assert data["title"] == "Título 1-2"
     assert data["params"] == {"tone": "Misterioso", "drama": "Alto", "technical": "Bajo"}
-    assert [s["kind"] for s in data["sections"]] == ["hook", "development", "development"]
+    # 5–10 min: gancho, promesa, intro, 3 de desarrollo, clímax, conclusión y llamada.
+    assert [s["kind"] for s in data["sections"]] == [
+        "hook",
+        "promise",
+        "intro",
+        "development",
+        "development",
+        "development",
+        "climax",
+        "conclusion",
+        "cta",
+    ]
+    assert data["sections"][3]["title"] == "Parte 3"
     # Fuentes inexistentes (99) descartadas; hay 2 fuentes en la investigación.
     assert data["sections"][1]["paragraphs"][0]["sources"] == [1]
+    assert data["target_words"] == 1100
     assert data["words"] > 0
     with SessionLocal() as db:
         assert db.get(Project, 1).status == "Guion"
@@ -170,3 +183,80 @@ def test_overview_suggests_next_step(logged_in, ai):
     logged_in.post("/proyectos/1/etapas/research")
     run_all()
     assert "Proponer enfoques" in logged_in.get("/proyectos/1").text
+
+
+# ---------------------------------------------------------------- extensión del guion
+
+
+class ShortWriter(FakeAI):
+    """Escribe secciones demasiado cortas la primera vez, como los modelos rápidos."""
+
+    def __init__(self):
+        super().__init__()
+        self.expansions = 0
+
+    def generate_json(self, prompt, schema):
+        from app.pipeline.script import Paragraph, SectionDraft
+
+        if schema is SectionDraft:
+            if "debería tener unas" in prompt:
+                self.expansions += 1
+                import re
+
+                target = int(re.search(r"debería tener unas (\d+)", prompt).group(1))
+                return SectionDraft(paragraphs=[Paragraph(text="dato " * target, sources=[1])])
+            return SectionDraft(paragraphs=[Paragraph(text="Muy corto.", sources=[])])
+        return super().generate_json(prompt, schema)
+
+
+def test_long_video_reaches_target_length(logged_in, monkeypatch):
+    from app.models import WORDS_BY_DURATION
+
+    writer = ShortWriter()
+    monkeypatch.setattr(jobs, "get_ai_provider", lambda db: writer)
+    make_project(logged_in, "automatico")
+    with SessionLocal() as db:
+        db.get(Project, 1).duration = "10–15 min"
+        db.commit()
+    logged_in.post("/proyectos/1/etapas/research")
+    run_all()
+
+    data = script_data()
+    sections = len(data["sections"])
+    assert sections == 10  # 4 secciones de desarrollo para 10–15 min
+    assert writer.expansions == sections  # todas salieron cortas y se alargaron
+    assert data["words"] >= WORDS_BY_DURATION["10–15 min"] * 0.95
+    assert data["minutes"] >= 12
+
+
+def test_plan_sections_adds_up():
+    from app.models import WORDS_BY_DURATION
+    from app.pipeline.script import plan_sections
+
+    for duration, total in WORDS_BY_DURATION.items():
+        plan = plan_sections(duration)
+        assert abs(sum(p["words"] for p in plan) - total) <= total * 0.1
+    assert [p["kind"] for p in plan_sections("Short")] == ["hook", "development", "cta"]
+
+
+def test_temporary_error_while_writing_is_retried(monkeypatch):
+    from app.pipeline import script as script_module
+
+    waits = []
+    monkeypatch.setattr(script_module, "SLEEP", waits.append)
+    calls = {"n": 0}
+
+    def flaky():
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise ProviderError("Límite por minuto.", transient=True)
+        return "ok"
+
+    assert script_module._with_retries(flaky) == "ok"
+    assert waits == [20, 40]
+
+    def broken():
+        raise ProviderError("Clave inválida.")
+
+    with pytest.raises(ProviderError):
+        script_module._with_retries(broken)

@@ -47,7 +47,7 @@
 <div class="card script">
   <div class="row">
     <h2>{{ script.title }}</h2>
-    <span class="muted small">{{ script.words }} palabras · ~{{ script.minutes }} min de narración</span>
+    <span class="muted small">{{ script.words }} palabras{% if script.target_words %} (objetivo ~{{ script.target_words }}){% endif %} · ~{{ script.minutes }} min de narración</span>
   </div>
   {% for section in script.sections %}
   <section class="script-section">

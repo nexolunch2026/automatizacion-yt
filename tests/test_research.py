@@ -6,7 +6,7 @@ from app import jobs, settings_web
 from app.db import SessionLocal
 from app.models import Job, Project, StageResult
 from app.pipeline.research import Angle, Fact, ResearchBrief, SearchQueries
-from app.pipeline.script import Paragraph, Rewrite, Script, Section
+from app.pipeline.script import Outline, OutlineSection, Paragraph, Rewrite, SectionDraft
 from app.pipeline.storyboard import SceneSpec, Storyboard, VisualBible
 from app.pipeline.strategy import Concept, Strategy, Thumbnail, TitleOption
 from app.providers.ai import GroundedText, ProviderError, Source
@@ -36,27 +36,30 @@ def fake_strategy():
     )
 
 
-def fake_script():
-    return Script(
-        title="Ignorado",
-        sections=[
-            Section(
-                kind="hook",
-                title="Inicio",
-                paragraphs=[Paragraph(text="Nadie lo vio venir.", sources=[])],
+def fake_outline(prompt):
+    import re
+
+    count = int(re.search(r"Tiene exactamente (\d+) secciones", prompt).group(1))
+    return Outline(
+        sections=[OutlineSection(title=f"Parte {i}", key_points=["Enron"]) for i in range(count)]
+    )
+
+
+def fake_section(prompt):
+    import re
+
+    if "debería tener unas" in prompt:  # petición de alargar: no la mejora, se queda el original
+        return SectionDraft(paragraphs=[Paragraph(text="Corto.", sources=[])])
+    number = int(re.search(r"ESCRIBE AHORA SOLO la sección (\d+)", prompt).group(1))
+    if number == 1:
+        return SectionDraft(paragraphs=[Paragraph(text="Nadie lo vio venir.", sources=[])])
+    return SectionDraft(
+        paragraphs=[
+            Paragraph(
+                text=f"Enron quebró en 2001 tras años de engaños ({number}).", sources=[1, 99]
             ),
-            Section(
-                kind="development",
-                title="La caída",
-                paragraphs=[
-                    Paragraph(text="Enron quebró en 2001 tras años de engaños.", sources=[1, 99]),
-                    Paragraph(text="Miles de empleados perdieron todo.", sources=[2]),
-                ],
-            ),
-            Section(
-                kind="rarísimo", title="", paragraphs=[Paragraph(text="Suscríbete.", sources=[])]
-            ),
-        ],
+            Paragraph(text=f"Miles de empleados perdieron todo ({number}).", sources=[2]),
+        ]
     )
 
 
@@ -108,8 +111,10 @@ class FakeAI:
             return SearchQueries(queries=["Enron", "quiebra de Enron"])
         if schema is Strategy:
             return fake_strategy()
-        if schema is Script:
-            return fake_script()
+        if schema is Outline:
+            return fake_outline(prompt)
+        if schema is SectionDraft:
+            return fake_section(prompt)
         if schema is Storyboard:
             return fake_storyboard(prompt)
         if schema is Rewrite:
