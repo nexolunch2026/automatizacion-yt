@@ -17,7 +17,7 @@ from app.models import STATUSES, Job, Project, StageResult
 from app.pipeline.research import run_research
 from app.providers.ai import AIProvider, GeminiProvider, ProviderError
 from app.providers.search import SearchProvider, WikipediaSearch
-from app.settings_store import get_api_key
+from app.settings_store import get_api_key, get_setting, set_setting
 
 log = logging.getLogger(__name__)
 
@@ -32,7 +32,14 @@ def get_ai_provider(db: Session) -> AIProvider:
     key = get_api_key(db, "gemini")
     if not key:
         raise ProviderError("Falta la clave de Gemini. Añádela en Configuración.")
-    return GeminiProvider(key)
+    return GeminiProvider(key, preferred=get_setting(db, "gemini_model"))
+
+
+def remember_working_model(db: Session, ai: AIProvider) -> None:
+    """Guarda el modelo que funcionó para usarlo primero la próxima vez."""
+    model = getattr(ai, "last_model", None)
+    if model and get_setting(db, "gemini_model") != model:
+        set_setting(db, "gemini_model", model)
 
 
 def get_search_provider() -> SearchProvider:
@@ -40,7 +47,10 @@ def get_search_provider() -> SearchProvider:
 
 
 def _run_research(db: Session, project: Project, progress) -> dict:
-    return run_research(project, get_ai_provider(db), progress, get_search_provider())
+    ai = get_ai_provider(db)
+    data = run_research(project, ai, progress, get_search_provider())
+    remember_working_model(db, ai)
+    return data
 
 
 RUNNERS: dict[str, Callable[[Session, Project, Callable[[int, str], None]], dict]] = {

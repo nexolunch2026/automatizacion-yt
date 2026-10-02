@@ -6,7 +6,14 @@ from fastapi.responses import RedirectResponse
 from app.auth import DB, CurrentUser
 from app.providers.ai import GeminiProvider, ProviderError
 from app.providers.search import WikipediaSearch
-from app.settings_store import api_key_hint, delete_api_key, get_api_key, save_api_key
+from app.settings_store import (
+    api_key_hint,
+    delete_api_key,
+    get_api_key,
+    get_setting,
+    save_api_key,
+    set_setting,
+)
 from app.templating import render
 
 router = APIRouter(prefix="/configuracion")
@@ -17,9 +24,11 @@ def check_gemini_key(api_key: str) -> str:
     return GeminiProvider(api_key).check()
 
 
-def run_diagnostics(api_key: str) -> list[dict]:
-    """Prueba Gemini (texto y búsqueda de Google) y Wikipedia. Se reemplaza en los tests."""
-    results = GeminiProvider(api_key).diagnose()
+def run_diagnostics(api_key: str, preferred: str | None) -> tuple[list[dict], str | None]:
+    """Prueba Gemini (texto y búsqueda de Google) y Wikipedia. Devuelve los resultados y el
+    modelo que funcionó. Se reemplaza en los tests."""
+    provider = GeminiProvider(api_key, preferred=preferred)
+    results = provider.diagnose()
     try:
         WikipediaSearch(max_documents=1, max_chars=100).search(["Wikipedia"], "Español")
         results.append({"name": "Wikipedia (plan B)", "ok": True, "message": "Funciona"})
@@ -27,7 +36,7 @@ def run_diagnostics(api_key: str) -> list[dict]:
         results.append(
             {"name": "Wikipedia (plan B)", "ok": False, "message": str(exc), "detail": exc.detail}
         )
-    return results
+    return results, provider.last_model
 
 
 def _page(request: Request, db: DB, status_code: int = 200, **ctx):
@@ -36,6 +45,7 @@ def _page(request: Request, db: DB, status_code: int = 200, **ctx):
         "settings.html",
         status_code=status_code,
         gemini_hint=api_key_hint(db, "gemini"),
+        current_model=get_setting(db, "gemini_model"),
         **ctx,
     )
 
@@ -55,6 +65,7 @@ def save_gemini(request: Request, db: DB, user: CurrentUser, api_key: Annotated[
     except ProviderError as exc:
         return _page(request, db, 400, error=f"No se pudo guardar: {exc}")
     save_api_key(db, "gemini", api_key)
+    set_setting(db, "gemini_model", "")  # clave nueva: volver a buscar qué modelo funciona
     return RedirectResponse("/configuracion?guardado=1", status_code=303)
 
 
@@ -69,4 +80,7 @@ def test_gemini(request: Request, db: DB, user: CurrentUser):
     api_key = get_api_key(db, "gemini")
     if not api_key:
         return _page(request, db, 400, error="Primero guarda una clave.")
-    return _page(request, db, diagnostics=run_diagnostics(api_key))
+    results, model = run_diagnostics(api_key, get_setting(db, "gemini_model"))
+    if model:
+        set_setting(db, "gemini_model", model)
+    return _page(request, db, diagnostics=results, working_model=model)

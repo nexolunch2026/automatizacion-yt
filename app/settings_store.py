@@ -40,3 +40,13 @@ def api_key_hint(db: Session, provider: str) -> str | None:
     """Solo los 4 últimos caracteres, para que el usuario sepa qué clave tiene guardada."""
     key = get_api_key(db, provider)
     return f"••••{key[-4:]}" if key else None
+
+
+def get_setting(db: Session, key: str) -> str | None:
+    row = db.get(Setting, key)
+    return row.value if row else None
+
+
+def set_setting(db: Session, key: str, value: str) -> None:
+    db.merge(Setting(key=key, value=value))
+    db.commit()

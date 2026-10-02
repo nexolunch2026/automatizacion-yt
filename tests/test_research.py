@@ -247,3 +247,16 @@ def test_failure_shows_technical_detail(project, monkeypatch):
     assert "Sin uso gratuito." in page
     assert "Detalle técnico" in page
     assert "limit: 0" in page
+
+
+def test_working_model_is_remembered(project, monkeypatch):
+    from app.settings_store import get_setting
+
+    class WithModel(FakeAI):
+        last_model = "gemini-3.5-flash"
+
+    monkeypatch.setattr(jobs, "get_ai_provider", lambda db: WithModel())
+    run_stage(project)
+    jobs.process_next_job()
+    with SessionLocal() as db:
+        assert get_setting(db, "gemini_model") == "gemini-3.5-flash"

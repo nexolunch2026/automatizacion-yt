@@ -44,7 +44,7 @@ def test_connection_diagnostics(logged_in, monkeypatch):
     logged_in.post("/configuracion/gemini", data={"api_key": "AIzaSecreta1234"})
     seen = {}
 
-    def fake_diagnostics(key):
+    def fake_diagnostics(key, preferred):
         seen["key"] = key
         return [
             {"name": "gemini-2.5-flash — texto", "ok": True, "message": "Funciona"},
@@ -54,11 +54,13 @@ def test_connection_diagnostics(logged_in, monkeypatch):
                 "message": "Sin cuota",
                 "detail": "429 RESOURCE_EXHAUSTED",
             },
-        ]
+        ], "gemini-2.5-flash"
 
     monkeypatch.setattr(settings_web, "run_diagnostics", fake_diagnostics)
     r = logged_in.post("/configuracion/gemini/probar")
     assert seen["key"] == "AIzaSecreta1234"
+    assert "Gemini funciona con el modelo" in r.text
+    assert "Modelo en uso: gemini-2.5-flash" in r.text
     assert "Resultado de la prueba" in r.text
     assert "Sin cuota" in r.text
     assert "429 RESOURCE_EXHAUSTED" in r.text

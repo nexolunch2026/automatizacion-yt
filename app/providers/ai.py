@@ -50,25 +50,34 @@ class AIProvider(Protocol):
 
 # ---------------------------------------------------------------- Gemini
 
-FALLBACK_MODEL = "gemini-2.5-flash"
-# Modelos con nivel gratuito conocido (incluida la búsqueda de Google). Se prueban primero.
-PREFERRED_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
-_EXCLUDED = ("preview", "exp", "tts", "image", "live", "audio", "embedding", "thinking")
+FALLBACK_MODEL = "gemini-flash-latest"
+# Alias que Google mantiene apuntando a su Flash actual; suelen tener nivel gratuito.
+ALIASES = ["gemini-flash-latest", "gemini-flash-lite-latest"]
+_EXCLUDED = ("exp", "tts", "image", "live", "audio", "embedding", "thinking", "computer")
+_FLASH = re.compile(r"gemini-(\d+(?:\.\d+)?)-flash(-lite)?(-preview(?:-[\w-]+)?)?")
 
 
-def candidate_models(model_names: list[str]) -> list[str]:
-    """Ordena los modelos Flash disponibles: primero los gratuitos conocidos, luego el resto
-    del más nuevo al más antiguo (los «lite» después de los normales)."""
-    available = []
-    for name in model_names:
-        name = name.removeprefix("models/")
-        match = re.fullmatch(r"gemini-(\d+(?:\.\d+)?)-flash(-lite)?", name)
-        if match and not any(word in name for word in _EXCLUDED):
-            available.append((float(match.group(1)), match.group(2) is None, name))
-    names = {name for *_, name in available}
-    preferred = [m for m in PREFERRED_MODELS if m in names]
-    rest = [name for *_, name in sorted(available, reverse=True) if name not in preferred]
-    return preferred + rest or [FALLBACK_MODEL]
+def candidate_models(model_names: list[str], preferred: str | None = None) -> list[str]:
+    """Ordena los modelos Flash disponibles para probarlos uno tras otro:
+    el que ya funcionó antes, los alias «latest», los estables (del más nuevo al más
+    antiguo, «lite» después) y por último las versiones «preview»."""
+    names = [n.removeprefix("models/") for n in model_names]
+    ranked = []
+    for name in names:
+        if any(word in name for word in _EXCLUDED):
+            continue
+        if name in ALIASES:
+            ranked.append(((0, -ALIASES.index(name)), name))
+            continue
+        match = _FLASH.fullmatch(name)
+        if match:
+            is_preview = match.group(3) is not None
+            is_full = match.group(2) is None
+            ranked.append(((-1 if is_preview else -0.5, float(match.group(1)), is_full), name))
+    ordered = [name for _, name in sorted(ranked, reverse=True)]
+    if preferred and preferred in names:
+        ordered = [preferred] + [n for n in ordered if n != preferred]
+    return ordered or [FALLBACK_MODEL]
 
 
 def pick_flash_model(model_names: list[str]) -> str:
@@ -98,18 +107,19 @@ def insert_citations(text: str, supports) -> str:
 class GeminiProvider:
     name = "gemini"
 
-    def __init__(self, api_key: str, model: str | None = None):
+    def __init__(self, api_key: str, model: str | None = None, preferred: str | None = None):
         from google import genai
 
         self._client = genai.Client(api_key=api_key)
         self._models = [model] if model else None
+        self._preferred = preferred  # el modelo que funcionó la última vez
         self.last_model: str | None = None  # modelo que respondió la última vez
 
     @property
     def models(self) -> list[str]:
         if self._models is None:
             names = self._call(lambda: [m.name for m in self._client.models.list()])
-            self._models = candidate_models(names)
+            self._models = candidate_models(names, self._preferred)
         return self._models
 
     def check(self) -> str:
@@ -137,43 +147,55 @@ class GeminiProvider:
             return response
         raise last_error or ProviderError("No hay ningún modelo de Gemini disponible.")
 
-    def diagnose(self, max_models: int = 2) -> list[dict]:
-        """Prueba cada función por separado para saber qué permite la cuenta del usuario."""
+    def diagnose(self, max_models: int = 8) -> list[dict]:
+        """Busca el primer modelo que funcione para texto y prueba con él la búsqueda de
+        Google. Deja ese modelo en `last_model` para poder recordarlo."""
         from google.genai import types
 
-        results = []
+        def attempt(model, config=None) -> ProviderError | None:
+            try:
+                self._call(
+                    lambda: self._client.models.generate_content(
+                        model=model, contents="Responde solo: OK", config=config
+                    )
+                )
+                return None
+            except ModelUnavailable as exc:
+                return exc.error
+            except ProviderError as exc:
+                return exc
+
+        def failed(name, error):
+            return {"name": name, "ok": False, "message": str(error), "detail": error.detail}
+
         try:
             models = self.models
         except ProviderError as exc:
-            return [
-                {"name": "Clave de Gemini", "ok": False, "message": str(exc), "detail": exc.detail}
-            ]
-        results.append({"name": "Clave de Gemini", "ok": True, "message": "Válida"})
+            return [failed("Clave de Gemini", exc)]
+        results = [{"name": "Clave de Gemini", "ok": True, "message": "Válida"}]
 
-        search = types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())])
+        working = None
         for model in models[:max_models]:
-            for label, config in (("texto", None), ("búsqueda de Google", search)):
-                name = f"{model} — {label}"
-                try:
-                    self._call(
-                        lambda m=model, c=config: self._client.models.generate_content(
-                            model=m, contents="Responde solo: OK", config=c
-                        )
-                    )
-                    results.append({"name": name, "ok": True, "message": "Funciona"})
-                except ModelUnavailable as exc:
-                    results.append(
-                        {
-                            "name": name,
-                            "ok": False,
-                            "message": str(exc.error),
-                            "detail": exc.error.detail,
-                        }
-                    )
-                except ProviderError as exc:
-                    results.append(
-                        {"name": name, "ok": False, "message": str(exc), "detail": exc.detail}
-                    )
+            error = attempt(model)
+            if error is None:
+                working = model
+                results.append({"name": f"{model} — texto", "ok": True, "message": "Funciona"})
+                break
+            results.append(failed(f"{model} — texto", error))
+            if "clave" in str(error):
+                return results
+        if working is None:
+            return results
+
+        self.last_model = working
+        search = types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())])
+        error = attempt(working, search)
+        name = f"{working} — búsqueda de Google"
+        results.append(
+            {"name": name, "ok": True, "message": "Funciona"}
+            if error is None
+            else failed(name, error)
+        )
         return results
 
     def grounded_research(self, prompt: str) -> GroundedText:

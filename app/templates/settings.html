@@ -14,6 +14,7 @@
 
   {% if gemini_hint %}
   <p>Estado: <span class="badge ok">Conectado</span> <span class="muted small">Clave {{ gemini_hint }}</span></p>
+  {% if current_model %}<p class="muted small">Modelo en uso: {{ current_model }}</p>{% endif %}
   <div class="row-actions">
     <form method="post" action="/configuracion/gemini/probar"
           onsubmit="this.querySelector('button').textContent = 'Probando… (unos segundos)'">
@@ -38,9 +39,15 @@
     </li>
     {% endfor %}
   </ul>
+  {% if working_model %}
+  <p class="alert ok">Gemini funciona con el modelo <strong>{{ working_model }}</strong>.
+    El programa lo usará a partir de ahora.</p>
+  {% else %}
+  <p class="alert">Ningún modelo de Gemini respondió. Abre los «Detalle técnico» y envía una
+    captura para saber por qué.</p>
+  {% endif %}
   <p class="muted small">Si la «búsqueda de Google» falla pero el «texto» funciona, no pasa nada:
-    el programa usará Wikipedia para las fuentes. Si el «texto» también falla, Gemini no
-    está disponible gratis para tu cuenta ahora mismo.</p>
+    el programa usará Wikipedia para las fuentes.</p>
   {% endif %}
   <hr>
   <p class="muted small">Si quieres cambiarla, pega una nueva:</p>

@@ -15,22 +15,31 @@ from app.providers.ai import (
 )
 
 
-def test_free_models_first_then_newest():
+def test_model_order():
     names = [
         "models/gemini-2.5-flash",
         "models/gemini-3.5-flash",
         "models/gemini-3.5-flash-lite",
         "models/gemini-2.5-flash-lite",
         "models/gemini-4-flash-preview",
+        "models/gemini-flash-latest",
+        "models/gemini-flash-lite-latest",
         "models/gemini-3.1-pro",
         "models/gemini-2.5-flash-preview-tts",
+        "models/gemini-2.5-flash-image",
     ]
     assert candidate_models(names) == [
-        "gemini-2.5-flash",
-        "gemini-2.5-flash-lite",
+        "gemini-flash-latest",
+        "gemini-flash-lite-latest",
         "gemini-3.5-flash",
         "gemini-3.5-flash-lite",
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-4-flash-preview",
     ]
+    # El que funcionó la última vez va primero (si sigue existiendo).
+    assert candidate_models(names, preferred="gemini-3.5-flash-lite")[0] == "gemini-3.5-flash-lite"
+    assert candidate_models(names, preferred="gemini-1-flash")[0] == "gemini-flash-latest"
     assert pick_flash_model(["models/gemini-3.5-flash"]) == "gemini-3.5-flash"
     assert candidate_models([]) == [FALLBACK_MODEL]
 
@@ -121,15 +130,15 @@ def provider_with(fake):
 def test_falls_back_to_next_model_without_free_quota():
     fake = FakeModels(
         ["gemini-2.5-flash", "gemini-3.5-flash"],
-        {"gemini-2.5-flash": quota_error("gemini-2.5-flash")},
+        {"gemini-3.5-flash": quota_error("gemini-3.5-flash")},
     )
     provider = provider_with(fake)
     result = provider.grounded_research("tema")
     assert result.text == '{"x": 1}'
-    assert provider.last_model == "gemini-3.5-flash"
+    assert provider.last_model == "gemini-2.5-flash"
     # La siguiente llamada va directamente al modelo que funcionó.
     provider.grounded_research("tema")
-    assert fake.calls == ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.5-flash"]
+    assert fake.calls == ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.5-flash"]
 
 
 def test_all_models_without_quota_gives_clear_error_with_detail():
@@ -148,27 +157,48 @@ def test_invalid_key_does_not_try_other_models():
     bad_key = errors.APIError(
         400, {"error": {"code": 400, "message": "API key not valid", "status": "INVALID_ARGUMENT"}}
     )
-    fake = FakeModels(["gemini-2.5-flash", "gemini-3.5-flash"], {"gemini-2.5-flash": bad_key})
+    fake = FakeModels(["gemini-2.5-flash", "gemini-3.5-flash"], {"gemini-3.5-flash": bad_key})
     with pytest.raises(ProviderError) as info:
         provider_with(fake).grounded_research("tema")
     assert "clave" in str(info.value)
-    assert fake.calls == ["gemini-2.5-flash"]
+    assert fake.calls == ["gemini-3.5-flash"]
 
 
-def test_diagnose_reports_each_function_separately():
+def not_found(model):
+    return errors.APIError(
+        404, {"error": {"code": 404, "message": f"{model} is not found", "status": "NOT_FOUND"}}
+    )
+
+
+def test_diagnose_finds_first_working_model():
     class SearchBlocked(FakeModels):
         def generate_content(self, model, contents, config):
             if config is not None:  # la búsqueda de Google no tiene cuota
                 raise quota_error(model)
             return super().generate_content(model, contents, config)
 
-    results = provider_with(SearchBlocked(["gemini-2.5-flash"], {})).diagnose()
+    old_models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
+    fake = SearchBlocked(
+        ["gemini-3.5-flash", *old_models], {"gemini-3.5-flash": not_found("gemini-3.5-flash")}
+    )
+    provider = provider_with(fake)
+    results = provider.diagnose()
     assert [(r["name"], r["ok"]) for r in results] == [
         ("Clave de Gemini", True),
+        ("gemini-3.5-flash — texto", False),
         ("gemini-2.5-flash — texto", True),
         ("gemini-2.5-flash — búsqueda de Google", False),
     ]
-    assert "limit: 0" in results[2]["detail"]
+    assert provider.last_model == "gemini-2.5-flash"
+    assert "limit: 0" in results[3]["detail"]
+
+
+def test_diagnose_when_no_model_works():
+    models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
+    provider = provider_with(FakeModels(models, {m: not_found(m) for m in models}))
+    results = provider.diagnose()
+    assert [r["ok"] for r in results] == [True, False, False]
+    assert provider.last_model is None
 
 
 def test_overloaded_model_tries_the_next_one():
