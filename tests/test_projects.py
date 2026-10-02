@@ -38,7 +38,8 @@ def test_create_project_and_see_it(logged_in):
     r = logged_in.post("/proyectos/nuevo", data=project_data())
     assert r.status_code == 200
     assert "Empresas que desaparecieron misteriosamente" in r.text
-    assert "Pendiente" in r.text
+    assert "Listo para empezar" in r.text
+    assert "Próximamente" in r.text
 
     dashboard = logged_in.get("/").text
     assert "Empresas que desaparecieron misteriosamente" in dashboard

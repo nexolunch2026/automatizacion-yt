@@ -1,6 +1,6 @@
 # Plataforma de producción Faceless para YouTube — Documento de diseño
 
-> Estado: **v0.3** — M0 y M1 hechos.
+> Estado: **v0.3** — M0, M1, M2 y M3 hechos.
 >
 > **Cambio v0.3 (prioriza la sencillez de instalación):** el usuario es principiante y
 > usa Windows, así que se sustituye la pila con Docker por una app que arranca con
@@ -350,8 +350,8 @@ Login → Dashboard (tarjetas de proyecto con estado y progreso)
 |---|---|---|
 | M0 ✅ | Esqueleto | `docker compose up` levanta frontend, API, worker, Postgres, Redis y SeaweedFS; CI con tests |
 | M1 ✅ | Auth + canales + proyectos | Login, crear canal, crear proyecto, dashboard |
-| M2 | Orquestador | Etapas con estados, SSE, reintentos, aprobación; etapa de prueba de punta a punta |
-| M3 | Research + estrategia | Brief con fuentes reales para un tema |
+| M2 ✅ | Orquestador | Etapas con estados, SSE, reintentos, aprobación; etapa de prueba de punta a punta |
+| M3 ✅ (research) | Research + estrategia | Brief con fuentes reales para un tema |
 | M4 | Guion + editor | Guion editable por párrafos; marca escenas obsoletas |
 | M5 | Storyboard + stock | Escenas con visual de stock y licencia guardada |
 | M6 | Voz + subtítulos | Narración por escena + SRT sincronizado |
@@ -432,3 +432,21 @@ por API**: las APIs se pagan aparte, por uso. Por eso el MVP se apoya en:
 
 Las suscripciones siguen siendo útiles para trabajo manual (pulir un guion,
 generar una miniatura en el chat de ChatGPT o Gemini, etc.).
+
+---
+
+## 16. Notas de implementación (M2–M3)
+
+- **Cola de tareas** (`app/jobs.py`): tabla `jobs` en SQLite y un único hilo trabajador.
+  Reintenta los errores temporales (límite de uso, servicio caído) hasta 3 veces con
+  espera; al arrancar, las tareas que quedaron a medias vuelven a la cola.
+- **Investigación** (`app/pipeline/research.py`): en lugar de Tavily se usa la
+  *búsqueda de Google integrada en Gemini* (grounding), así basta con una sola clave
+  gratuita. Paso 1: búsqueda con fuentes reales y marcas [n] insertadas a partir de los
+  metadatos de Gemini. Paso 2: se estructura en JSON. Los números de fuente que no
+  existen se descartan y el dato pasa a «por verificar»: nunca se inventan fuentes.
+- **Modelo**: se elige automáticamente el Gemini Flash estable más reciente que la
+  clave tenga disponible (`pick_flash_model`); si no se puede listar, `gemini-2.5-flash`.
+- **Claves API**: se guardan cifradas (Fernet) desde la página Configuración; la clave
+  de cifrado vive en `datos/encryption.key`. La interfaz solo muestra los 4 últimos
+  caracteres.

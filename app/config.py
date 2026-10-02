@@ -16,13 +16,24 @@ PORT = int(os.environ.get("FACELESS_PORT", "8000"))
 # Solo dos cuentas: el dueño y su amigo.
 MAX_USERS = 2
 
+# El trabajador en segundo plano se desactiva en los tests.
+WORKER_ENABLED = os.environ.get("FACELESS_WORKER", "1") == "1"
 
-def _load_secret_key() -> str:
-    """Genera la clave de sesiones la primera vez y la reutiliza después."""
-    path = DATA_DIR / "secret.key"
+
+def _load_or_create(filename: str, generate) -> str:
+    """Genera una clave la primera vez y la reutiliza después."""
+    path = DATA_DIR / filename
     if not path.exists():
-        path.write_text(secrets.token_urlsafe(48), encoding="utf-8")
+        path.write_text(generate(), encoding="utf-8")
     return path.read_text(encoding="utf-8").strip()
 
 
-SECRET_KEY = _load_secret_key()
+def _fernet_key() -> str:
+    from cryptography.fernet import Fernet
+
+    return Fernet.generate_key().decode()
+
+
+SECRET_KEY = _load_or_create("secret.key", lambda: secrets.token_urlsafe(48))
+# Cifra las claves API guardadas en la base de datos.
+ENCRYPTION_KEY = _load_or_create("encryption.key", _fernet_key)

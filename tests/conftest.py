@@ -3,6 +3,8 @@ import tempfile
 
 # La app guarda datos en una carpeta temporal durante los tests.
 os.environ["FACELESS_DATA_DIR"] = tempfile.mkdtemp(prefix="faceless-test-")
+# Los tests ejecutan las tareas a mano, sin trabajador en segundo plano.
+os.environ["FACELESS_WORKER"] = "0"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

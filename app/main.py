@@ -6,15 +6,21 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from app import auth, web
-from app.config import SECRET_KEY
+from app import auth, settings_web, web
+from app.config import SECRET_KEY, WORKER_ENABLED
 from app.db import init_db
+from app.jobs import Worker
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     init_db()
+    worker = Worker() if WORKER_ENABLED else None
+    if worker:
+        worker.start()
     yield
+    if worker:
+        worker.stop()
 
 
 app = FastAPI(title="Faceless Studio", lifespan=lifespan, docs_url=None, redoc_url=None)
@@ -28,6 +34,7 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 app.include_router(auth.router)
 app.include_router(web.router)
+app.include_router(settings_web.router)
 
 
 @app.exception_handler(auth.LoginRequired)

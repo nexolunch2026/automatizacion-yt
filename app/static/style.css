@@ -128,3 +128,20 @@ legend { color: var(--muted); font-size: .9rem; padding: 0 6px; }
   .topbar { flex-wrap: wrap; gap: 12px; padding: 12px 16px; }
   .page-head { flex-direction: column; }
 }
+
+/* Configuración e investigación */
+hr { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
+code { background: var(--bg); padding: 2px 6px; border-radius: 4px; }
+.steps { padding-left: 20px; display: grid; gap: 8px; margin: 0 0 16px; }
+.steps a, .facts a, .sources a, .alert a { color: #b9d0ff; }
+.alert.ok { background: rgba(62, 207, 142, .12); border-color: rgba(62, 207, 142, .4); color: #b5f0d4; }
+.badge.ok { background: rgba(62, 207, 142, .15); color: #b5f0d4; }
+.btn[disabled] { opacity: .4; cursor: not-allowed; }
+.status-running { color: #b9d0ff; }
+.status-done { color: var(--ok); }
+.status-failed { color: var(--accent); }
+.card h3 { margin-top: 20px; }
+.card.inner { background: var(--bg); margin: 0; }
+.facts, .sources { padding-left: 20px; display: grid; gap: 6px; }
+.cite { font-size: .75rem; text-decoration: none; margin-left: 2px; vertical-align: super; }
+.sources { font-size: .9rem; }

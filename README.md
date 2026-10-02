@@ -1,7 +1,8 @@
 # Faceless Studio
 
 Programa para crear vídeos de YouTube sin salir en cámara.
-Por ahora tiene: **cuentas para 2 personas, canales y proyectos de vídeo**.
+Por ahora tiene: **cuentas para 2 personas, canales, proyectos de vídeo e
+investigación automática del tema con fuentes** (usa Gemini, gratis).
 La creación automática de los vídeos se irá añadiendo poco a poco.
 
 ---
@@ -32,6 +33,11 @@ La creación automática de los vídeos se irá añadiendo poco a poco.
 ### Paso 4 — Crear las cuentas
 1. Pulsa **Crea tu cuenta**, elige un usuario y una contraseña.
 2. Tu amigo hace lo mismo con la suya. Solo se pueden crear **2 cuentas**.
+
+### Paso 5 — Conectar Gemini (para la investigación automática)
+1. En el programa, pulsa **Configuración** (arriba).
+2. Sigue los pasos que aparecen ahí para conseguir la clave gratis y pégala.
+3. Abre un proyecto y pulsa **Investigar el tema**.
 
 ### Para apagarlo
 Cierra la **ventana negra**.

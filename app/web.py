@@ -5,17 +5,19 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from app import jobs
 from app.auth import DB, CurrentUser
 from app.models import (
     AUTOMATION_MODES,
     DURATIONS,
     LANGUAGES,
     STAGES,
-    STATUSES,
     VIDEO_TYPES,
     Channel,
     Project,
+    StageResult,
 )
+from app.settings_store import api_key_hint
 from app.templating import render
 
 router = APIRouter()
@@ -171,14 +173,46 @@ def _get_project(db: DB, project_id: int) -> Project:
 
 @router.get("/proyectos/{project_id}")
 def project_detail(request: Request, db: DB, user: CurrentUser, project_id: int):
+    project = _get_project(db, project_id)
+    results = {
+        r.stage: r.data
+        for r in db.scalars(select(StageResult).where(StageResult.project_id == project_id))
+    }
     return render(
         request,
         "project_detail.html",
-        project=_get_project(db, project_id),
+        project=project,
         stages=STAGES,
-        statuses=STATUSES,
         modes=AUTOMATION_MODES,
+        jobs=jobs.latest_jobs(db, project_id),
+        results=results,
+        runnable=set(jobs.RUNNERS),
+        has_gemini=api_key_hint(db, "gemini") is not None,
     )
+
+
+@router.post("/proyectos/{project_id}/etapas/{stage}")
+def run_stage(db: DB, user: CurrentUser, project_id: int, stage: str):
+    _get_project(db, project_id)
+    if stage not in jobs.RUNNERS:
+        raise HTTPException(404, "Esta etapa todavía no está disponible")
+    jobs.enqueue(db, project_id, stage)
+    return _redirect(f"/proyectos/{project_id}")
+
+
+@router.get("/proyectos/{project_id}/estado")
+def project_status(db: DB, user: CurrentUser, project_id: int) -> dict:
+    """Estado de las tareas; la página lo consulta cada pocos segundos."""
+    _get_project(db, project_id)
+    return {
+        stage: {
+            "status": j.status,
+            "progress": j.progress,
+            "message": j.message,
+            "error": j.error,
+        }
+        for stage, j in jobs.latest_jobs(db, project_id).items()
+    }
 
 
 @router.post("/proyectos/{project_id}/borrar")

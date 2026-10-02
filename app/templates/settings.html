@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Configuración</h1>
+    <p class="muted">Aquí se conectan los servicios que usa el programa.</p>
+  </div>
+</div>
+
+<div class="card form-card">
+  <h2>Gemini (Google) — investigación y guiones</h2>
+  {% if saved %}<p class="alert ok">Clave guardada y comprobada. ¡Listo!</p>{% endif %}
+  {% if error %}<p class="alert">{{ error }}</p>{% endif %}
+
+  {% if gemini_hint %}
+  <p>Estado: <span class="badge ok">Conectado</span> <span class="muted small">Clave {{ gemini_hint }}</span></p>
+  <form method="post" action="/configuracion/gemini/borrar"
+        onsubmit="return confirm('¿Quitar la clave de Gemini?')">
+    <button class="btn-link">Quitar clave</button>
+  </form>
+  <hr>
+  <p class="muted small">Si quieres cambiarla, pega una nueva:</p>
+  {% else %}
+  <p>Estado: <span class="badge">Sin conectar</span></p>
+  <h3>Cómo conseguir la clave (gratis)</h3>
+  <ol class="steps">
+    <li>Abre <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>
+      y entra con tu cuenta de Google (la de Gmail).</li>
+    <li>Si te pide aceptar condiciones, acéptalas.</li>
+    <li>Pulsa el botón <strong>«Crear clave de API»</strong> (o <em>«Create API key»</em>).</li>
+    <li>Aparece un texto largo que empieza por <code>AIza…</code>. Pulsa <strong>Copiar</strong>.</li>
+    <li>Vuelve aquí, pégalo en la casilla de abajo (clic derecho → Pegar) y pulsa <strong>Guardar</strong>.</li>
+  </ol>
+  <p class="muted small">La clave es como una contraseña: no la compartas con nadie.
+    Se guarda cifrada en tu ordenador y no se vuelve a mostrar.
+    El nivel gratuito tiene un límite de uso diario, suficiente para 1–2 vídeos al día.
+    Google puede usar lo que envíes en el nivel gratuito para mejorar sus productos.</p>
+  {% endif %}
+
+  <form method="post" action="/configuracion/gemini" class="stack">
+    <label>Clave de Gemini
+      <input name="api_key" type="password" autocomplete="off" placeholder="AIza…" required>
+    </label>
+    <button class="btn">Guardar</button>
+  </form>
+</div>
+{% endblock %}

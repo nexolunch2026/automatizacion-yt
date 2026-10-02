@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, String, Text, func
+from sqlalchemy import JSON, ForeignKey, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -19,19 +19,19 @@ STATUSES = [
     "Publicado",
 ]
 
-# Etapas del pipeline que se muestran en la barra de progreso.
-STAGES = [
-    "Investigación",
-    "Estrategia",
-    "Guion",
-    "Storyboard",
-    "Visuales",
-    "Voz",
-    "Edición",
-    "Miniatura",
-    "Control de calidad",
-    "Publicación",
-]
+# Etapas del pipeline: clave interna → nombre visible, en orden.
+STAGES = {
+    "research": "Investigación",
+    "strategy": "Estrategia",
+    "script": "Guion",
+    "storyboard": "Storyboard",
+    "visuals": "Visuales",
+    "voice": "Voz",
+    "edit": "Edición",
+    "thumbnail": "Miniatura",
+    "qc": "Control de calidad",
+    "publish": "Publicación",
+}
 
 DURATIONS = ["Short", "3–5 min", "5–10 min", "10–15 min", "15–30 min"]
 LANGUAGES = ["Español", "Inglés"]
@@ -96,8 +96,56 @@ class Project(Base):
 
     channel: Mapped[Channel] = relationship(back_populates="projects")
     author: Mapped[User] = relationship()
+    jobs: Mapped[list["Job"]] = relationship(cascade="all, delete-orphan", passive_deletes=True)
+    results: Mapped[list["StageResult"]] = relationship(
+        cascade="all, delete-orphan", passive_deletes=True
+    )
 
     @property
     def progress(self) -> int:
         """Porcentaje aproximado según el estado (se afinará con el pipeline real)."""
         return round(STATUSES.index(self.status) / (len(STATUSES) - 1) * 100)
+
+
+class Setting(Base):
+    """Preferencias y claves API (las claves se guardan cifradas)."""
+
+    __tablename__ = "settings"
+
+    key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    value: Mapped[str] = mapped_column(Text)
+
+
+class Job(Base):
+    """Una tarea en segundo plano (por ejemplo, investigar un proyecto)."""
+
+    __tablename__ = "jobs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    stage: Mapped[str] = mapped_column(String(30))
+    status: Mapped[str] = mapped_column(String(20), default="queued")  # queued|running|done|failed
+    progress: Mapped[int] = mapped_column(default=0)
+    message: Mapped[str] = mapped_column(String(200), default="En cola")
+    error: Mapped[str | None] = mapped_column(Text)
+    attempts: Mapped[int] = mapped_column(default=0)
+    run_after: Mapped[datetime | None]
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    finished_at: Mapped[datetime | None]
+
+    @property
+    def active(self) -> bool:
+        return self.status in ("queued", "running")
+
+
+class StageResult(Base):
+    """Lo que produce cada etapa de un proyecto (informe, guion, escenas…)."""
+
+    __tablename__ = "stage_results"
+    __table_args__ = (UniqueConstraint("project_id", "stage"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    stage: Mapped[str] = mapped_column(String(30))
+    data: Mapped[dict] = mapped_column(JSON)
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
