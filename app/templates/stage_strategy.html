@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% import "_project.html" as ui %}
+{% block content %}
+{% set strategy = result %}
+{{ ui.header(project) }}
+{{ ui.tabs(project, stage, slugs, stages, results, jobs) }}
+
+<div class="card">
+  <div class="row">
+    <div>
+      <h2>Estrategia</h2>
+      <p class="muted small">Elige un enfoque y el título que más te guste.</p>
+    </div>
+    {% if 'research' in results and not (job and job.active) %}
+    <form method="post" action="/proyectos/{{ project.id }}/etapas/strategy">
+      <button class="btn {{ 'secondary' if strategy }}" {% if not has_gemini %}disabled{% endif %}>
+        {% if strategy %}Proponer otros enfoques{% else %}Proponer enfoques{% endif %}
+      </button>
+    </form>
+    {% endif %}
+  </div>
+  {{ ui.no_gemini(has_gemini) }}
+  {{ ui.job_status(job) }}
+  {% if 'research' not in results %}
+  <p class="alert info">Primero hay que <a href="/proyectos/{{ project.id }}/investigacion">investigar el tema</a>.</p>
+  {% endif %}
+</div>
+
+{% if strategy %}
+{% set sel = strategy.selected %}
+<div class="concepts">
+  {% for c in strategy.concepts %}
+  {% set ci = loop.index0 %}
+  {% set chosen = sel and sel.concept == ci %}
+  <form method="post" action="/proyectos/{{ project.id }}/estrategia/elegir" class="card concept {{ 'chosen' if chosen }}">
+    <input type="hidden" name="concept" value="{{ ci }}">
+    <div class="row">
+      <h3>{{ c.angle }}</h3>
+      {% if chosen %}<span class="badge ok">Elegido</span>{% endif %}
+    </div>
+    <p>{{ c.summary }}</p>
+    <dl class="meta">
+      <dt>Para quién</dt><dd>{{ c.audience }}</dd>
+      <dt>Promesa</dt><dd>{{ c.promise }}</dd>
+      <dt>Gancho</dt><dd><em>«{{ c.hook }}»</em></dd>
+    </dl>
+
+    <h4>Títulos</h4>
+    {% for t in c.titles %}
+    <label class="radio title-option">
+      <input type="radio" name="title" value="{{ loop.index0 }}"
+        {% if (chosen and sel.title == loop.index0) or (not chosen and loop.first) %}checked{% endif %}>
+      <span><strong>{{ t.title }}</strong>
+        <span class="muted small">· {{ t.style }} — {{ t.reason }}</span></span>
+    </label>
+    {% endfor %}
+
+    <h4>Miniatura</h4>
+    <div class="thumb-concept">
+      <div class="thumb-text">{{ c.thumbnail.text }}</div>
+      <p class="small">{{ c.thumbnail.concept }}</p>
+      <p class="muted small">{{ c.thumbnail.composition }}</p>
+    </div>
+
+    <button class="btn {{ 'secondary' if chosen }}">
+      {% if chosen %}Guardar título y seguir al guion →{% else %}Elegir este enfoque →{% endif %}
+    </button>
+  </form>
+  {% endfor %}
+</div>
+{% endif %}
+{{ ui.live_updates(project, jobs) }}
+{% endblock %}

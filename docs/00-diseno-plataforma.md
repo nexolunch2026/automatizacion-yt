@@ -1,6 +1,6 @@
 # Plataforma de producción Faceless para YouTube — Documento de diseño
 
-> Estado: **v0.3** — M0, M1, M2 y M3 hechos.
+> Estado: **v0.4** — M0–M4 hechos (investigación, estrategia y guion).
 >
 > **Cambio v0.3 (prioriza la sencillez de instalación):** el usuario es principiante y
 > usa Windows, así que se sustituye la pila con Docker por una app que arranca con
@@ -351,8 +351,8 @@ Login → Dashboard (tarjetas de proyecto con estado y progreso)
 | M0 ✅ | Esqueleto | `docker compose up` levanta frontend, API, worker, Postgres, Redis y SeaweedFS; CI con tests |
 | M1 ✅ | Auth + canales + proyectos | Login, crear canal, crear proyecto, dashboard |
 | M2 ✅ | Orquestador | Etapas con estados, SSE, reintentos, aprobación; etapa de prueba de punta a punta |
-| M3 ✅ (research) | Research + estrategia | Brief con fuentes reales para un tema |
-| M4 | Guion + editor | Guion editable por párrafos; marca escenas obsoletas |
+| M3 ✅ | Research + estrategia | Brief con fuentes reales para un tema |
+| M4 ✅ | Guion + editor | Guion editable por párrafos; marca escenas obsoletas |
 | M5 | Storyboard + stock | Escenas con visual de stock y licencia guardada |
 | M6 | Voz + subtítulos | Narración por escena + SRT sincronizado |
 | M7 | Montaje + render | **Primer MP4 completo** con música, voz, visuales y subtítulos |
@@ -460,3 +460,20 @@ generar una miniatura en el chat de ChatGPT o Gemini, etc.).
   generación de texto y la búsqueda de Google en los dos primeros modelos, y Wikipedia.
 - **Cuotas**: los errores 429 se clasifican con los `QuotaFailure.violations` de Google
   (por minuto → reintento; por día o límite 0 → sin reintento, se prueba otro modelo).
+
+## 17. Notas de implementación (M3 estrategia y M4 guion, v0.4)
+
+- **Estrategia** (`app/pipeline/strategy.py`): 3 enfoques con audiencia, promesa, gancho,
+  3 títulos (estilo + razón, sin métricas inventadas) y concepto de miniatura. El usuario
+  elige enfoque y título (`selected`).
+- **Guion** (`app/pipeline/script.py`): secciones hook → promise → intro → development →
+  climax → conclusion → cta; extensión según la duración (~150 palabras/min); tono,
+  dramatismo y nivel técnico configurables. Cada párrafo tiene un `id` estable (servirá
+  para saber qué escenas del storyboard quedan afectadas) y sus números de fuente.
+- **Editor**: por párrafo, edición manual, borrar, o con IA: reescribir, alargar, resumir
+  y cambiar tono (síncrono, usando los párrafos vecinos como contexto).
+- **Modos**: manual (nada encadenado); asistido (tras investigar, se proponen enfoques y
+  se espera la elección); automático (elige el primer enfoque y escribe el guion).
+- **Migración ligera**: `init_db` añade a las tablas existentes las columnas nuevas
+  opcionales (p. ej. `jobs.params`) para no perder datos al actualizar.
+- **Páginas**: el proyecto tiene pestañas Resumen / Investigación / Estrategia / Guion.

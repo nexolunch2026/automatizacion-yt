@@ -18,6 +18,7 @@ from app.models import (
     StageResult,
 )
 from app.settings_store import api_key_hint
+from app.stages_web import SLUGS
 from app.templating import render
 
 router = APIRouter()
@@ -187,17 +188,9 @@ def project_detail(request: Request, db: DB, user: CurrentUser, project_id: int)
         jobs=jobs.latest_jobs(db, project_id),
         results=results,
         runnable=set(jobs.RUNNERS),
+        slugs=SLUGS,
         has_gemini=api_key_hint(db, "gemini") is not None,
     )
-
-
-@router.post("/proyectos/{project_id}/etapas/{stage}")
-def run_stage(db: DB, user: CurrentUser, project_id: int, stage: str):
-    _get_project(db, project_id)
-    if stage not in jobs.RUNNERS:
-        raise HTTPException(404, "Esta etapa todavía no está disponible")
-    jobs.enqueue(db, project_id, stage)
-    return _redirect(f"/proyectos/{project_id}")
 
 
 @router.get("/proyectos/{project_id}/estado")

@@ -1,0 +1,78 @@
+{# Piezas comunes de las páginas de un proyecto. #}
+
+{% macro header(project) %}
+<div class="page-head">
+  <div>
+    <p class="muted small"><a href="/">← Proyectos</a></p>
+    <h1>{{ project.title }}</h1>
+    <p class="muted">{{ project.channel.name }} · {{ project.video_type }} · {{ project.duration }} · {{ project.language }}</p>
+  </div>
+  <span class="badge big">{{ project.status }}</span>
+</div>
+{% endmacro %}
+
+{% macro tabs(project, current, slugs, stages, results, jobs) %}
+<nav class="tabs">
+  <a href="/proyectos/{{ project.id }}" class="{{ 'active' if current == 'overview' }}">Resumen</a>
+  {% for stage, slug in slugs.items() %}
+  {% set job = jobs.get(stage) %}
+  <a href="/proyectos/{{ project.id }}/{{ slug }}" class="{{ 'active' if current == stage }}">
+    {{ stages[stage] }}
+    {% if job and job.active %}<span class="dot running" title="En marcha"></span>
+    {% elif job and job.status == 'failed' and stage not in results %}<span class="dot failed" title="Falló"></span>
+    {% elif stage in results %}<span class="tick">✓</span>{% endif %}
+  </a>
+  {% endfor %}
+</nav>
+{% endmacro %}
+
+{% macro job_status(job) %}
+{% if job and job.active %}
+<div class="live">
+  <p class="muted" data-live-message="{{ job.stage }}">{{ job.message }}…</p>
+  <div class="progress"><div data-live-bar="{{ job.stage }}" style="width: {{ job.progress }}%"></div></div>
+  <p class="muted small">Puedes salir de esta página: el trabajo sigue en segundo plano.</p>
+</div>
+{% elif job and job.status == 'failed' %}
+{% set parts = (job.error or '').split('\n\n', 1) %}
+<div class="alert">
+  {{ parts[0] }}
+  {% if parts|length > 1 %}
+  <details class="tech">
+    <summary>Detalle técnico (cópialo si necesitas ayuda)</summary>
+    <code>{{ parts[1] }}</code>
+  </details>
+  {% endif %}
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro no_gemini(has_gemini) %}
+{% if not has_gemini %}
+<p class="alert info">Para esto necesitas conectar Gemini. Es gratis:
+  ve a <a href="/configuracion">Configuración</a> y sigue los pasos.</p>
+{% endif %}
+{% endmacro %}
+
+{% macro live_updates(project, jobs) %}
+{% if jobs.values()|selectattr('active')|list %}
+<script>
+  // Mientras haya tareas en marcha, muestra su avance y recarga la página al terminar.
+  const timer = setInterval(async () => {
+    try {
+      const state = await (await fetch("/proyectos/{{ project.id }}/estado")).json();
+      for (const [stage, job] of Object.entries(state)) {
+        const label = document.querySelector(`[data-live-message="${stage}"]`);
+        const bar = document.querySelector(`[data-live-bar="${stage}"]`);
+        if (label) label.textContent = job.message + "…";
+        if (bar) bar.style.width = job.progress + "%";
+      }
+      if (!Object.values(state).some(j => j.status === "queued" || j.status === "running")) {
+        clearInterval(timer);
+        location.reload();
+      }
+    } catch (e) { /* si falla una consulta, se reintenta en la siguiente */ }
+  }, 2000);
+</script>
+{% endif %}
+{% endmacro %}

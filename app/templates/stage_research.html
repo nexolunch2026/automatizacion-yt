@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% import "_project.html" as ui %}
+{% block content %}
+{% set research = result %}
+{{ ui.header(project) }}
+{{ ui.tabs(project, stage, slugs, stages, results, jobs) }}
+
+<div class="card">
+  <div class="row">
+    <h2>Investigación</h2>
+    {% if not (job and job.active) %}
+    <form method="post" action="/proyectos/{{ project.id }}/etapas/research">
+      <button class="btn {{ 'secondary' if research }}" {% if not has_gemini %}disabled{% endif %}>
+        {% if research %}Volver a investigar{% else %}Investigar el tema{% endif %}
+      </button>
+    </form>
+    {% endif %}
+  </div>
+  {{ ui.no_gemini(has_gemini) }}
+  {{ ui.job_status(job) }}
+
+  {% if research %}
+    {% if research.notice %}<p class="alert info">{{ research.notice }}</p>{% endif %}
+    {% if research.warning %}<p class="alert info">{{ research.warning }}</p>{% endif %}
+    <h3>Contexto</h3>
+    <p>{{ research.context }}</p>
+
+    {% macro facts(title, items) %}
+      {% if items %}
+      <h3>{{ title }}</h3>
+      <ul class="facts">
+        {% for f in items %}
+        <li>{{ f.text }}
+          {% for n in f.sources %}<a class="cite" href="#fuente-{{ n }}">[{{ n }}]</a>{% endfor %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    {% endmacro %}
+    {{ facts('Hechos principales', research.key_facts) }}
+    {{ facts('Cronología', research.timeline) }}
+    {{ facts('Personas y organizaciones', research.people) }}
+    {{ facts('Cifras', research.figures) }}
+
+    {% if research.angles %}
+    <h3>Posibles enfoques para el vídeo</h3>
+    <div class="grid">
+      {% for a in research.angles %}
+      <div class="card inner"><strong>{{ a.title }}</strong><p class="muted small">{{ a.description }}</p></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if research.controversial %}
+    <h3>Puntos controvertidos</h3>
+    <ul>{% for c in research.controversial %}<li>{{ c }}</li>{% endfor %}</ul>
+    {% endif %}
+
+    {% if research.needs_verification %}
+    <h3>⚠️ Por verificar antes de usar</h3>
+    <ul class="muted">{% for c in research.needs_verification %}<li>{{ c }}</li>{% endfor %}</ul>
+    {% endif %}
+
+    {% if research.sources %}
+    <h3>Fuentes</h3>
+    <ol class="sources">
+      {% for s in research.sources %}
+      <li id="fuente-{{ s.n }}"><a href="{{ s.uri }}" target="_blank" rel="noopener">{{ s.title }}</a></li>
+      {% endfor %}
+    </ol>
+    {% endif %}
+    {% if research.model %}<p class="muted small">Hecho con {{ research.model }}.</p>{% endif %}
+
+    <div class="next-inline">
+      {% set sjob = jobs.get('strategy') %}
+      {% if 'strategy' in results %}
+        <a class="btn" href="/proyectos/{{ project.id }}/estrategia">Siguiente: ver enfoques →</a>
+      {% elif sjob and sjob.active %}
+        <p class="muted">Preparando enfoques: <span data-live-message="strategy">{{ sjob.message }}…</span></p>
+      {% else %}
+        <form method="post" action="/proyectos/{{ project.id }}/etapas/strategy">
+          <button class="btn">Siguiente: proponer enfoques →</button>
+        </form>
+      {% endif %}
+    </div>
+  {% elif not (job and job.active) %}
+  <p class="muted">Pulsa «Investigar el tema» y el programa buscará información en internet,
+    con sus fuentes, para preparar el guion.</p>
+  {% endif %}
+</div>
+{{ ui.live_updates(project, jobs) }}
+{% endblock %}

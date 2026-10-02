@@ -6,9 +6,57 @@ from app import jobs, settings_web
 from app.db import SessionLocal
 from app.models import Job, Project, StageResult
 from app.pipeline.research import Angle, Fact, ResearchBrief, SearchQueries
+from app.pipeline.script import Paragraph, Rewrite, Script, Section
+from app.pipeline.strategy import Concept, Strategy, Thumbnail, TitleOption
 from app.providers.ai import GroundedText, ProviderError, Source
 from tests.conftest import FakeSearch
 from tests.test_projects import create_channel, project_data
+
+
+def fake_strategy():
+    return Strategy(
+        concepts=[
+            Concept(
+                angle=f"Enfoque {i}",
+                summary="Resumen",
+                audience="Curiosos",
+                promise="Entenderás la caída",
+                hook="Nadie lo vio venir…",
+                titles=[
+                    TitleOption(title=f"Título {i}-{j}", style="misterio", reason="Intriga")
+                    for j in range(3)
+                ],
+                thumbnail=Thumbnail(
+                    concept="Edificio vacío", text="SE ESFUMÓ", composition="Alto contraste"
+                ),
+            )
+            for i in range(3)
+        ]
+    )
+
+
+def fake_script():
+    return Script(
+        title="Ignorado",
+        sections=[
+            Section(
+                kind="hook",
+                title="Inicio",
+                paragraphs=[Paragraph(text="Nadie lo vio venir.", sources=[])],
+            ),
+            Section(
+                kind="development",
+                title="La caída",
+                paragraphs=[
+                    Paragraph(text="Enron quebró en 2001 tras años de engaños.", sources=[1, 99]),
+                    Paragraph(text="Miles de empleados perdieron todo.", sources=[2]),
+                ],
+            ),
+            Section(
+                kind="rarísimo", title="", paragraphs=[Paragraph(text="Suscríbete.", sources=[])]
+            ),
+        ],
+    )
 
 
 class FakeAI:
@@ -24,6 +72,12 @@ class FakeAI:
     def generate_json(self, prompt, schema):
         if schema is SearchQueries:
             return SearchQueries(queries=["Enron", "quiebra de Enron"])
+        if schema is Strategy:
+            return fake_strategy()
+        if schema is Script:
+            return fake_script()
+        if schema is Rewrite:
+            return Rewrite(text="Párrafo reescrito por la IA.", sources=[2, 7])
         assert schema is ResearchBrief
         return ResearchBrief(
             context="Grandes empresas que cayeron de golpe.",
@@ -60,13 +114,14 @@ def test_research_end_to_end(project, monkeypatch):
     assert project.get("/proyectos/1/estado").json()["research"]["status"] == "queued"
 
     assert jobs.process_next_job() is True
-    assert jobs.process_next_job() is False  # ya no queda nada
+    # Modo asistido: al terminar la investigación, la IA prepara los enfoques sola.
+    assert project.get("/proyectos/1/estado").json()["strategy"]["status"] == "queued"
 
-    page = project.get("/proyectos/1").text
+    page = project.get("/proyectos/1/investigacion").text
     assert "Enron quebró en 2001" in page
     assert "https://ejemplo.com/0" in page
     assert "Las señales ignoradas" in page
-    assert "✓ Hecho" in page
+    assert "✓ Hecho" in project.get("/proyectos/1").text
 
     with SessionLocal() as db:
         data = db.query(StageResult).one().data
@@ -92,7 +147,7 @@ def test_missing_key_fails_with_clear_message(logged_in):
     logged_in.post("/proyectos/nuevo", data=project_data())
     run_stage(logged_in)
     jobs.process_next_job()
-    page = logged_in.get("/proyectos/1").text
+    page = logged_in.get("/proyectos/1/investigacion").text
     assert "Falta la clave de Gemini" in page
 
 
@@ -194,7 +249,7 @@ def test_falls_back_to_wikipedia_when_google_search_unavailable(project, monkeyp
     # Solo hay 1 documento: las referencias a la fuente 2 se descartan.
     assert data["timeline"][0]["sources"] == [1]
     assert "63.000 millones en activos (sin fuente)" in data["needs_verification"]
-    page = project.get("/proyectos/1").text
+    page = project.get("/proyectos/1/investigacion").text
     assert "se usó Wikipedia" in page
 
 
@@ -224,7 +279,7 @@ def test_invalid_key_does_not_fall_back(project, monkeypatch):
     run_stage(project)
     jobs.process_next_job()
     assert search.queries is None
-    assert "clave de Gemini no es válida" in project.get("/proyectos/1").text
+    assert "clave de Gemini no es válida" in project.get("/proyectos/1/investigacion").text
 
 
 def test_wikipedia_without_results(project, monkeypatch):
@@ -232,7 +287,9 @@ def test_wikipedia_without_results(project, monkeypatch):
     monkeypatch.setattr(jobs, "get_search_provider", lambda: FakeSearch(documents=[]))
     run_stage(project)
     jobs.process_next_job()
-    assert "No se encontró información en Wikipedia" in project.get("/proyectos/1").text
+    assert (
+        "No se encontró información en Wikipedia" in project.get("/proyectos/1/investigacion").text
+    )
 
 
 def test_failure_shows_technical_detail(project, monkeypatch):
@@ -243,7 +300,7 @@ def test_failure_shows_technical_detail(project, monkeypatch):
     monkeypatch.setattr(jobs, "get_ai_provider", lambda db: NoQuotaAtAll())
     run_stage(project)
     jobs.process_next_job()
-    page = project.get("/proyectos/1").text
+    page = project.get("/proyectos/1/investigacion").text
     assert "Sin uso gratuito." in page
     assert "Detalle técnico" in page
     assert "limit: 0" in page

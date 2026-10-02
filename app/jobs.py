@@ -15,6 +15,8 @@ from sqlalchemy.orm import Session
 from app.db import SessionLocal
 from app.models import STATUSES, Job, Project, StageResult
 from app.pipeline.research import run_research
+from app.pipeline.script import default_params, run_script
+from app.pipeline.strategy import run_strategy
 from app.providers.ai import AIProvider, GeminiProvider, ProviderError
 from app.providers.search import SearchProvider, WikipediaSearch
 from app.settings_store import get_api_key, get_setting, set_setting
@@ -25,7 +27,23 @@ MAX_ATTEMPTS = 4
 RETRY_DELAYS = [timedelta(seconds=30), timedelta(seconds=90), timedelta(minutes=3)]
 
 # Estado del proyecto cuando termina cada etapa.
-STAGE_DONE_STATUS = {"research": "Investigación"}
+STAGE_DONE_STATUS = {"research": "Investigación", "script": "Guion"}
+# Qué etapa sigue a cada una (para los modos asistido y automático).
+NEXT_STAGE = {"research": "strategy", "strategy": "script"}
+
+
+def get_result(db: Session, project_id: int, stage: str) -> dict | None:
+    result = db.scalar(
+        select(StageResult).where(StageResult.project_id == project_id, StageResult.stage == stage)
+    )
+    return result.data if result else None
+
+
+def _require(db: Session, project: Project, stage: str, message: str) -> dict:
+    data = get_result(db, project.id, stage)
+    if data is None:
+        raise ProviderError(message)
+    return data
 
 
 def get_ai_provider(db: Session) -> AIProvider:
@@ -46,19 +64,43 @@ def get_search_provider() -> SearchProvider:
     return WikipediaSearch()
 
 
-def _run_research(db: Session, project: Project, progress) -> dict:
+def _run_research(db: Session, project: Project, progress, params: dict) -> dict:
     ai = get_ai_provider(db)
     data = run_research(project, ai, progress, get_search_provider())
     remember_working_model(db, ai)
     return data
 
 
-RUNNERS: dict[str, Callable[[Session, Project, Callable[[int, str], None]], dict]] = {
+def _run_strategy(db: Session, project: Project, progress, params: dict) -> dict:
+    research = _require(db, project, "research", "Primero hay que investigar el tema.")
+    ai = get_ai_provider(db)
+    data = run_strategy(project, research, ai, progress)
+    remember_working_model(db, ai)
+    if project.automation_mode == "automatico" and data["concepts"]:
+        data["selected"] = {"concept": 0, "title": 0, "auto": True}
+    return data
+
+
+def _run_script(db: Session, project: Project, progress, params: dict) -> dict:
+    research = _require(db, project, "research", "Primero hay que investigar el tema.")
+    strategy = _require(db, project, "strategy", "Primero hay que crear la estrategia.")
+    if not strategy.get("selected"):
+        raise ProviderError("Primero elige uno de los enfoques en la página de Estrategia.")
+    ai = get_ai_provider(db)
+    data = run_script(project, research, strategy, ai, params or default_params(), progress)
+    remember_working_model(db, ai)
+    return data
+
+
+Runner = Callable[[Session, Project, Callable[[int, str], None], dict], dict]
+RUNNERS: dict[str, Runner] = {
     "research": _run_research,
+    "strategy": _run_strategy,
+    "script": _run_script,
 }
 
 
-def enqueue(db: Session, project_id: int, stage: str) -> Job:
+def enqueue(db: Session, project_id: int, stage: str, params: dict | None = None) -> Job:
     """Añade una tarea a la cola. Si ya hay una igual en marcha, devuelve esa."""
     if stage not in RUNNERS:
         raise ValueError(f"Etapa desconocida: {stage}")
@@ -71,7 +113,7 @@ def enqueue(db: Session, project_id: int, stage: str) -> Job:
     )
     if existing:
         return existing
-    job = Job(project_id=project_id, stage=stage)
+    job = Job(project_id=project_id, stage=stage, params=params)
     db.add(job)
     db.commit()
     return job
@@ -111,7 +153,7 @@ def process_next_job() -> bool:
             db.commit()
 
         try:
-            data = RUNNERS[job.stage](db, project, progress)
+            data = RUNNERS[job.stage](db, project, progress, job.params or {})
         except Exception as exc:  # noqa: BLE001 — cualquier fallo debe quedar registrado
             _handle_failure(db, job, exc)
             return True
@@ -120,7 +162,21 @@ def process_next_job() -> bool:
         job.status, job.progress, job.message = "done", 100, "Terminado"
         job.finished_at = datetime.now()
         db.commit()
+        _chain_next(db, project, job.stage, data)
         return True
+
+
+def _chain_next(db: Session, project: Project, stage: str, data: dict) -> None:
+    """Asistido: tras investigar, la IA prepara las propuestas y espera tu elección.
+    Automático: sigue sola hasta el final de lo que ya está disponible."""
+    next_stage = NEXT_STAGE.get(stage)
+    if next_stage is None or project.automation_mode == "manual":
+        return
+    if project.automation_mode == "asistido" and stage != "research":
+        return
+    if next_stage == "script" and not data.get("selected"):
+        return
+    enqueue(db, project.id, next_stage)
 
 
 def _save_result(db: Session, project: Project, stage: str, data: dict) -> None:

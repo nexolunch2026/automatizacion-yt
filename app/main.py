@@ -6,7 +6,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from app import auth, settings_web, web
+from app import auth, settings_web, stages_web, web
 from app.config import SECRET_KEY, WORKER_ENABLED
 from app.db import init_db
 from app.jobs import Worker
@@ -35,6 +35,7 @@ app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), na
 app.include_router(auth.router)
 app.include_router(web.router)
 app.include_router(settings_web.router)
+app.include_router(stages_web.router)
 
 
 @app.exception_handler(auth.LoginRequired)

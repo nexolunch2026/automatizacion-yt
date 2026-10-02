@@ -1,14 +1,41 @@
 {% extends "base.html" %}
+{% import "_project.html" as ui %}
 {% block content %}
-{% set research = results.get('research') %}
+{{ ui.header(project) }}
+{{ ui.tabs(project, 'overview', slugs, stages, results, jobs) }}
+
+{# Siguiente paso recomendado #}
 {% set research_job = jobs.get('research') %}
-<div class="page-head">
-  <div>
-    <p class="muted small"><a href="/">← Proyectos</a></p>
-    <h1>{{ project.title }}</h1>
-    <p class="muted">{{ project.channel.name }} · {{ project.video_type }} · {{ project.duration }} · {{ project.language }}</p>
-  </div>
-  <span class="badge big">{{ project.status }}</span>
+{% set strategy = results.get('strategy') %}
+<div class="card next-step">
+  <h2>Siguiente paso</h2>
+  {% if jobs.values()|selectattr('active')|list %}
+    {% for j in jobs.values() if j.active %}
+    <p>Trabajando en <strong>{{ stages[j.stage] }}</strong>: <span data-live-message="{{ j.stage }}">{{ j.message }}…</span></p>
+    <div class="progress"><div data-live-bar="{{ j.stage }}" style="width: {{ j.progress }}%"></div></div>
+    {% endfor %}
+  {% elif 'research' not in results %}
+    <p>Investigar el tema en internet para tener datos reales con fuentes.</p>
+    <form method="post" action="/proyectos/{{ project.id }}/etapas/research">
+      <button class="btn" {% if not has_gemini %}disabled{% endif %}>Investigar el tema</button>
+    </form>
+  {% elif not strategy %}
+    <p>Pedir a la IA 3 enfoques con títulos e ideas de miniatura.</p>
+    <form method="post" action="/proyectos/{{ project.id }}/etapas/strategy">
+      <button class="btn">Proponer enfoques</button>
+    </form>
+  {% elif not strategy.selected %}
+    <p>Elegir uno de los 3 enfoques propuestos.</p>
+    <a class="btn" href="/proyectos/{{ project.id }}/estrategia">Ver enfoques</a>
+  {% elif 'script' not in results %}
+    <p>Escribir el guion con el enfoque elegido.</p>
+    <a class="btn" href="/proyectos/{{ project.id }}/guion">Ir al guion</a>
+  {% else %}
+    <p>El guion está listo. Revísalo y ajusta lo que quieras. La voz y las imágenes llegarán
+      en las próximas versiones.</p>
+    <a class="btn" href="/proyectos/{{ project.id }}/guion">Ver guion</a>
+  {% endif %}
+  {{ ui.no_gemini(has_gemini) }}
 </div>
 
 <div class="two-col">
@@ -28,15 +55,15 @@
       {% for key, label in stages.items() %}
       {% set job = jobs.get(key) %}
       <li>
-        <span>{{ label }}</span>
+        {% if key in slugs %}<a href="/proyectos/{{ project.id }}/{{ slugs[key] }}">{{ label }}</a>{% else %}<span>{{ label }}</span>{% endif %}
         {% if job and job.active %}
-          <span class="small status-running" data-stage="{{ key }}">{{ job.message }} · {{ job.progress }}%</span>
-        {% elif job and job.status == 'failed' %}
+          <span class="small status-running">{{ job.message }} · {{ job.progress }}%</span>
+        {% elif job and job.status == 'failed' and key not in results %}
           <span class="small status-failed">Falló</span>
         {% elif key in results %}
           <span class="small status-done">✓ Hecho</span>
         {% elif key in runnable %}
-          <span class="muted small">Listo para empezar</span>
+          <span class="muted small">Disponible</span>
         {% else %}
           <span class="muted small">Próximamente</span>
         {% endif %}
@@ -46,122 +73,9 @@
   </div>
 </div>
 
-<div class="card">
-  <div class="row">
-    <h2>Investigación</h2>
-    {% if not (research_job and research_job.active) %}
-    <form method="post" action="/proyectos/{{ project.id }}/etapas/research">
-      <button class="btn" {% if not has_gemini %}disabled{% endif %}>
-        {% if research %}Volver a investigar{% else %}Investigar el tema{% endif %}
-      </button>
-    </form>
-    {% endif %}
-  </div>
-
-  {% if not has_gemini %}
-  <p class="alert info">Para investigar necesitas conectar Gemini. Es gratis:
-    ve a <a href="/configuracion">Configuración</a> y sigue los pasos.</p>
-  {% endif %}
-
-  {% if research_job and research_job.active %}
-  <p class="muted" id="live-status">{{ research_job.message }}…</p>
-  <div class="progress"><div id="live-bar" style="width: {{ research_job.progress }}%"></div></div>
-  <p class="muted small">Puedes salir de esta página: el trabajo sigue en segundo plano.</p>
-  {% elif research_job and research_job.status == 'failed' %}
-  {% set parts = (research_job.error or '').split('\n\n', 1) %}
-  <div class="alert">
-    {{ parts[0] }}
-    {% if parts|length > 1 %}
-    <details class="tech">
-      <summary>Detalle técnico (cópialo si necesitas ayuda)</summary>
-      <code>{{ parts[1] }}</code>
-    </details>
-    {% endif %}
-  </div>
-  {% endif %}
-
-  {% if research %}
-    {% if research.notice %}<p class="alert info">{{ research.notice }}</p>{% endif %}
-    {% if research.warning %}<p class="alert info">{{ research.warning }}</p>{% endif %}
-    <h3>Contexto</h3>
-    <p>{{ research.context }}</p>
-
-    {% macro facts(title, items) %}
-      {% if items %}
-      <h3>{{ title }}</h3>
-      <ul class="facts">
-        {% for f in items %}
-        <li>{{ f.text }}
-          {% for n in f.sources %}<a class="cite" href="#fuente-{{ n }}">[{{ n }}]</a>{% endfor %}
-        </li>
-        {% endfor %}
-      </ul>
-      {% endif %}
-    {% endmacro %}
-    {{ facts('Hechos principales', research.key_facts) }}
-    {{ facts('Cronología', research.timeline) }}
-    {{ facts('Personas y organizaciones', research.people) }}
-    {{ facts('Cifras', research.figures) }}
-
-    {% if research.angles %}
-    <h3>Posibles enfoques para el vídeo</h3>
-    <div class="grid">
-      {% for a in research.angles %}
-      <div class="card inner"><strong>{{ a.title }}</strong><p class="muted small">{{ a.description }}</p></div>
-      {% endfor %}
-    </div>
-    {% endif %}
-
-    {% if research.controversial %}
-    <h3>Puntos controvertidos</h3>
-    <ul>{% for c in research.controversial %}<li>{{ c }}</li>{% endfor %}</ul>
-    {% endif %}
-
-    {% if research.needs_verification %}
-    <h3>⚠️ Por verificar antes de usar</h3>
-    <ul class="muted">{% for c in research.needs_verification %}<li>{{ c }}</li>{% endfor %}</ul>
-    {% endif %}
-
-    {% if research.sources %}
-    <h3>Fuentes</h3>
-    <ol class="sources">
-      {% for s in research.sources %}
-      <li id="fuente-{{ s.n }}"><a href="{{ s.uri }}" target="_blank" rel="noopener">{{ s.title }}</a></li>
-      {% endfor %}
-    </ol>
-    {% endif %}
-    {% if research.model %}<p class="muted small">Hecho con {{ research.model }}.</p>{% endif %}
-  {% elif not (research_job and research_job.active) %}
-  <p class="muted">Pulsa «Investigar el tema» y el programa buscará información en internet,
-    con sus fuentes, para preparar el guion.</p>
-  {% endif %}
-</div>
-
 <form method="post" action="/proyectos/{{ project.id }}/borrar"
       onsubmit="return confirm('¿Seguro que quieres borrar este proyecto? No se puede deshacer.')">
   <button class="btn danger">Borrar proyecto</button>
 </form>
-
-{% if jobs.values()|selectattr('active')|list %}
-<script>
-  // Mientras haya tareas en marcha, consulta su estado y recarga al terminar.
-  const timer = setInterval(async () => {
-    try {
-      const res = await fetch("/proyectos/{{ project.id }}/estado");
-      const state = await res.json();
-      const research = state.research;
-      if (research) {
-        const label = document.getElementById("live-status");
-        const bar = document.getElementById("live-bar");
-        if (label) label.textContent = research.message + "…";
-        if (bar) bar.style.width = research.progress + "%";
-      }
-      if (!Object.values(state).some(j => j.status === "queued" || j.status === "running")) {
-        clearInterval(timer);
-        location.reload();
-      }
-    } catch (e) { /* si falla una consulta, se reintenta en la siguiente */ }
-  }, 2000);
-</script>
-{% endif %}
+{{ ui.live_updates(project, jobs) }}
 {% endblock %}

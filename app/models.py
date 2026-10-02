@@ -48,6 +48,25 @@ VIDEO_TYPES = [
     "Educación",
     "Otro",
 ]
+# Palabras aproximadas de narración según la duración (unas 150 palabras por minuto).
+WORDS_BY_DURATION = {
+    "Short": 140,
+    "3–5 min": 600,
+    "5–10 min": 1100,
+    "10–15 min": 1800,
+    "15–30 min": 3200,
+}
+SCRIPT_TONES = [
+    "Documental",
+    "Periodístico",
+    "Misterioso",
+    "Educativo",
+    "Entretenido",
+    "Cinematográfico",
+    "Conversacional",
+]
+LEVELS = ["Bajo", "Medio", "Alto"]
+
 AUTOMATION_MODES = {
     "manual": "Manual — tú controlas cada paso",
     "asistido": "Asistido — la IA propone y tú apruebas",
@@ -130,6 +149,7 @@ class Job(Base):
     error: Mapped[str | None] = mapped_column(Text)
     attempts: Mapped[int] = mapped_column(default=0)
     run_after: Mapped[datetime | None]
+    params: Mapped[dict | None] = mapped_column(JSON)  # opciones elegidas (tono del guion…)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     finished_at: Mapped[datetime | None]
 
