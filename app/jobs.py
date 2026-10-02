@@ -8,6 +8,7 @@ import logging
 import threading
 from collections.abc import Callable
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
@@ -276,7 +277,10 @@ def _run_edit(db: Session, project: Project, progress, params: dict) -> dict:
         is_portrait(project),
         progress,
     )
-    (folder / "video" / "creditos.txt").write_text(credits_text(visuals), encoding="utf-8")
+    try:  # los créditos no deben hacer fallar el montaje
+        (folder / "video" / "creditos.txt").write_text(credits_text(visuals), encoding="utf-8")
+    except OSError:
+        log.warning("No se pudo escribir creditos.txt", exc_info=True)
     previous = get_result(db, project.id, "edit") or {}
     renders = {**previous.get("renders", {}), quality: result}
     return {"renders": renders, "last": quality}
@@ -386,7 +390,29 @@ def _save_result(db: Session, project: Project, stage: str, data: dict) -> None:
         project.status = target
 
 
+def describe_unexpected(exc: Exception) -> str:
+    """Detalle técnico de un error inesperado: tipo, archivo implicado y dónde ocurrió."""
+    import traceback
+
+    text = f"{type(exc).__name__}: {exc}"
+    for attr in ("filename", "filename2"):
+        if getattr(exc, attr, None):
+            text += f" | archivo: {getattr(exc, attr)}"
+    frames = traceback.extract_tb(exc.__traceback__)[-3:]
+    where = " → ".join(f"{Path(f.filename).name}:{f.lineno} {f.name}" for f in frames)
+    return f"{text} | en: {where}" if where else text
+
+
 def _handle_failure(db: Session, job: Job, exc: Exception) -> None:
+    if isinstance(exc, PermissionError):
+        # Windows bloquea archivos abiertos (un vídeo en el reproductor) o que el
+        # antivirus está revisando. Suele resolverse solo: se reintenta.
+        exc = ProviderError(
+            "Windows no dejó escribir o borrar un archivo (puede que esté abierto en otro "
+            "programa o que el antivirus lo esté revisando). Se volverá a intentar solo.",
+            transient=True,
+            detail=describe_unexpected(exc),
+        )
     transient = isinstance(exc, ProviderError) and exc.transient
     message = str(exc) if isinstance(exc, ProviderError) else "Error inesperado"
     if not isinstance(exc, ProviderError):
@@ -398,7 +424,7 @@ def _handle_failure(db: Session, job: Job, exc: Exception) -> None:
         job.run_after = datetime.now() + delay
         job.message = f"{message} Reintento {job.attempts + 1} de {MAX_ATTEMPTS}…"
     else:
-        detail = exc.detail if isinstance(exc, ProviderError) else repr(exc)
+        detail = exc.detail if isinstance(exc, ProviderError) else describe_unexpected(exc)
         job.status, job.message = "failed", "Falló"
         # El detalle técnico va tras una línea en blanco; la página lo muestra plegado.
         job.error = f"{message}\n\n{detail}"[:900] if detail else message

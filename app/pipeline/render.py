@@ -4,9 +4,13 @@ Cada escena dura exactamente lo que dura su narración (más la pausa entre pár
 la imagen y la voz siempre van sincronizadas.
 """
 
+import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import textwrap
+import time
 from collections.abc import Callable
 from pathlib import Path
 
@@ -217,6 +221,26 @@ def _concat_escape(path: Path) -> str:
     return path.as_posix().replace("'", "'\\''")
 
 
+def replace_file(tmp: Path, final: Path, attempts: int = 5) -> Path:
+    """Mueve `tmp` a `final`. En Windows, si `final` está abierto (por ejemplo, el vídeo
+    anterior en el reproductor) no se puede reemplazar: se reintenta unos segundos y, si
+    sigue bloqueado, se guarda con otro nombre para no perder el trabajo."""
+    for _ in range(attempts):
+        try:
+            os.replace(tmp, final)
+            return final
+        except PermissionError:
+            time.sleep(1)
+    alternative = final.with_name(f"{final.stem}-{time.strftime('%Y%m%d-%H%M%S')}{final.suffix}")
+    os.replace(tmp, alternative)
+    return alternative
+
+
+def _cleanup(path: Path) -> None:
+    """Borra carpetas temporales sin fallar si Windows o el antivirus las tiene abiertas."""
+    shutil.rmtree(path, ignore_errors=True)
+
+
 def render_video(
     scenes: list[dict],
     visuals: dict,
@@ -230,8 +254,11 @@ def render_video(
     """`visuals`: paragraph_id → {"path": Path, "kind": "video"|"image"|"card"}.
     `takes`: paragraph_id → segundos de la narración de ese párrafo."""
     w, h, fps, preset, crf = dimensions(quality, portrait)
-    workdir = folder / f"tmp-{quality}"
-    workdir.mkdir(parents=True, exist_ok=True)
+    folder.mkdir(parents=True, exist_ok=True)
+    for old in folder.glob("tmp-*"):  # restos de montajes anteriores interrumpidos
+        _cleanup(old)
+    # Carpeta temporal nueva en cada montaje: nunca choca con archivos de otro intento.
+    workdir = Path(tempfile.mkdtemp(prefix=f"tmp-{quality}-", dir=folder))
 
     clips, segments, t = [], [], 0.0
     for i, scene in enumerate(scenes):
@@ -256,7 +283,7 @@ def render_video(
     concat = workdir / "lista.txt"
     concat.write_text("".join(f"file '{_concat_escape(c)}'\n" for c in clips), encoding="utf-8")
     name = "video" if quality == "final" else f"video-{quality}"
-    out = folder / f"{name}.mp4"
+    tmp_out = workdir / f"{name}.mp4"
     run_ffmpeg(
         [
             "-f",
@@ -280,13 +307,20 @@ def render_video(
             "-shortest",
             "-movflags",
             "+faststart",
-            str(out),
+            str(tmp_out),
         ]
     )
-    (folder / "subtitulos.srt").write_text(build_srt(segments), encoding="utf-8")
+    out = replace_file(tmp_out, folder / f"{name}.mp4")
+    tmp_srt = workdir / "subtitulos.srt"
+    tmp_srt.write_text(build_srt(segments), encoding="utf-8")
+    srt = replace_file(tmp_srt, folder / "subtitulos.srt")
 
-    for leftover in workdir.iterdir():
-        leftover.unlink(missing_ok=True)
-    workdir.rmdir()
+    _cleanup(workdir)
     progress(100, "Vídeo listo")
-    return {"file": f"video/{out.name}", "seconds": round(t, 2), "width": w, "height": h}
+    return {
+        "file": f"video/{out.name}",
+        "srt": f"video/{srt.name}",
+        "seconds": round(t, 2),
+        "width": w,
+        "height": h,
+    }

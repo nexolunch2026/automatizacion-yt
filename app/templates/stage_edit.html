@@ -40,7 +40,7 @@
   <video controls class="player" src="/proyectos/{{ project.id }}/archivos/{{ r.file }}?v={{ r.seconds }}"></video>
   <div class="row-actions">
     <a class="btn small" href="/proyectos/{{ project.id }}/archivos/{{ r.file }}" download>Descargar MP4</a>
-    {% if has_srt %}<a class="btn small secondary" href="/proyectos/{{ project.id }}/archivos/video/subtitulos.srt" download>Descargar subtítulos (.srt)</a>{% endif %}
+    {% if r.srt or has_srt %}<a class="btn small secondary" href="/proyectos/{{ project.id }}/archivos/{{ r.srt or 'video/subtitulos.srt' }}" download>Descargar subtítulos (.srt)</a>{% endif %}
     {% if has_credits %}<a class="btn small secondary" href="/proyectos/{{ project.id }}/archivos/video/creditos.txt" download>Créditos de imágenes</a>{% endif %}
   </div>
 </div>
@@ -64,5 +64,14 @@
   </ul>
 </div>
 {% endif %}
+<script>
+  // Antes de montar otro vídeo, el reproductor suelta el archivo anterior: en Windows, un
+  // archivo abierto no se puede reemplazar.
+  document.querySelectorAll('form[action$="/etapas/edit"]').forEach(form => {
+    form.addEventListener("submit", () => {
+      document.querySelectorAll("video").forEach(v => { v.pause(); v.removeAttribute("src"); v.load(); });
+    });
+  });
+</script>
 {{ ui.live_updates(project, jobs) }}
 {% endblock %}
