@@ -223,7 +223,7 @@ def get_image_providers(db: Session) -> ImageChain:
     providers = []
     if key := get_api_key(db, "gemini"):
         providers.append(GeminiImages(key))
-    providers.append(PollinationsImages())
+    providers.append(PollinationsImages(token=get_api_key(db, "pollinations")))
     return ImageChain(providers)
 
 

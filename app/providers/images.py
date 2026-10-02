@@ -81,21 +81,29 @@ class GeminiImages:
         raise last or ProviderError("Tu cuenta de Gemini no tiene modelos de imágenes.")
 
 
+RATE_LIMIT_CODES = (402, 429)  # Pollinations usa 402 cuando se piden imágenes muy seguidas
+RATE_LIMIT_WAITS = [30, 60, 90]
+
+
 class PollinationsImages:
-    """https://pollinations.ai — gratis y sin clave. Modelo FLUX (uso comercial permitido)."""
+    """https://pollinations.ai — gratis (con o sin clave). Modelo FLUX (uso comercial
+    permitido). Sin clave admite pocas peticiones por minuto, así que se va despacio y,
+    si avisa de exceso, se espera y se reintenta."""
 
     name = "pollinations"
     label = "Pollinations (FLUX)"
     URL = "https://image.pollinations.ai/prompt/"
 
-    def __init__(self, transport=None, pause_seconds: float = 6):
+    def __init__(
+        self, token: str | None = None, transport=None, pause_seconds: float | None = None
+    ):
+        headers = {"User-Agent": f"FacelessStudio/{VERSION}"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
         self._client = httpx.Client(
-            timeout=180,
-            transport=transport,
-            follow_redirects=True,
-            headers={"User-Agent": f"FacelessStudio/{VERSION}"},
+            timeout=180, transport=transport, follow_redirects=True, headers=headers
         )
-        self._pause = pause_seconds
+        self._pause = pause_seconds if pause_seconds is not None else (5 if token else 15)
         self._last = 0.0
 
     def generate(self, prompt: str, portrait: bool, seed: int) -> tuple[bytes, str]:
@@ -109,7 +117,8 @@ class PollinationsImages:
             "nologo": "true",
             "private": "true",
         }
-        for attempt in range(3):
+        detail = ""
+        for attempt in range(len(RATE_LIMIT_WAITS) + 1):
             wait = self._pause - (time.monotonic() - self._last)
             if wait > 0:  # el servicio gratuito pide no hacer peticiones seguidas
                 SLEEP(wait)
@@ -121,20 +130,35 @@ class PollinationsImages:
                 ) from exc
             finally:
                 self._last = time.monotonic()
-            if response.status_code == 429 and attempt < 2:
-                SLEEP(20 * (attempt + 1))
-                continue
+            if response.status_code in RATE_LIMIT_CODES:
+                detail = f"{response.status_code}: {response.text[:200]}"
+                if attempt < len(RATE_LIMIT_WAITS):
+                    SLEEP(RATE_LIMIT_WAITS[attempt])
+                    continue
+                raise ProviderError(
+                    "Pollinations está limitando las peticiones gratuitas. Espera un rato y "
+                    "vuelve a intentarlo, o pon una clave gratuita de Pollinations en "
+                    "Configuración.",
+                    transient=True,
+                    detail=detail,
+                )
             if response.status_code >= 400:
                 raise ProviderError(
                     f"Pollinations respondió con un error ({response.status_code}).",
-                    transient=response.status_code in (429, 500, 502, 503, 504),
+                    transient=response.status_code >= 500,
                     detail=response.text[:200],
                 )
             if not response.headers.get("content-type", "").startswith("image/"):
-                raise ProviderError("Pollinations no devolvió una imagen.", transient=True)
+                raise ProviderError(
+                    "Pollinations no devolvió una imagen.",
+                    transient=True,
+                    detail=response.text[:200],
+                )
             ext = ".png" if "png" in response.headers["content-type"] else ".jpg"
             return response.content, ext
-        raise ProviderError("Pollinations está saturado. Prueba más tarde.", transient=True)
+        raise ProviderError(
+            "Pollinations está saturado. Prueba más tarde.", transient=True, detail=detail
+        )
 
 
 class ImageChain:
@@ -156,4 +180,7 @@ class ImageChain:
                 if not exc.transient and "filtro" not in str(exc):
                     self.providers.remove(provider)
                     self.notes.append(f"{provider.label}: {exc}")
-        raise last or ProviderError("No hay ningún generador de imágenes disponible.")
+        if last:
+            raise last
+        reasons = "; ".join(self.notes) or "ninguno configurado"
+        raise ProviderError(f"No hay ningún generador de imágenes disponible ({reasons}).")

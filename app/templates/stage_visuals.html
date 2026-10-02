@@ -36,13 +36,14 @@
   {% endif %}
   {% endif %}
   {% if result and result.notes %}
-  <details class="tech"><summary>Avisos de la última generación</summary>
+  <details class="tech" {% if result.errors %}open{% endif %}><summary>Avisos de la última generación</summary>
     <ul class="small">{% for n in result.notes %}<li>{{ n }}</li>{% endfor %}</ul></details>
   {% endif %}
   {% if result and result.errors %}
   <div class="alert">Algunas escenas no se pudieron generar:
     <ul class="small">{% for e in result.errors %}<li>{{ e }}</li>{% endfor %}</ul>
-    Puedes volver a intentarlo con «Generar con IA» en cada una.</div>
+    Vuelve a pulsar «Generar imágenes con IA (todas las escenas)» dentro de un rato: solo se
+    generan las que faltan.</div>
   {% endif %}
 </div>
 

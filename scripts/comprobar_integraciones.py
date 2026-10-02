@@ -103,17 +103,22 @@ def main() -> None:
         if size < 1000:
             failures.append("El vídeo montado está vacío")
 
-    print("5) Imagen con IA gratis (Pollinations)")
+    print("5) Imágenes con IA gratis (Pollinations, 3 seguidas con el ritmo del programa)")
+    import time
+
     from app.providers.ai import ProviderError
     from app.providers.images import PollinationsImages
 
-    try:
-        data, ext = PollinationsImages(pause_seconds=0).generate(
-            "a quiet lighthouse at dusk, cinematic", portrait=False, seed=7
-        )
-        print(f"   OK: imagen {ext} de {len(data)} bytes")
-    except ProviderError as exc:  # servicio externo gratuito: solo aviso
-        print(f"   AVISO: Pollinations no respondió ({exc}; {exc.detail})")
+    pollinations = PollinationsImages()  # mismo ritmo que en el programa (sin clave)
+    for n, prompt in enumerate(
+        ["a quiet lighthouse at dusk", "an old empty office", "a city skyline at night"], 1
+    ):
+        start = time.monotonic()
+        try:
+            data, ext = pollinations.generate(prompt + ", cinematic", portrait=False, seed=n)
+            print(f"   {n}: OK {ext} {len(data)} bytes ({time.monotonic() - start:.0f} s)")
+        except ProviderError as exc:  # servicio externo gratuito: solo aviso
+            print(f"   {n}: AVISO {exc} | {exc.detail}")
 
     if failures:
         print("\nFALLOS:\n- " + "\n- ".join(failures))

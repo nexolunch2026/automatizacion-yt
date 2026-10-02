@@ -67,6 +67,7 @@ def _page(request: Request, db: DB, status_code: int = 200, **ctx):
         github_hint=api_key_hint(db, "github"),
         stock_hints={name: api_key_hint(db, name) for name in STOCK_PROVIDERS},
         eleven_hint=api_key_hint(db, "elevenlabs"),
+        pollinations_hint=api_key_hint(db, "pollinations"),
         **ctx,
     )
 
@@ -176,3 +177,16 @@ def save_eleven(request: Request, db: DB, user: CurrentUser, api_key: Annotated[
 def delete_eleven(db: DB, user: CurrentUser):
     delete_api_key(db, "elevenlabs")
     return RedirectResponse("/configuracion#elevenlabs", status_code=303)
+
+
+@router.post("/pollinations")
+def save_pollinations(db: DB, user: CurrentUser, token: Annotated[str, Form()]):
+    if token.strip():
+        save_api_key(db, "pollinations", token.strip())
+    return RedirectResponse("/configuracion?pollinations=1#pollinations", status_code=303)
+
+
+@router.post("/pollinations/borrar")
+def delete_pollinations(db: DB, user: CurrentUser):
+    delete_api_key(db, "pollinations")
+    return RedirectResponse("/configuracion#pollinations", status_code=303)

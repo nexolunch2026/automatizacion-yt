@@ -112,6 +112,31 @@
   {% endif %}
 </div>
 
+<div class="card form-card" id="pollinations">
+  <h2>Pollinations — imágenes con IA gratis (opcional)</h2>
+  <p class="muted small">El programa ya genera imágenes con Pollinations <strong>sin clave</strong>,
+    pero así solo permite unas pocas por minuto (va despacio y a veces pide esperar). Con una
+    <strong>clave gratuita</strong> tienes más margen.</p>
+  {% if request.query_params.get('pollinations') %}<p class="alert ok">Clave de Pollinations guardada.</p>{% endif %}
+  {% if pollinations_hint %}
+  <p>Estado: <span class="badge ok">Con clave</span> <span class="muted small">{{ pollinations_hint }}</span></p>
+  <form method="post" action="/configuracion/pollinations/borrar" onsubmit="return confirm('¿Quitar la clave de Pollinations?')">
+    <button class="btn-link">Quitar clave</button>
+  </form>
+  {% else %}
+  <ol class="steps">
+    <li>Abre <a href="https://auth.pollinations.ai" target="_blank" rel="noopener">auth.pollinations.ai</a> y entra con tu cuenta de GitHub o Google.</li>
+    <li>Copia tu <strong>token</strong> (la clave que te muestra) y pégalo aquí.</li>
+  </ol>
+  <form method="post" action="/configuracion/pollinations" class="stack">
+    <label>Clave (token) de Pollinations
+      <input name="token" type="password" autocomplete="off" required>
+    </label>
+    <button class="btn">Guardar</button>
+  </form>
+  {% endif %}
+</div>
+
 <div class="card form-card" id="stock">
   <h2>Imágenes y vídeos — Pexels y Pixabay</h2>
   <p class="muted small">Son bancos de imágenes y vídeos <strong>gratis y con licencia para usar
