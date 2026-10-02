@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Canales</h1>
+    <p class="muted">Cada canal tendrá su propio estilo, voz y memoria.</p>
+  </div>
+</div>
+
+{% if request.query_params.get('primero') %}
+<p class="alert info">Antes de crear un vídeo necesitas al menos un canal.</p>
+{% endif %}
+
+<div class="two-col">
+  <div class="card">
+    <h2>Nuevo canal</h2>
+    {% if error %}<p class="alert">{{ error }}</p>{% endif %}
+    <form method="post" action="/canales" class="stack">
+      <label>Nombre <input name="name" placeholder="Ej.: Misterios Sin Resolver" required></label>
+      <label>Nicho o tema <input name="niche" placeholder="Ej.: empresas y casos misteriosos"></label>
+      <label>Idioma
+        <select name="language">
+          {% for l in languages %}<option>{{ l }}</option>{% endfor %}
+        </select>
+      </label>
+      <button class="btn">Crear canal</button>
+    </form>
+  </div>
+
+  <div>
+    {% for c in channels %}
+    <div class="card">
+      <h3>{{ c.name }}</h3>
+      <p class="muted small">{{ c.niche or 'Sin nicho definido' }} · {{ c.language }} · {{ c.projects|length }} vídeo(s)</p>
+    </div>
+    {% else %}
+    <p class="muted">Aún no hay canales.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

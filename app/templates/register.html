@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Crear cuenta · Faceless Studio{% endblock %}
+{% block main_class %}auth{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <h1>Crear cuenta</h1>
+  <p class="muted">Solo se pueden crear dos cuentas: la tuya y la de tu amigo.</p>
+  {% if error %}<p class="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="/registro" class="stack">
+    <label>Usuario <input name="username" value="{{ username or '' }}" autocomplete="username" required autofocus></label>
+    <label>Contraseña (mínimo 8 caracteres) <input name="password" type="password" autocomplete="new-password" required minlength="8"></label>
+    <label>Repite la contraseña <input name="password_confirm" type="password" autocomplete="new-password" required minlength="8"></label>
+    <button class="btn">Crear cuenta</button>
+  </form>
+  <p class="muted small">¿Ya tienes cuenta? <a href="/entrar">Entra</a></p>
+</div>
+{% endblock %}

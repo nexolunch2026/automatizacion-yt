@@ -1,6 +1,23 @@
 # Plataforma de producción Faceless para YouTube — Documento de diseño
 
-> Estado: **v0.2 aprobada** — en construcción (M0 hecho).
+> Estado: **v0.3** — M0 y M1 hechos.
+>
+> **Cambio v0.3 (prioriza la sencillez de instalación):** el usuario es principiante y
+> usa Windows, así que se sustituye la pila con Docker por una app que arranca con
+> doble clic (`Iniciar.bat` → `uv run python -m app`):
+>
+> | Antes (v0.2) | Ahora (v0.3) |
+> |---|---|
+> | Next.js aparte | Páginas HTML servidas por FastAPI (Jinja2); JS solo donde haga falta (timeline) |
+> | PostgreSQL | SQLite en `datos/faceless.db` |
+> | Redis + Celery | Cola de tareas persistida en SQLite + worker en un hilo del mismo proceso (M2) |
+> | SeaweedFS/S3 | Carpeta local `datos/` |
+> | FFmpeg del sistema | `imageio-ffmpeg` (binario incluido vía pip) |
+> | Docker Compose | `Iniciar.bat` (instala uv, que descarga Python y dependencias) |
+>
+> Las interfaces de proveedores y el diseño por etapas no cambian; si algún día se
+> sube a un servidor, se pueden recuperar Postgres y una cola externa.
+> Las secciones 5, 6, 12, 13 y 14 describen la pila v0.2 y se mantienen como referencia.
 >
 > Contexto: 2 usuarios (el dueño y un amigo), se ejecuta en un ordenador personal
 > con Docker, y el presupuesto en APIs es mínimo: se priorizan las opciones gratuitas
@@ -276,16 +293,20 @@ PUT    /settings/providers/{provider} (guarda la clave; solo devuelve los 4 últ
 ```python
 class VoiceProvider(Protocol):
     name: str
+
     def list_voices(self, language: str) -> list[Voice]: ...
     def estimate_cost(self, text: str) -> Money: ...
     def synthesize(self, text: str, voice: VoiceSettings) -> SynthesisResult:
         """Devuelve el audio y, si el proveedor lo permite, marcas de tiempo por palabra."""
 
+
 class StockProvider(Protocol):
     name: str
-    def search(self, query: str, kind: Literal["image", "video"],
-               orientation: Orientation, limit: int) -> list[StockResult]: ...
-    def download(self, result: StockResult) -> DownloadedAsset: ...   # incluye la licencia
+
+    def search(
+        self, query: str, kind: Literal["image", "video"], orientation: Orientation, limit: int
+    ) -> list[StockResult]: ...
+    def download(self, result: StockResult) -> DownloadedAsset: ...  # incluye la licencia
 ```
 
 Cada etapa del pipeline sigue el mismo contrato:
@@ -294,6 +315,7 @@ Cada etapa del pipeline sigue el mismo contrato:
 class Stage(Protocol):
     name: StageName
     depends_on: list[StageName]
+
     def input_hash(self, ctx: ProjectContext) -> str: ...
     def estimate(self, ctx: ProjectContext) -> Estimate: ...
     def run(self, ctx: ProjectContext, progress: ProgressReporter) -> StageOutput: ...
@@ -327,7 +349,7 @@ Login → Dashboard (tarjetas de proyecto con estado y progreso)
 | # | Milestone | Resultado verificable |
 |---|---|---|
 | M0 ✅ | Esqueleto | `docker compose up` levanta frontend, API, worker, Postgres, Redis y SeaweedFS; CI con tests |
-| M1 | Auth + canales + proyectos | Login, crear canal, crear proyecto, dashboard |
+| M1 ✅ | Auth + canales + proyectos | Login, crear canal, crear proyecto, dashboard |
 | M2 | Orquestador | Etapas con estados, SSE, reintentos, aprobación; etapa de prueba de punta a punta |
 | M3 | Research + estrategia | Brief con fuentes reales para un tema |
 | M4 | Guion + editor | Guion editable por párrafos; marca escenas obsoletas |

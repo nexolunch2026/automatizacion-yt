@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Proyectos</h1>
+    <p class="muted">Cada vídeo es un proyecto.</p>
+  </div>
+  <a class="btn" href="/proyectos/nuevo">+ Nuevo vídeo</a>
+</div>
+
+{% if not channels %}
+<div class="card empty">
+  <h2>Empieza creando tu primer canal</h2>
+  <p class="muted">Un canal agrupa los vídeos de un mismo tema, por ejemplo «Misterios» o «Historia».</p>
+  <a class="btn" href="/canales">Crear canal</a>
+</div>
+{% else %}
+<div class="filters">
+  <a class="chip {% if not selected_channel %}active{% endif %}" href="/">Todos</a>
+  {% for c in channels %}
+  <a class="chip {% if selected_channel == c.id %}active{% endif %}" href="/?canal={{ c.id }}">{{ c.name }}</a>
+  {% endfor %}
+</div>
+
+{% if projects %}
+<div class="grid">
+  {% for p in projects %}
+  <a class="card project" href="/proyectos/{{ p.id }}">
+    <div class="thumb">Sin miniatura</div>
+    <h3>{{ p.title }}</h3>
+    <p class="muted small">{{ p.channel.name }} · {{ p.video_type }} · {{ p.duration }}</p>
+    <div class="row">
+      <span class="badge">{{ p.status }}</span>
+      <span class="muted small">{{ p.created_at.strftime('%d/%m/%Y') }}</span>
+    </div>
+    <div class="progress"><div style="width: {{ p.progress }}%"></div></div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card empty">
+  <h2>Todavía no hay vídeos</h2>
+  <p class="muted">Pulsa «+ Nuevo vídeo» y escribe tu idea.</p>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

@@ -1,56 +1,60 @@
 # Faceless Studio
 
-Plataforma para producir vídeos *faceless* de YouTube: de una idea a un vídeo listo
-para publicar (investigación → guion → escenas → voz → montaje → exportación).
+Programa para crear vídeos de YouTube sin salir en cámara.
+Por ahora tiene: **cuentas para 2 personas, canales y proyectos de vídeo**.
+La creación automática de los vídeos se irá añadiendo poco a poco.
 
-- Diseño y plan completo: [`docs/00-diseno-plataforma.md`](docs/00-diseno-plataforma.md)
-- Estado: **M0 — base del proyecto** (servicios levantados y comprobación de salud).
+---
 
-## Requisitos
+## Cómo instalarlo en Windows (paso a paso)
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows, macOS o Linux)
-- [Git](https://git-scm.com/downloads)
-- 8 GB de RAM como mínimo (16 GB recomendado para el render)
+### Paso 1 — Descargar el programa
+1. Abre este enlace (tienes que haber iniciado sesión en GitHub):
+   **https://github.com/nexolunch2026/automatizacion-yt/archive/refs/heads/claude/hola-5p4ttp.zip**
+2. Se descarga un archivo **.zip** (una carpeta comprimida) en tu carpeta **Descargas**.
 
-## Arrancar en tu ordenador
+### Paso 2 — Descomprimir
+1. Abre la carpeta **Descargas**.
+2. Haz **clic derecho** sobre el archivo `.zip` → **Extraer todo…** → **Extraer**.
+3. Se crea una carpeta normal. Puedes moverla donde quieras, por ejemplo al **Escritorio**.
 
-```bash
-git clone https://github.com/nexolunch2026/automatizacion-yt.git
-cd automatizacion-yt
-git checkout claude/hola-5p4ttp     # hasta que se fusione en la rama principal
-docker compose up --build
-```
+### Paso 3 — Encender el programa
+1. Entra en la carpeta.
+2. Haz **doble clic** en el archivo **`Iniciar`** (o `Iniciar.bat`).
+3. Si aparece un aviso azul de Windows («Windows protegió su PC»):
+   pulsa **Más información** → **Ejecutar de todas formas**.
+4. Se abre una **ventana negra**. **No la cierres**: es el motor del programa.
+   - La **primera vez** tarda unos minutos porque descarga lo que necesita.
+   - Las siguientes veces arranca en segundos.
+5. Se abre solo tu **navegador** con el programa.
+   Si no se abre, escribe en el navegador: `127.0.0.1:8000`
 
-La primera vez tarda unos minutos en descargar e instalar todo. Después:
+### Paso 4 — Crear las cuentas
+1. Pulsa **Crea tu cuenta**, elige un usuario y una contraseña.
+2. Tu amigo hace lo mismo con la suya. Solo se pueden crear **2 cuentas**.
 
-| Qué | Dirección |
-|---|---|
-| Aplicación web | http://localhost:3000 |
-| Documentación de la API | http://localhost:8000/docs |
-| Estado de los servicios | http://localhost:8000/health |
+### Para apagarlo
+Cierra la **ventana negra**.
 
-En la web deberías ver los cuatro servicios en verde: base de datos, cola,
-almacenamiento y worker.
+---
 
-Para pararlo: `Ctrl + C`, o `docker compose down`. Los datos se conservan
-entre arranques. Si quieres borrarlo todo: `docker compose down -v`.
+## Si algo sale mal
+- **La ventana negra se cierra sola o muestra un error:** haz una captura de pantalla
+  y envíasela a Claude.
+- **El navegador dice que no puede conectar:** asegúrate de que la ventana negra sigue abierta.
 
-## Configuración
+## Dónde se guardan tus datos
+En la carpeta `datos`, dentro de la carpeta del programa. **No la borres**: ahí están
+las cuentas, los canales y los proyectos.
 
-Copia `.env.example` como `.env`. En este milestone no hace falta rellenar nada;
-las claves gratuitas (Gemini, Tavily, Pexels, Pixabay) se usarán a partir de M3.
+---
 
-## Estructura
+<details>
+<summary>Información técnica (no hace falta para usarlo)</summary>
 
-```
-apps/api/   Backend (FastAPI), workers (Celery) y pipeline
-apps/web/   Interfaz (Next.js)
-docs/       Diseño y documentación de módulos
-```
+- Diseño completo: [`docs/00-diseno-plataforma.md`](docs/00-diseno-plataforma.md)
+- Python + FastAPI, páginas HTML con Jinja2, base de datos SQLite en `datos/`.
+- `Iniciar.bat` instala [uv](https://docs.astral.sh/uv/) si falta y ejecuta `uv run python -m app`.
+- Tests: `uv run pytest` · Lint: `uv run ruff check .`
 
-## Desarrollo sin Docker (opcional)
-
-```bash
-cd apps/api && pip install -e ".[dev]" && pytest
-cd apps/web && npm install && npm run dev
-```
+</details>

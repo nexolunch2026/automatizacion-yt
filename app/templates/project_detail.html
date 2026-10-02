@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="muted small"><a href="/">← Proyectos</a></p>
+    <h1>{{ project.title }}</h1>
+    <p class="muted">{{ project.channel.name }} · {{ project.video_type }} · {{ project.duration }} · {{ project.language }}</p>
+  </div>
+  <span class="badge big">{{ project.status }}</span>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <h2>Idea</h2>
+    <p>{{ project.topic }}</p>
+    <dl class="meta">
+      <dt>Modo</dt><dd>{{ modes[project.automation_mode] }}</dd>
+      <dt>Creado por</dt><dd>{{ project.author.username }}</dd>
+      <dt>Fecha</dt><dd>{{ project.created_at.strftime('%d/%m/%Y %H:%M') }}</dd>
+    </dl>
+  </div>
+
+  <div class="card">
+    <h2>Producción</h2>
+    <ol class="stages">
+      {% for s in stages %}
+      <li><span>{{ s }}</span><span class="muted small">Pendiente</span></li>
+      {% endfor %}
+    </ol>
+    <p class="muted small">La producción automática llegará en las próximas versiones.</p>
+  </div>
+</div>
+
+<form method="post" action="/proyectos/{{ project.id }}/borrar"
+      onsubmit="return confirm('¿Seguro que quieres borrar este proyecto? No se puede deshacer.')">
+  <button class="btn danger">Borrar proyecto</button>
+</form>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head"><h1>Nuevo vídeo</h1></div>
+<div class="card form-card">
+  {% if error %}<p class="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="/proyectos/nuevo" class="stack">
+    <label>¿Sobre qué quieres el vídeo?
+      <textarea name="topic" rows="3" required autofocus
+        placeholder="Ej.: Quiero crear un vídeo sobre las empresas que desaparecieron misteriosamente.">{{ form.topic or '' }}</textarea>
+    </label>
+    <label>Título provisional (opcional)
+      <input name="title" value="{{ form.title or '' }}" placeholder="Si lo dejas vacío, se usa la idea">
+    </label>
+    <div class="row-fields">
+      <label>Canal
+        <select name="channel_id">
+          {% for c in channels %}<option value="{{ c.id }}" {% if form.channel_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Duración
+        <select name="duration">
+          {% for d in durations %}<option {% if form.duration == d or (not form.duration and d == '5–10 min') %}selected{% endif %}>{{ d }}</option>{% endfor %}
+        </select>
+      </label>
+    </div>
+    <div class="row-fields">
+      <label>Idioma
+        <select name="language">
+          {% for l in languages %}<option {% if form.language == l %}selected{% endif %}>{{ l }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Tipo
+        <select name="video_type">
+          {% for t in video_types %}<option {% if form.video_type == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+        </select>
+      </label>
+    </div>
+    <fieldset>
+      <legend>Nivel de automatización</legend>
+      {% for key, label in modes.items() %}
+      <label class="radio">
+        <input type="radio" name="automation_mode" value="{{ key }}"
+          {% if form.automation_mode == key or (not form.automation_mode and key == 'asistido') %}checked{% endif %}>
+        {{ label }}
+      </label>
+      {% endfor %}
+    </fieldset>
+    <button class="btn">Crear proyecto</button>
+  </form>
+</div>
+{% endblock %}
