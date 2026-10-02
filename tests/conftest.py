@@ -64,7 +64,7 @@ def no_real_internet(monkeypatch):
 
     monkeypatch.setattr(jobs, "get_search_provider", lambda: FakeSearch())
     voice = FakeVoice()
-    monkeypatch.setattr(jobs, "get_voice_provider", lambda: voice)
+    monkeypatch.setattr(jobs, "get_voice_provider", lambda *args, **kwargs: voice)
     return voice
 
 

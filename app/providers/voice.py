@@ -149,3 +149,134 @@ def join_wavs(parts: list[bytes], pause_seconds: float = 0.35) -> bytes:
             if i < len(parts) - 1:
                 writer.writeframes(silence)
     return out.getvalue()
+
+
+# ---------------------------------------------------------------- ElevenLabs
+
+ELEVEN_PREFIX = "eleven:"
+ELEVEN_API = "https://api.elevenlabs.io/v1"
+ELEVEN_MODELS = {
+    "eleven_multilingual_v2": "Máxima calidad (1 crédito por carácter)",
+    "eleven_flash_v2_5": "Ahorro: buena calidad, la mitad de créditos",
+}
+ELEVEN_SPEEDS = {"Lenta": 0.9, "Normal": 1.0, "Rápida": 1.1}
+ELEVEN_RATE = 22050  # formato PCM disponible en todos los planes
+
+
+def is_eleven(voice: str) -> bool:
+    return voice.startswith(ELEVEN_PREFIX)
+
+
+def pcm_to_wav(pcm: bytes, rate: int = ELEVEN_RATE) -> bytes:
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(rate)
+        wav.writeframes(pcm)
+    return buffer.getvalue()
+
+
+class ElevenLabsVoices:
+    """Voces de ElevenLabs con la cuenta del usuario (de pago por créditos)."""
+
+    name = "elevenlabs"
+
+    def __init__(self, api_key: str, model: str = "eleven_multilingual_v2", transport=None):
+        import httpx
+
+        self.model = model if model in ELEVEN_MODELS else "eleven_multilingual_v2"
+        self._client = httpx.Client(
+            base_url=ELEVEN_API,
+            timeout=120,
+            transport=transport,
+            headers={"xi-api-key": api_key},
+        )
+
+    def _request(self, method: str, url: str, **kwargs):
+        import httpx
+
+        try:
+            response = self._client.request(method, url, **kwargs)
+        except httpx.HTTPError as exc:
+            raise ProviderError(
+                "No se pudo conectar con ElevenLabs. Revisa tu internet.",
+                transient=True,
+                detail=str(exc)[:200],
+            ) from exc
+        if response.status_code < 400:
+            return response
+        detail = response.text[:300]
+        if response.status_code == 401 and "quota" not in detail:
+            raise ProviderError(
+                "La clave de ElevenLabs no es válida o no tiene permisos. Revísala en "
+                "Configuración.",
+                detail=detail,
+            )
+        if "quota" in detail or response.status_code == 402:
+            raise ProviderError(
+                "Se acabaron tus créditos de ElevenLabs de este mes. Usa una voz de Piper "
+                "(gratis) o amplía tu plan.",
+                detail=detail,
+            )
+        if response.status_code == 429:
+            raise ProviderError(
+                "ElevenLabs está ocupado. Se reintentará.", transient=True, detail=detail
+            )
+        if response.status_code >= 500:
+            raise ProviderError("ElevenLabs falló temporalmente.", transient=True, detail=detail)
+        raise ProviderError(
+            f"ElevenLabs respondió con un error ({response.status_code}).", detail=detail
+        )
+
+    def list_voices(self) -> list[dict]:
+        data = self._request("GET", "/voices").json()
+        voices = []
+        for v in data.get("voices", []):
+            labels = v.get("labels") or {}
+            extra = " · ".join(x for x in (labels.get("gender"), labels.get("accent")) if x)
+            voices.append(
+                {
+                    "id": ELEVEN_PREFIX + v["voice_id"],
+                    "label": f"{v.get('name', 'Voz')}{f' ({extra})' if extra else ''}",
+                }
+            )
+        return sorted(voices, key=lambda v: v["label"].lower())
+
+    def credits(self) -> dict | None:
+        """Caracteres usados y límite del mes. None si la clave no permite consultarlo."""
+        try:
+            data = self._request("GET", "/user/subscription").json()
+        except ProviderError:
+            return None
+        used, limit = data.get("character_count"), data.get("character_limit")
+        if used is None or limit is None:
+            return None
+        return {
+            "used": used,
+            "limit": limit,
+            "left": max(limit - used, 0),
+            "tier": data.get("tier", ""),
+        }
+
+    def cost(self, characters: int) -> int:
+        """Créditos aproximados que gasta un texto con el modelo elegido."""
+        return characters if self.model == "eleven_multilingual_v2" else (characters + 1) // 2
+
+    def synthesize(self, text: str, voice: str, speed: str) -> bytes:
+        voice_id = voice.removeprefix(ELEVEN_PREFIX)
+        response = self._request(
+            "POST",
+            f"/text-to-speech/{voice_id}",
+            params={"output_format": f"pcm_{ELEVEN_RATE}"},
+            json={
+                "text": text,
+                "model_id": self.model,
+                "voice_settings": {
+                    "stability": 0.5,
+                    "similarity_boost": 0.75,
+                    "speed": ELEVEN_SPEEDS.get(speed, 1.0),
+                },
+            },
+        )
+        return pcm_to_wav(response.content)

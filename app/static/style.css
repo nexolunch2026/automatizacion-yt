@@ -212,7 +212,8 @@ code { background: var(--bg); padding: 2px 6px; border-radius: 4px; }
 .meta.small { font-size: .85rem; }
 
 /* Voz */
-.voice-form { grid-template-columns: 2fr 1fr auto auto; }
+.voice-form { display: grid; grid-template-columns: 2fr 1fr 1.5fr; gap: 12px; align-items: end; }
+.voice-buttons { grid-column: 1 / -1; display: flex; gap: 12px; flex-wrap: wrap; }
 .sample { margin-top: 12px; }
 audio { width: 100%; max-width: 520px; height: 36px; }
 .full-audio { max-width: none; margin: 8px 0 12px; }

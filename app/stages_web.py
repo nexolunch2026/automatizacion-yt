@@ -1,6 +1,7 @@
 """Páginas de cada etapa del proyecto: investigación, estrategia y guion."""
 
 import copy
+import re
 from typing import Annotated
 
 from fastapi import APIRouter, Form, HTTPException, Request
@@ -13,10 +14,10 @@ from app.media import project_dir, safe_path
 from app.models import LEVELS, SCRIPT_TONES, STAGES, Project, StageResult
 from app.pipeline.script import SECTION_LABELS, default_params, rewrite_paragraph, with_stats
 from app.pipeline.storyboard import paragraphs_of, stale_scenes
-from app.pipeline.voice import take_key
+from app.pipeline.voice import pending_characters, take_key
 from app.providers.ai import ProviderError
-from app.providers.voice import SPEEDS, VOICE_IDS, VOICES
-from app.settings_store import api_key_hint
+from app.providers.voice import ELEVEN_MODELS, SPEEDS, VOICE_IDS, VOICES, ElevenLabsVoices
+from app.settings_store import api_key_hint, get_api_key
 from app.templating import render
 
 router = APIRouter(prefix="/proyectos/{project_id}")
@@ -109,6 +110,13 @@ def storyboard_page(request: Request, db: DB, user: CurrentUser, project_id: int
     return _stage_page(request, db, project, "storyboard", stale=stale, labels=SECTION_LABELS)
 
 
+ELEVEN_ID = re.compile(r"^eleven:[A-Za-z0-9]{6,40}$")
+
+
+def _valid_voice(voice: str) -> bool:
+    return voice in VOICE_IDS or bool(ELEVEN_ID.match(voice))
+
+
 def _voice_context(db: DB, project: Project) -> dict:
     script = jobs.get_result(db, project.id, "script") or {}
     voice = jobs.get_result(db, project.id, "voice")
@@ -117,11 +125,22 @@ def _voice_context(db: DB, project: Project) -> dict:
     paragraphs = []
     for p in paragraphs_of(script):
         take = takes.get(p["id"])
-        current = take and take["key"] == take_key(p["text"], params["voice"], params["speed"])
+        key = take_key(p["text"], params["voice"], params["speed"], params["model"])
+        current = take and take["key"] == key
         paragraphs.append({**p, "take": take, "outdated": bool(take) and not current})
+    eleven, eleven_error = jobs.eleven_voices(db)
+    credits = None
+    if eleven:
+        credits = ElevenLabsVoices(get_api_key(db, "elevenlabs")).credits()
     sample = project_dir(project.id) / "voz" / "muestra.wav"
     return {
         "voices": VOICES,
+        "eleven_voices": eleven,
+        "eleven_error": eleven_error,
+        "eleven_models": ELEVEN_MODELS,
+        "credits": credits,
+        "script_characters": sum(len(p["text"]) for p in paragraphs),
+        "pending_characters": pending_characters(script, voice, params),
         "speeds": list(SPEEDS),
         "params": params,
         "paragraphs": paragraphs,
@@ -136,9 +155,9 @@ def voice_page(request: Request, db: DB, user: CurrentUser, project_id: int):
     return _stage_page(request, db, project, "voice", **_voice_context(db, project))
 
 
-def make_sample(text: str, voice: str, speed: str) -> bytes:
+def make_sample(db: DB, text: str, voice: str, speed: str, model: str) -> bytes:
     """Graba una muestra corta. Se reemplaza en los tests."""
-    return jobs.get_voice_provider().synthesize(text, voice, speed)
+    return jobs.get_voice_provider(db, voice, model).synthesize(text, voice, speed)
 
 
 @router.post("/voz/muestra")
@@ -149,15 +168,18 @@ def voice_sample(
     project_id: int,
     voice: Annotated[str, Form()],
     speed: Annotated[str, Form()] = "Normal",
+    model: Annotated[str, Form()] = "eleven_multilingual_v2",
 ):
     project = _project(db, project_id)
-    if voice not in VOICE_IDS or speed not in SPEEDS:
+    if not _valid_voice(voice) or speed not in SPEEDS or model not in ELEVEN_MODELS:
         raise HTTPException(400, "Voz no válida")
     script = jobs.get_result(db, project_id, "script") or {}
     first = next(iter(paragraphs_of(script)), None)
     text = (first or {}).get("text") or "Hola, esta es una muestra de la voz que narrará tu vídeo."
+    # Con ElevenLabs la muestra gasta créditos: se usa una frase corta.
+    text = text[:160] if voice.startswith("eleven:") else text[:300]
     try:
-        audio = make_sample(text[:300], voice, speed)
+        audio = make_sample(db, text, voice, speed, model)
     except ProviderError as exc:
         ctx = _voice_context(db, project)
         return _stage_page(request, db, project, "voice", status_code=400, error=str(exc), **ctx)
@@ -167,6 +189,7 @@ def voice_sample(
     from app.settings_store import set_setting
 
     set_setting(db, "voice_default", voice)
+    set_setting(db, "eleven_model", model)
     return _redirect(f"/proyectos/{project_id}/voz?muestra={voice}-{speed}#muestra")
 
 
@@ -236,6 +259,7 @@ def run_stage(
     voice: Annotated[str | None, Form()] = None,
     speed: Annotated[str | None, Form()] = None,
     quality: Annotated[str | None, Form()] = None,
+    model: Annotated[str | None, Form()] = None,
 ):
     _project(db, project_id)
     if stage not in jobs.RUNNERS:
@@ -252,8 +276,9 @@ def run_stage(
         params = {"quality": quality if quality in ("preview", "final") else "preview"}
     elif stage == "voice":
         params = {
-            "voice": voice if voice in VOICE_IDS else None,
+            "voice": voice if voice and _valid_voice(voice) else None,
             "speed": speed if speed in SPEEDS else None,
+            "model": model if model in ELEVEN_MODELS else None,
         }
     jobs.enqueue(db, project_id, stage, params)
     return _redirect(f"/proyectos/{project_id}/{SLUGS[stage]}")

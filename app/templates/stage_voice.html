@@ -9,30 +9,64 @@
 
 <div class="card">
   <h2>Voz</h2>
-  <p class="muted small">La narración se graba en tu propio ordenador con Piper: gratis y sin
-    límites. La primera vez que uses una voz se descarga (unos 60 MB).</p>
+  <p class="muted small"><strong>Piper</strong>: gratis y sin límites, en tu ordenador (la primera vez
+    descarga la voz, unos 60 MB). <strong>ElevenLabs</strong>: suena más natural, usa los créditos de
+    tu cuenta.</p>
   {{ ui.job_status(job) }}
   {% if 'script' not in results %}
   <p class="alert info">Primero hay que <a href="/proyectos/{{ project.id }}/guion">escribir el guion</a>.</p>
   {% elif not (job and job.active) %}
-  <form method="post" class="tone-form voice-form" id="voice-form">
+  <form method="post" class="voice-form" id="voice-form">
     <label>Voz
-      <select name="voice">
-        {% for v in voices %}
-        <option value="{{ v.id }}" {% if params.voice == v.id %}selected{% endif %}>{{ v.label }} ({{ v.language }})</option>
-        {% endfor %}
+      <select name="voice" id="voice-select">
+        <optgroup label="Piper · gratis">
+          {% for v in voices %}
+          <option value="{{ v.id }}" {% if params.voice == v.id %}selected{% endif %}>{{ v.label }} ({{ v.language }})</option>
+          {% endfor %}
+        </optgroup>
+        {% if eleven_voices %}
+        <optgroup label="ElevenLabs · tu cuenta">
+          {% for v in eleven_voices %}
+          <option value="{{ v.id }}" {% if params.voice == v.id %}selected{% endif %}>{{ v.label }}</option>
+          {% endfor %}
+        </optgroup>
+        {% endif %}
       </select>
     </label>
     <label>Velocidad
       <select name="speed">{% for s in speeds %}<option {% if params.speed == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
     </label>
-    <button class="btn secondary" formaction="/proyectos/{{ project.id }}/voz/muestra"
-      onclick="this.textContent='Grabando muestra…'">Escuchar muestra</button>
-    <button class="btn" formaction="/proyectos/{{ project.id }}/etapas/voice">
-      {% if not narration %}Grabar narración{% elif pending %}Grabar lo que falta ({{ pending }}){% else %}Grabar con la voz elegida{% endif %}
-    </button>
+    {% if eleven_voices %}
+    <label class="eleven-only">Calidad (ElevenLabs)
+      <select name="model">
+        {% for key, label in eleven_models.items() %}
+        <option value="{{ key }}" {% if params.model == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    {% endif %}
+    <div class="voice-buttons">
+      <button class="btn secondary" formaction="/proyectos/{{ project.id }}/voz/muestra"
+        onclick="this.textContent='Grabando muestra…'">Escuchar muestra</button>
+      <button class="btn" formaction="/proyectos/{{ project.id }}/etapas/voice">
+        {% if not narration %}Grabar narración{% elif pending %}Grabar lo que falta ({{ pending }}){% else %}Grabar con la voz elegida{% endif %}
+      </button>
+    </div>
   </form>
-  <p class="muted small">La primera vez la muestra tarda un poco más, porque descarga la voz.</p>
+
+  {% if eleven_voices %}
+  <p class="muted small eleven-only">
+    ElevenLabs: el guion completo tiene {{ script_characters }} caracteres; grabar lo pendiente
+    gastaría unos <strong>{{ pending_characters }}</strong> créditos (la mitad en modo Ahorro).
+    {% if credits %}Te quedan <strong>{{ credits.left }}</strong> de {{ credits.limit }} este mes.{% endif %}
+  </p>
+  {% elif eleven_error %}
+  <p class="alert">ElevenLabs: {{ eleven_error }}</p>
+  {% else %}
+  <p class="muted small">¿Quieres una voz más natural? Conecta tu cuenta de ElevenLabs en
+    <a href="/configuracion#elevenlabs">Configuración</a>.</p>
+  {% endif %}
+
   {% if has_sample %}
   <div id="muestra" class="sample">
     <p class="small">Muestra:</p>
@@ -41,12 +75,21 @@
   {% endif %}
   {% endif %}
 </div>
+<script>
+  // Las opciones de ElevenLabs solo se muestran si la voz elegida es de ElevenLabs.
+  const select = document.getElementById("voice-select");
+  function toggleEleven() {
+    const eleven = select && select.value.startsWith("eleven:");
+    document.querySelectorAll(".eleven-only").forEach(el => el.style.display = eleven ? "" : "none");
+  }
+  if (select) { select.addEventListener("change", toggleEleven); toggleEleven(); }
+</script>
 
 {% if narration %}
 <div class="card">
   <div class="row">
     <h2>Narración completa</h2>
-    <span class="muted small">{{ (narration.seconds / 60)|round(1) }} min · {{ narration.voice }} · {{ narration.speed }}</span>
+    <span class="muted small">{{ (narration.seconds / 60)|round(1) }} min · {{ narration.provider }} · {{ narration.speed }}</span>
   </div>
   <audio controls class="full-audio" src="/proyectos/{{ project.id }}/archivos/{{ narration.full }}?v={{ narration.seconds }}"></audio>
   {% if pending %}

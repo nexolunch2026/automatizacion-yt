@@ -518,3 +518,13 @@ generar una miniatura en el chat de ChatGPT o Gemini, etc.).
 - **Subtítulos**: `subtitulos.srt` a partir de los tiempos reales de cada párrafo,
   en trozos de ~10 palabras. Créditos de imágenes en `creditos.txt`.
 - **Comprobación real en CI (Windows)**: voces de Piper, síntesis, actualizador y montaje.
+
+## 20. ElevenLabs como segunda voz (v0.7)
+
+- `ElevenLabsVoices` (API REST, clave del usuario cifrada): lista de voces de la cuenta,
+  síntesis en PCM 22,05 kHz (disponible en todos los planes) convertida a WAV, velocidad
+  en `voice_settings.speed`, modelos «multilingual v2» (calidad) y «flash v2.5» (mitad de
+  créditos). Las voces se identifican como `eleven:<voice_id>` para convivir con Piper.
+- Antes de grabar se calculan los caracteres pendientes y, si la clave permite leer la
+  suscripción, se para sin gastar nada cuando no alcanzan los créditos.
+- La interfaz avisa de que el plan gratuito de ElevenLabs no permite uso comercial.

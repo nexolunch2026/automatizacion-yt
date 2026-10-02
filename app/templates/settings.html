@@ -75,6 +75,37 @@
     <button class="btn">Guardar</button>
   </form>
 </div>
+<div class="card form-card" id="elevenlabs">
+  <h2>ElevenLabs — voz más natural (opcional)</h2>
+  <p class="muted small">Las voces de ElevenLabs suenan mucho más naturales que Piper, pero
+    gastan créditos de tu cuenta. <strong>Importante:</strong> el plan gratuito de ElevenLabs
+    da pocos minutos al mes y <strong>no permite uso comercial</strong> (un canal monetizado lo
+    es); para monetizar necesitas al menos su plan de pago más barato. Comprueba las
+    condiciones actuales en <a href="https://elevenlabs.io/pricing" target="_blank" rel="noopener">elevenlabs.io/pricing</a>.</p>
+  {% if eleven_saved %}<p class="alert ok">Clave de ElevenLabs guardada y comprobada. Ya puedes elegir sus voces en la pestaña Voz de cada proyecto.</p>{% endif %}
+  {% if eleven_error %}<p class="alert">{{ eleven_error }}</p>{% endif %}
+  {% if eleven_hint %}
+  <p>Estado: <span class="badge ok">Conectado</span> <span class="muted small">Clave {{ eleven_hint }}</span></p>
+  <form method="post" action="/configuracion/elevenlabs/borrar" onsubmit="return confirm('¿Quitar la clave de ElevenLabs?')">
+    <button class="btn-link">Quitar clave</button>
+  </form>
+  {% else %}
+  <ol class="steps">
+    <li>Entra en <a href="https://elevenlabs.io/app/settings/api-keys" target="_blank" rel="noopener">elevenlabs.io/app/settings/api-keys</a> con tu cuenta.</li>
+    <li>Pulsa <strong>«Create API Key»</strong> (o «Crear clave»). Ponle de nombre <code>Faceless Studio</code>.</li>
+    <li>Si te pregunta por permisos, deja activados al menos <strong>Text to Speech</strong>,
+      <strong>Voices</strong> (lectura) y <strong>User</strong> (lectura, para ver tus créditos).</li>
+    <li>Copia la clave (empieza por <code>sk_</code>) y pégala aquí.</li>
+  </ol>
+  <form method="post" action="/configuracion/elevenlabs" class="stack">
+    <label>Clave de ElevenLabs
+      <input name="api_key" type="password" autocomplete="off" placeholder="sk_…" required>
+    </label>
+    <button class="btn">Guardar</button>
+  </form>
+  {% endif %}
+</div>
+
 <div class="card form-card" id="stock">
   <h2>Imágenes y vídeos — Pexels y Pixabay</h2>
   <p class="muted small">Son bancos de imágenes y vídeos <strong>gratis y con licencia para usar

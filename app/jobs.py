@@ -21,11 +21,17 @@ from app.pipeline.script import default_params, run_script
 from app.pipeline.storyboard import run_storyboard
 from app.pipeline.strategy import run_strategy
 from app.pipeline.visuals import credits_text, run_visuals
-from app.pipeline.voice import run_voice
+from app.pipeline.voice import pending_characters, run_voice
 from app.providers.ai import AIProvider, GeminiProvider, ProviderError
 from app.providers.search import SearchProvider, WikipediaSearch
 from app.providers.stock import PexelsStock, PixabayStock, StockProvider
-from app.providers.voice import PiperVoices, VoiceProvider, default_voice
+from app.providers.voice import (
+    ElevenLabsVoices,
+    PiperVoices,
+    VoiceProvider,
+    default_voice,
+    is_eleven,
+)
 from app.settings_store import get_api_key, get_setting, set_setting
 
 log = logging.getLogger(__name__)
@@ -87,12 +93,39 @@ def get_search_provider() -> SearchProvider:
 _voices: VoiceProvider | None = None
 
 
-def get_voice_provider() -> VoiceProvider:
-    """Una sola instancia, para no cargar la voz en memoria en cada tarea."""
+def get_voice_provider(db: Session, voice: str, model: str | None = None) -> VoiceProvider:
+    """ElevenLabs si la voz es de ElevenLabs; si no, Piper (una sola instancia, para no
+    cargar la voz en memoria en cada tarea)."""
+    if is_eleven(voice):
+        key = get_api_key(db, "elevenlabs")
+        if not key:
+            raise ProviderError("Falta la clave de ElevenLabs. Añádela en Configuración.")
+        return ElevenLabsVoices(key, model or "eleven_multilingual_v2")
     global _voices
     if _voices is None:
         _voices = PiperVoices()
     return _voices
+
+
+_eleven_cache: dict[str, tuple[float, list[dict]]] = {}
+
+
+def eleven_voices(db: Session) -> tuple[list[dict], str | None]:
+    """Voces de la cuenta de ElevenLabs (se guardan 10 minutos en memoria)."""
+    import time
+
+    key = get_api_key(db, "elevenlabs")
+    if not key:
+        return [], None
+    cached = _eleven_cache.get(key)
+    if cached and time.time() - cached[0] < 600:
+        return cached[1], None
+    try:
+        voices = ElevenLabsVoices(key).list_voices()
+    except ProviderError as exc:
+        return [], str(exc)
+    _eleven_cache[key] = (time.time(), voices)
+    return voices, None
 
 
 def get_stock_providers(db: Session) -> list[StockProvider]:
@@ -111,6 +144,7 @@ def voice_params(db: Session, project: Project, params: dict | None = None) -> d
         or get_setting(db, "voice_default")
         or default_voice(project.language),
         "speed": params.get("speed") or "Normal",
+        "model": params.get("model") or get_setting(db, "eleven_model") or "eleven_multilingual_v2",
     }
 
 
@@ -152,16 +186,32 @@ def _run_storyboard(db: Session, project: Project, progress, params: dict) -> di
 
 def _run_voice(db: Session, project: Project, progress, params: dict) -> dict:
     script = _require(db, project, "script", "Primero hay que escribir el guion.")
-    tts = get_voice_provider()
     chosen = voice_params(db, project, params)
-    if hasattr(tts, "is_downloaded") and not tts.is_downloaded(chosen["voice"]):
+    tts = get_voice_provider(db, chosen["voice"], chosen["model"])
+    previous = get_result(db, project.id, "voice")
+    if is_eleven(chosen["voice"]):
+        _check_eleven_credits(tts, pending_characters(script, previous, chosen))
+    elif hasattr(tts, "is_downloaded") and not tts.is_downloaded(chosen["voice"]):
         progress(3, "Descargando la voz (solo la primera vez, unos 60 MB)")
         tts.ensure_downloaded(chosen["voice"])
-    previous = get_result(db, project.id, "voice")
     folder = project_dir(project.id) / "voz"
     data = run_voice(project, script, previous, tts, chosen, folder, progress)
     set_setting(db, "voice_default", chosen["voice"])
+    if is_eleven(chosen["voice"]):
+        set_setting(db, "eleven_model", chosen["model"])
     return data
+
+
+def _check_eleven_credits(tts, characters: int) -> None:
+    """Antes de gastar nada, comprueba que hay créditos suficientes en ElevenLabs."""
+    credits = tts.credits() if hasattr(tts, "credits") else None
+    needed = tts.cost(characters) if hasattr(tts, "cost") else characters
+    if credits is not None and needed > credits["left"]:
+        raise ProviderError(
+            f"No te alcanzan los créditos de ElevenLabs: hacen falta unos {needed} y te "
+            f"quedan {credits['left']} este mes. Usa el modo «Ahorro», una voz de Piper "
+            "(gratis) o amplía tu plan."
+        )
 
 
 def is_portrait(project: Project) -> bool:

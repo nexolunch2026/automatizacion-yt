@@ -50,6 +50,13 @@ def check_stock_key(provider: str, api_key: str) -> None:
     stock.search("city", "image", portrait=False, limit=3)
 
 
+def check_eleven_key(api_key: str) -> None:
+    """Comprueba la clave pidiendo la lista de voces. Se reemplaza en los tests."""
+    from app.providers.voice import ElevenLabsVoices
+
+    ElevenLabsVoices(api_key).list_voices()
+
+
 def _page(request: Request, db: DB, status_code: int = 200, **ctx):
     return render(
         request,
@@ -59,6 +66,7 @@ def _page(request: Request, db: DB, status_code: int = 200, **ctx):
         current_model=get_setting(db, "gemini_model"),
         github_hint=api_key_hint(db, "github"),
         stock_hints={name: api_key_hint(db, name) for name in STOCK_PROVIDERS},
+        eleven_hint=api_key_hint(db, "elevenlabs"),
         **ctx,
     )
 
@@ -71,6 +79,7 @@ def settings_page(request: Request, db: DB, user: CurrentUser):
         saved=request.query_params.get("guardado"),
         github_saved=request.query_params.get("github"),
         stock_saved=request.query_params.get("stock"),
+        eleven_saved=request.query_params.get("elevenlabs"),
     )
 
 
@@ -142,3 +151,22 @@ def delete_stock_key(db: DB, user: CurrentUser, provider: str):
     if provider in STOCK_PROVIDERS:
         delete_api_key(db, provider)
     return RedirectResponse("/configuracion#stock", status_code=303)
+
+
+@router.post("/elevenlabs")
+def save_eleven(request: Request, db: DB, user: CurrentUser, api_key: Annotated[str, Form()]):
+    api_key = api_key.strip()
+    try:
+        if not api_key:
+            raise ProviderError("Pega la clave antes de guardar.")
+        check_eleven_key(api_key)
+    except ProviderError as exc:
+        return _page(request, db, 400, eleven_error=str(exc))
+    save_api_key(db, "elevenlabs", api_key)
+    return RedirectResponse("/configuracion?elevenlabs=1#elevenlabs", status_code=303)
+
+
+@router.post("/elevenlabs/borrar")
+def delete_eleven(db: DB, user: CurrentUser):
+    delete_api_key(db, "elevenlabs")
+    return RedirectResponse("/configuracion#elevenlabs", status_code=303)

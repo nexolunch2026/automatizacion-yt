@@ -10,11 +10,25 @@ from pathlib import Path
 
 from app.models import Project
 from app.pipeline.storyboard import paragraphs_of
-from app.providers.voice import VoiceProvider, join_wavs, wav_seconds
+from app.providers.voice import VoiceProvider, is_eleven, join_wavs, wav_seconds
 
 
-def take_key(text: str, voice: str, speed: str) -> str:
-    return hashlib.sha1(f"{voice}|{speed}|{text}".encode()).hexdigest()[:12]
+def take_key(text: str, voice: str, speed: str, model: str = "") -> str:
+    """Identifica una grabación: si cambia el texto, la voz, la velocidad o el modelo
+    (solo ElevenLabs), hay que volver a grabar."""
+    extra = f"|{model}" if is_eleven(voice) and model else ""
+    return hashlib.sha1(f"{voice}|{speed}|{text}{extra}".encode()).hexdigest()[:12]
+
+
+def pending_characters(script: dict, previous: dict | None, params: dict) -> int:
+    """Caracteres que habría que grabar (los párrafos nuevos o cambiados)."""
+    old = {t["paragraph_id"]: t["key"] for t in (previous or {}).get("takes", [])}
+    return sum(
+        len(p["text"])
+        for p in paragraphs_of(script)
+        if old.get(p["id"])
+        != take_key(p["text"], params["voice"], params["speed"], params.get("model", ""))
+    )
 
 
 def run_voice(
@@ -35,7 +49,7 @@ def run_voice(
 
     takes, audio_parts, reused = [], [], 0
     for i, paragraph in enumerate(paragraphs, 1):
-        key = take_key(paragraph["text"], voice, speed)
+        key = take_key(paragraph["text"], voice, speed, params.get("model", ""))
         filename = f"{paragraph['id']}-{key}.wav"
         path = folder / filename
         old = old_takes.get(paragraph["id"])
@@ -73,6 +87,7 @@ def run_voice(
     return {
         "voice": voice,
         "speed": speed,
+        "model": params.get("model", ""),
         "provider": tts.name,
         "takes": takes,
         "full": "voz/narracion.wav",

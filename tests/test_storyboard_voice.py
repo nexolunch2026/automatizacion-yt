@@ -124,7 +124,7 @@ def test_only_changed_paragraphs_are_rerecorded(with_script, no_real_internet):
 def test_voice_sample(with_script, monkeypatch):
     seen = {}
 
-    def fake_sample(text, voice, speed):
+    def fake_sample(db, text, voice, speed, model):
         seen.update(text=text, voice=voice, speed=speed)
         return silent_wav(1)
 
@@ -142,7 +142,7 @@ def test_voice_sample(with_script, monkeypatch):
 
 
 def test_voice_sample_error_is_shown(with_script, monkeypatch):
-    def fail(*args):
+    def fail(*args, **kwargs):
         raise ProviderError("No se pudo descargar la voz.")
 
     monkeypatch.setattr(stages_web, "make_sample", fail)
