@@ -15,13 +15,16 @@ from sqlalchemy.orm import Session
 from app.db import SessionLocal
 from app.media import project_dir
 from app.models import STATUSES, Job, Project, StageResult
+from app.pipeline.render import QUALITIES, render_video
 from app.pipeline.research import run_research
 from app.pipeline.script import default_params, run_script
 from app.pipeline.storyboard import run_storyboard
 from app.pipeline.strategy import run_strategy
+from app.pipeline.visuals import credits_text, run_visuals
 from app.pipeline.voice import run_voice
 from app.providers.ai import AIProvider, GeminiProvider, ProviderError
 from app.providers.search import SearchProvider, WikipediaSearch
+from app.providers.stock import PexelsStock, PixabayStock, StockProvider
 from app.providers.voice import PiperVoices, VoiceProvider, default_voice
 from app.settings_store import get_api_key, get_setting, set_setting
 
@@ -36,6 +39,7 @@ STAGE_DONE_STATUS = {
     "script": "Guion",
     "storyboard": "Storyboard",
     "voice": "Producción",
+    "edit": "Edición",
 }
 # Qué etapa sigue a cada una (para los modos asistido y automático).
 NEXT_STAGE = {
@@ -43,6 +47,8 @@ NEXT_STAGE = {
     "strategy": "script",
     "script": "storyboard",
     "storyboard": "voice",
+    "voice": "visuals",
+    "visuals": "edit",
 }
 
 
@@ -87,6 +93,15 @@ def get_voice_provider() -> VoiceProvider:
     if _voices is None:
         _voices = PiperVoices()
     return _voices
+
+
+def get_stock_providers(db: Session) -> list[StockProvider]:
+    providers: list[StockProvider] = []
+    if key := get_api_key(db, "pexels"):
+        providers.append(PexelsStock(key))
+    if key := get_api_key(db, "pixabay"):
+        providers.append(PixabayStock(key))
+    return providers
 
 
 def voice_params(db: Session, project: Project, params: dict | None = None) -> dict:
@@ -149,6 +164,59 @@ def _run_voice(db: Session, project: Project, progress, params: dict) -> dict:
     return data
 
 
+def is_portrait(project: Project) -> bool:
+    return project.duration == "Short"
+
+
+def _run_visuals(db: Session, project: Project, progress, params: dict) -> dict:
+    board = _require(db, project, "storyboard", "Primero hay que crear las escenas.")
+    folder = project_dir(project.id) / "visuales"
+    only = set(params["only"]) if params.get("only") else None
+    return run_visuals(
+        board["scenes"],
+        get_stock_providers(db),
+        is_portrait(project),
+        folder,
+        get_result(db, project.id, "visuals"),
+        progress,
+        only,
+        params.get("skip"),
+    )
+
+
+def _run_edit(db: Session, project: Project, progress, params: dict) -> dict:
+    board = _require(db, project, "storyboard", "Primero hay que crear las escenas.")
+    voice = _require(db, project, "voice", "Primero hay que grabar la voz.")
+    visuals = get_result(db, project.id, "visuals") or {"items": {}}
+    scene_ids = [s["paragraph_id"] for s in board["scenes"]]
+    take_ids = [t["paragraph_id"] for t in voice["takes"]]
+    if scene_ids != take_ids:
+        raise ProviderError(
+            "Las escenas y la voz no coinciden (el guion cambió). Pulsa «Rehacer escenas» "
+            "y luego «Grabar lo que falta» en la voz, y vuelve a montar el vídeo."
+        )
+    folder = project_dir(project.id)
+    media = {}
+    for pid, entry in visuals["items"].items():
+        if entry.get("file") and (folder / "visuales" / entry["file"]).exists():
+            media[pid] = {"path": folder / "visuales" / entry["file"], "kind": entry["kind"]}
+    quality = params.get("quality") if params.get("quality") in QUALITIES else "preview"
+    result = render_video(
+        board["scenes"],
+        media,
+        {t["paragraph_id"]: t["seconds"] for t in voice["takes"]},
+        folder / voice["full"],
+        folder / "video",
+        quality,
+        is_portrait(project),
+        progress,
+    )
+    (folder / "video" / "creditos.txt").write_text(credits_text(visuals), encoding="utf-8")
+    previous = get_result(db, project.id, "edit") or {}
+    renders = {**previous.get("renders", {}), quality: result}
+    return {"renders": renders, "last": quality}
+
+
 Runner = Callable[[Session, Project, Callable[[int, str], None], dict], dict]
 RUNNERS: dict[str, Runner] = {
     "research": _run_research,
@@ -156,6 +224,8 @@ RUNNERS: dict[str, Runner] = {
     "script": _run_script,
     "storyboard": _run_storyboard,
     "voice": _run_voice,
+    "visuals": _run_visuals,
+    "edit": _run_edit,
 }
 
 

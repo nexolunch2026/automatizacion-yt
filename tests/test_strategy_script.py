@@ -214,11 +214,16 @@ def test_long_video_reaches_target_length(logged_in, monkeypatch):
 
     writer = ShortWriter()
     monkeypatch.setattr(jobs, "get_ai_provider", lambda db: writer)
-    make_project(logged_in, "automatico")
+    make_project(logged_in, "manual")
     with SessionLocal() as db:
         db.get(Project, 1).duration = "10–15 min"
         db.commit()
     logged_in.post("/proyectos/1/etapas/research")
+    run_all()
+    logged_in.post("/proyectos/1/etapas/strategy")
+    run_all()
+    logged_in.post("/proyectos/1/estrategia/elegir", data={"concept": 0, "title": 0})
+    logged_in.post("/proyectos/1/etapas/script")
     run_all()
 
     data = script_data()

@@ -57,6 +57,52 @@ def main() -> None:
         version = updater.read_version((source / "app" / "config.py").read_text("utf-8"))
         print(f"   Versión publicada: {version}")
 
+    print("4) Montaje de vídeo real con FFmpeg")
+    with tempfile.TemporaryDirectory(prefix="prueba d'apostrofo ") as tmp:
+        folder = Path(tmp)
+        from PIL import Image
+
+        from app.pipeline.render import render_video
+        from app.providers.voice import join_wavs
+
+        Image.new("RGB", (640, 360), (90, 40, 30)).save(folder / "foto.jpg")
+        voice = PiperVoices(folder / "voces")
+        clips = [voice.synthesize(t, "es_ES-davefx-medium", "Normal") for t in ("Uno.", "Dos.")]
+        (folder / "narracion.wav").write_bytes(join_wavs(clips))
+        scenes = [
+            {
+                "number": 1,
+                "paragraph_id": "a",
+                "narration": "Uno.",
+                "motion": "zoom lento",
+                "transition": "fundido",
+                "on_screen_text": "2001",
+            },
+            {
+                "number": 2,
+                "paragraph_id": "b",
+                "narration": "Dos.",
+                "motion": "",
+                "transition": "corte",
+                "on_screen_text": "63.000 MILLONES",
+            },
+        ]
+        takes = {"a": wav_seconds(clips[0]), "b": wav_seconds(clips[1])}
+        out = render_video(
+            scenes,
+            {"a": {"path": folder / "foto.jpg", "kind": "image"}},
+            takes,
+            folder / "narracion.wav",
+            folder / "video",
+            "preview",
+            False,
+            lambda p, m: None,
+        )
+        size = (folder / "video" / out["file"].removeprefix("video/")).stat().st_size
+        print(f"   {out['file']}: {out['seconds']} s, {size} bytes")
+        if size < 1000:
+            failures.append("El vídeo montado está vacío")
+
     if failures:
         print("\nFALLOS:\n- " + "\n- ".join(failures))
         sys.exit(1)

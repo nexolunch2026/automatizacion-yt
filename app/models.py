@@ -27,7 +27,7 @@ STAGES = {
     "storyboard": "Escenas",
     "visuals": "Visuales",
     "voice": "Voz",
-    "edit": "Edición",
+    "edit": "Vídeo",
     "thumbnail": "Miniatura",
     "qc": "Control de calidad",
     "publish": "Publicación",

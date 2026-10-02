@@ -69,6 +69,9 @@
     </li>
     {% endfor %}
   </ol>
+  <div class="next-inline">
+    <a class="btn" href="/proyectos/{{ project.id }}/visuales">Siguiente: visuales →</a>
+  </div>
 </div>
 {% endif %}
 {{ ui.live_updates(project, jobs) }}

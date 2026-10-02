@@ -160,14 +160,19 @@ def test_files_are_protected(with_script):
     assert with_script.get("/proyectos/1/archivos/voz/no-existe.wav").status_code == 404
 
 
-def test_automatic_mode_goes_until_voice(logged_in, ai):
+def test_automatic_mode_goes_until_the_video(logged_in, ai, monkeypatch):
+    from app.pipeline import render
+
+    # Vista previa en miniatura para que la prueba sea rápida.
+    monkeypatch.setitem(render.QUALITIES, "preview", render.QUALITIES["test"])
     make_project(logged_in, "automatico")
     logged_in.post("/proyectos/1/etapas/research")
     run_all()
-    assert result("storyboard") is not None
-    assert result("voice") is not None
+    for stage in ("storyboard", "voice", "visuals", "edit"):
+        assert result(stage) is not None, stage
+    assert "preview" in result("edit")["renders"]
     with SessionLocal() as db:
-        assert db.get(Project, 1).status == "Producción"
+        assert db.get(Project, 1).status == "Edición"
 
 
 def test_deleting_project_removes_files(with_script):

@@ -1,6 +1,6 @@
 # Plataforma de producción Faceless para YouTube — Documento de diseño
 
-> Estado: **v0.5** — investigación, estrategia, guion, escenas y voz.
+> Estado: **v0.6** — de la idea al vídeo MP4 montado (con subtítulos .srt).
 >
 > **Cambio v0.3 (prioriza la sencillez de instalación):** el usuario es principiante y
 > usa Windows, así que se sustituye la pila con Docker por una app que arranca con
@@ -355,7 +355,7 @@ Login → Dashboard (tarjetas de proyecto con estado y progreso)
 | M4 ✅ | Guion + editor | Guion editable por párrafos; marca escenas obsoletas |
 | M5 (escenas ✅, stock pendiente) | Storyboard + stock | Escenas con visual de stock y licencia guardada |
 | M6 (voz ✅, subtítulos pendientes) | Voz + subtítulos | Narración por escena + SRT sincronizado |
-| M7 | Montaje + render | **Primer MP4 completo** con música, voz, visuales y subtítulos |
+| M7 ✅ | Montaje + render | **Primer MP4 completo** con música, voz, visuales y subtítulos |
 | M8 | Costes + editor por escenas | Estimación previa, presupuesto máximo, edición y re-render |
 | — | **Fin del MVP** | De una idea a un MP4 descargable |
 
@@ -501,3 +501,20 @@ generar una miniatura en el chat de ChatGPT o Gemini, etc.).
   luego cada sección por separado, con la anterior como contexto. Si una sección queda
   por debajo del 75 % de su objetivo, se pide una versión más larga. Los errores
   temporales se reintentan dentro de la misma tarea (20 s, 40 s) para no perder lo escrito.
+
+## 19. Notas de implementación (visuales y montaje, v0.6)
+
+- **Visuales** (`app/providers/stock.py`, `app/pipeline/visuals.py`): Pexels y Pixabay
+  (claves gratuitas, guardadas cifradas). Por escena se busca vídeo o foto según el tipo,
+  se evita repetir el mismo recurso, se prefieren vídeos de duración suficiente y se
+  guarda autor, licencia y página. «Cambiar por otro» salta resultados ya vistos solo en
+  esa escena. Sin clave o sin resultados → tarjeta de texto. Los vídeos tienen miniatura.
+- **Montaje** (`app/pipeline/render.py`): FFmpeg incluido vía `imageio-ffmpeg`. Un clip
+  por escena con la duración exacta de su narración (+0,35 s de pausa): fotos con zoom o
+  paneo lento (zoompan), vídeos recortados a pantalla completa y en bucle si son cortos,
+  fundido si la escena lo pide, texto en pantalla como PNG generado con Pillow (el FFmpeg
+  de Linux no trae drawtext). Unión por concat sin recodificar + narración AAC.
+  Calidades: vista previa 480p y final 1080p (vertical en Shorts).
+- **Subtítulos**: `subtitulos.srt` a partir de los tiempos reales de cada párrafo,
+  en trozos de ~10 palabras. Créditos de imágenes en `creditos.txt`.
+- **Comprobación real en CI (Windows)**: voces de Piper, síntesis, actualizador y montaje.

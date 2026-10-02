@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% import "_project.html" as ui %}
+{% block content %}
+{{ ui.header(project) }}
+{{ ui.tabs(project, stage, slugs, stages, results, jobs) }}
+
+<div class="card">
+  <div class="row">
+    <div>
+      <h2>Visuales</h2>
+      <p class="muted small">Imágenes y vídeos gratis de Pexels y Pixabay para cada escena.</p>
+    </div>
+    {% if 'storyboard' in results and not (job and job.active) %}
+    <form method="post" action="/proyectos/{{ project.id }}/etapas/visuals">
+      <button class="btn {{ 'secondary' if result }}">{% if result %}Buscar los que faltan{% else %}Buscar visuales{% endif %}</button>
+    </form>
+    {% endif %}
+  </div>
+  {% if not has_stock %}
+  <p class="alert info">Para buscar imágenes y vídeos necesitas una clave gratis de Pexels o Pixabay:
+    ve a <a href="/configuracion#stock">Configuración</a>. Sin clave, cada escena se monta con una tarjeta de texto.</p>
+  {% endif %}
+  {{ ui.job_status(job) }}
+  {% if 'storyboard' not in results %}
+  <p class="alert info">Primero hay que <a href="/proyectos/{{ project.id }}/escenas">crear las escenas</a>.</p>
+  {% endif %}
+</div>
+
+{% if result %}
+<div class="scenes">
+  {% for row in rows %}
+  {% set s = row.scene %}{% set v = row.visual %}
+  <div class="card scene" id="escena-{{ s.paragraph_id }}">
+    <div class="row">
+      <strong>Escena {{ '%02d'|format(s.number) }}</strong>
+      <span class="muted small">{{ s.seconds }} s</span>
+    </div>
+    <div class="visual-preview">
+      {% if v and v.kind == 'image' %}
+        <img src="/proyectos/{{ project.id }}/archivos/visuales/{{ v.file }}" alt="{{ s.visual }}" loading="lazy">
+      {% elif v and v.kind == 'video' %}
+        <video src="/proyectos/{{ project.id }}/archivos/visuales/{{ v.file }}" muted loop preload="none"
+          {% if v.poster %}poster="/proyectos/{{ project.id }}/archivos/visuales/{{ v.poster }}"{% endif %}
+          onmouseover="this.play()" onmouseout="this.pause()"></video>
+      {% else %}
+        <div class="card-placeholder">{{ s.on_screen_text or s.visual }}</div>
+      {% endif %}
+    </div>
+    <p class="small narration">«{{ s.narration|truncate(140) }}»</p>
+    {% if v and v.provider %}
+      <p class="muted small">{{ 'Vídeo' if v.kind == 'video' else 'Foto' }} de {{ v.author or 'autor desconocido' }} ·
+        <a href="{{ v.page_url }}" target="_blank" rel="noopener">{{ 'Pexels' if v.provider == 'pexels' else 'Pixabay' }}</a>
+        · búsqueda «{{ v.query }}»</p>
+    {% elif v %}
+      <p class="muted small">Tarjeta de texto ({{ v.reason or 'gráfico' }}).</p>
+    {% endif %}
+    {% if not (job and job.active) %}
+    <form method="post" action="/proyectos/{{ project.id }}/visuales/cambiar/{{ s.paragraph_id }}">
+      <button class="btn small secondary" {% if not has_stock %}disabled{% endif %}>Cambiar por otro</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+<div class="next-inline">
+  <a class="btn" href="/proyectos/{{ project.id }}/video">Siguiente: montar el vídeo →</a>
+</div>
+{% endif %}
+{{ ui.live_updates(project, jobs) }}
+{% endblock %}

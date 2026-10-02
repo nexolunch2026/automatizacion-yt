@@ -36,10 +36,15 @@
   {% elif 'voice' not in results %}
     <p>Grabar la narración con la voz que elijas.</p>
     <a class="btn" href="/proyectos/{{ project.id }}/voz">Ir a la voz</a>
+  {% elif 'visuals' not in results %}
+    <p>Buscar imágenes y vídeos para cada escena.</p>
+    <a class="btn" href="/proyectos/{{ project.id }}/visuales">Ir a visuales</a>
+  {% elif 'edit' not in results %}
+    <p>Montar el vídeo con los visuales y la voz.</p>
+    <a class="btn" href="/proyectos/{{ project.id }}/video">Ir al vídeo</a>
   {% else %}
-    <p>Guion, escenas y narración listos. Las imágenes y el montaje del vídeo llegarán en
-      las próximas versiones.</p>
-    <a class="btn" href="/proyectos/{{ project.id }}/voz">Escuchar narración</a>
+    <p>¡Tu vídeo está montado! Revísalo y descárgalo.</p>
+    <a class="btn" href="/proyectos/{{ project.id }}/video">Ver vídeo</a>
   {% endif %}
   {{ ui.no_gemini(has_gemini) }}
 </div>

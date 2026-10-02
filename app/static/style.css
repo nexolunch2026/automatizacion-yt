@@ -220,3 +220,13 @@ audio { width: 100%; max-width: 520px; height: 36px; }
 .takes p { margin: 0 0 4px; color: #cfd3dc; }
 .takes audio { max-width: 360px; vertical-align: middle; }
 @media (max-width: 720px) { .voice-form { grid-template-columns: 1fr; } }
+
+/* Visuales y vídeo */
+.visual-preview { aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: var(--bg); margin: 8px 0; }
+.visual-preview img, .visual-preview video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.card-placeholder {
+  height: 100%; display: grid; place-items: center; text-align: center; padding: 12px;
+  font-weight: 700; color: #cfd3dc; background: linear-gradient(#0c0e14, #1e2030);
+}
+.scene form { margin-top: 8px; }
+.player { width: 100%; border-radius: 8px; background: #000; margin: 8px 0 12px; }

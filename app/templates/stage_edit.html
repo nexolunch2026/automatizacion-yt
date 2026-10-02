@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% import "_project.html" as ui %}
+{% block content %}
+{% set renders = (result or {}).get('renders', {}) %}
+{{ ui.header(project) }}
+{{ ui.tabs(project, stage, slugs, stages, results, jobs) }}
+
+<div class="card">
+  <h2>Vídeo</h2>
+  <p class="muted small">Une las escenas, los visuales y la voz en un vídeo MP4, y crea los subtítulos.</p>
+  {{ ui.job_status(job) }}
+  {% if 'storyboard' not in results or 'voice' not in results %}
+  <p class="alert info">Antes necesitas las <a href="/proyectos/{{ project.id }}/escenas">escenas</a>
+    y la <a href="/proyectos/{{ project.id }}/voz">voz</a>.
+    Los <a href="/proyectos/{{ project.id }}/visuales">visuales</a> son recomendables.</p>
+  {% elif not (job and job.active) %}
+  <div class="row-actions">
+    <form method="post" action="/proyectos/{{ project.id }}/etapas/edit">
+      <input type="hidden" name="quality" value="preview">
+      <button class="btn secondary">Vista previa rápida (480p)</button>
+    </form>
+    <form method="post" action="/proyectos/{{ project.id }}/etapas/edit">
+      <input type="hidden" name="quality" value="final">
+      <button class="btn">Vídeo final (1080p)</button>
+    </form>
+  </div>
+  <p class="muted small">La vista previa tarda poco y sirve para revisar. El vídeo final tarda más
+    (puede ser bastante en vídeos largos; puedes dejarlo trabajando).</p>
+  {% endif %}
+</div>
+
+{% for quality, label in [('final', 'Vídeo final (1080p)'), ('preview', 'Vista previa (480p)')] %}
+{% set r = renders.get(quality) %}
+{% if r %}
+<div class="card">
+  <div class="row">
+    <h2>{{ label }}</h2>
+    <span class="muted small">{{ (r.seconds / 60)|round(1) }} min · {{ r.width }}×{{ r.height }}</span>
+  </div>
+  <video controls class="player" src="/proyectos/{{ project.id }}/archivos/{{ r.file }}?v={{ r.seconds }}"></video>
+  <div class="row-actions">
+    <a class="btn small" href="/proyectos/{{ project.id }}/archivos/{{ r.file }}" download>Descargar MP4</a>
+    {% if has_srt %}<a class="btn small secondary" href="/proyectos/{{ project.id }}/archivos/video/subtitulos.srt" download>Descargar subtítulos (.srt)</a>{% endif %}
+    {% if has_credits %}<a class="btn small secondary" href="/proyectos/{{ project.id }}/archivos/video/creditos.txt" download>Créditos de imágenes</a>{% endif %}
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+
+{% if renders %}
+<div class="card">
+  <h3>Antes de publicar</h3>
+  <ul class="small">
+    <li>Mira el vídeo entero: revisa que las imágenes encajen con lo que se dice.</li>
+    <li>Sube el archivo <strong>.srt</strong> a YouTube como subtítulos (mejor que quemarlos en el vídeo).</li>
+    <li>Pega los créditos de imágenes en la descripción (no es obligatorio, pero es buena práctica).</li>
+    <li>Si usas imágenes generadas por IA realistas, marca en YouTube la casilla de «contenido alterado o sintético».</li>
+  </ul>
+</div>
+{% endif %}
+{{ ui.live_updates(project, jobs) }}
+{% endblock %}

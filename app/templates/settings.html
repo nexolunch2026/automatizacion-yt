@@ -75,6 +75,42 @@
     <button class="btn">Guardar</button>
   </form>
 </div>
+<div class="card form-card" id="stock">
+  <h2>Imágenes y vídeos — Pexels y Pixabay</h2>
+  <p class="muted small">Son bancos de imágenes y vídeos <strong>gratis y con licencia para usar
+    en YouTube</strong>. Necesitas al menos una clave (mejor las dos). Sin clave, las escenas
+    se montan con tarjetas de texto.</p>
+  {% set guides = {
+    'pexels': ['https://www.pexels.com/api/', 'Pulsa «Get started» o «Your API key», crea una cuenta gratis (o entra con Google) y rellena el formulario corto (en «website» puedes poner tu canal de YouTube).', 'Copia la clave que aparece («Your API Key»).'],
+    'pixabay': ['https://pixabay.com/api/docs/', 'Crea una cuenta gratis (o entra con Google) y vuelve a esa página.', 'Busca el apartado «Parameters»: tu clave aparece en verde junto a «key». Cópiala.'],
+  } %}
+  {% for name, label in [('pexels', 'Pexels'), ('pixabay', 'Pixabay')] %}
+  <h3>{{ label }}</h3>
+  {% if stock_saved == name %}<p class="alert ok">Clave de {{ label }} guardada y comprobada.</p>{% endif %}
+  {% if stock_error and stock_error.get(name) %}<p class="alert">{{ stock_error[name] }}</p>{% endif %}
+  {% if stock_hints[name] %}
+  <p>Estado: <span class="badge ok">Conectado</span> <span class="muted small">Clave {{ stock_hints[name] }}</span></p>
+  <form method="post" action="/configuracion/stock/{{ name }}/borrar" onsubmit="return confirm('¿Quitar la clave de {{ label }}?')">
+    <button class="btn-link">Quitar clave</button>
+  </form>
+  {% else %}
+  <ol class="steps">
+    <li>Abre <a href="{{ guides[name][0] }}" target="_blank" rel="noopener">{{ guides[name][0] }}</a>.</li>
+    <li>{{ guides[name][1] }}</li>
+    <li>{{ guides[name][2] }}</li>
+    <li>Pégala aquí y pulsa Guardar.</li>
+  </ol>
+  <form method="post" action="/configuracion/stock/{{ name }}" class="stack">
+    <label>Clave de {{ label }}
+      <input name="api_key" type="password" autocomplete="off" required>
+    </label>
+    <button class="btn">Guardar</button>
+  </form>
+  {% endif %}
+  {% if not loop.last %}<hr>{% endif %}
+  {% endfor %}
+</div>
+
 <div class="card form-card">
   <h2>GitHub — para el botón Actualizar</h2>
   <p class="muted small">Solo hace falta si tu repositorio de GitHub es <strong>privado</strong>.

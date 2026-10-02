@@ -28,6 +28,8 @@ SLUGS = {
     "script": "guion",
     "storyboard": "escenas",
     "voice": "voz",
+    "visuals": "visuales",
+    "edit": "video",
 }
 STAGE_BY_SLUG = {slug: stage for stage, slug in SLUGS.items()}
 
@@ -177,6 +179,51 @@ def project_file(db: DB, user: CurrentUser, project_id: int, path: str):
     return FileResponse(target)
 
 
+@router.get("/visuales")
+def visuals_page(request: Request, db: DB, user: CurrentUser, project_id: int):
+    project = _project(db, project_id)
+    board = jobs.get_result(db, project_id, "storyboard") or {}
+    visuals = jobs.get_result(db, project_id, "visuals") or {}
+    rows = [
+        {"scene": scene, "visual": visuals.get("items", {}).get(scene["paragraph_id"])}
+        for scene in board.get("scenes", [])
+    ]
+    return _stage_page(
+        request,
+        db,
+        project,
+        "visuals",
+        rows=rows,
+        has_stock=bool(jobs.get_stock_providers(db)),
+    )
+
+
+@router.post("/visuales/cambiar/{paragraph_id}")
+def change_visual(db: DB, user: CurrentUser, project_id: int, paragraph_id: str):
+    """Busca otro visual solo para esta escena (salta los resultados ya vistos)."""
+    _project(db, project_id)
+    visuals = jobs.get_result(db, project_id, "visuals") or {}
+    entry = visuals.get("items", {}).get(paragraph_id) or {}
+    skip = entry.get("skip", 0) + 1 if entry.get("provider") else 0
+    jobs.enqueue(db, project_id, "visuals", {"only": [paragraph_id], "skip": {paragraph_id: skip}})
+    return _redirect(f"/proyectos/{project_id}/visuales#escena-{paragraph_id}")
+
+
+@router.get("/video")
+def video_page(request: Request, db: DB, user: CurrentUser, project_id: int):
+    project = _project(db, project_id)
+    folder = project_dir(project_id) / "video"
+    return _stage_page(
+        request,
+        db,
+        project,
+        "edit",
+        has_srt=(folder / "subtitulos.srt").exists(),
+        has_credits=(folder / "creditos.txt").exists()
+        and (folder / "creditos.txt").read_text(encoding="utf-8").strip() != "",
+    )
+
+
 @router.post("/etapas/{stage}")
 def run_stage(
     db: DB,
@@ -188,6 +235,7 @@ def run_stage(
     technical: Annotated[str | None, Form()] = None,
     voice: Annotated[str | None, Form()] = None,
     speed: Annotated[str | None, Form()] = None,
+    quality: Annotated[str | None, Form()] = None,
 ):
     _project(db, project_id)
     if stage not in jobs.RUNNERS:
@@ -200,6 +248,8 @@ def run_stage(
             "drama": drama if drama in LEVELS else defaults["drama"],
             "technical": technical if technical in LEVELS else defaults["technical"],
         }
+    elif stage == "edit":
+        params = {"quality": quality if quality in ("preview", "final") else "preview"}
     elif stage == "voice":
         params = {
             "voice": voice if voice in VOICE_IDS else None,
