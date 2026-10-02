@@ -13,12 +13,16 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
+from app.media import project_dir
 from app.models import STATUSES, Job, Project, StageResult
 from app.pipeline.research import run_research
 from app.pipeline.script import default_params, run_script
+from app.pipeline.storyboard import run_storyboard
 from app.pipeline.strategy import run_strategy
+from app.pipeline.voice import run_voice
 from app.providers.ai import AIProvider, GeminiProvider, ProviderError
 from app.providers.search import SearchProvider, WikipediaSearch
+from app.providers.voice import PiperVoices, VoiceProvider, default_voice
 from app.settings_store import get_api_key, get_setting, set_setting
 
 log = logging.getLogger(__name__)
@@ -27,9 +31,19 @@ MAX_ATTEMPTS = 4
 RETRY_DELAYS = [timedelta(seconds=30), timedelta(seconds=90), timedelta(minutes=3)]
 
 # Estado del proyecto cuando termina cada etapa.
-STAGE_DONE_STATUS = {"research": "Investigación", "script": "Guion"}
+STAGE_DONE_STATUS = {
+    "research": "Investigación",
+    "script": "Guion",
+    "storyboard": "Storyboard",
+    "voice": "Producción",
+}
 # Qué etapa sigue a cada una (para los modos asistido y automático).
-NEXT_STAGE = {"research": "strategy", "strategy": "script"}
+NEXT_STAGE = {
+    "research": "strategy",
+    "strategy": "script",
+    "script": "storyboard",
+    "storyboard": "voice",
+}
 
 
 def get_result(db: Session, project_id: int, stage: str) -> dict | None:
@@ -64,6 +78,27 @@ def get_search_provider() -> SearchProvider:
     return WikipediaSearch()
 
 
+_voices: VoiceProvider | None = None
+
+
+def get_voice_provider() -> VoiceProvider:
+    """Una sola instancia, para no cargar la voz en memoria en cada tarea."""
+    global _voices
+    if _voices is None:
+        _voices = PiperVoices()
+    return _voices
+
+
+def voice_params(db: Session, project: Project, params: dict | None = None) -> dict:
+    params = params or {}
+    return {
+        "voice": params.get("voice")
+        or get_setting(db, "voice_default")
+        or default_voice(project.language),
+        "speed": params.get("speed") or "Normal",
+    }
+
+
 def _run_research(db: Session, project: Project, progress, params: dict) -> dict:
     ai = get_ai_provider(db)
     data = run_research(project, ai, progress, get_search_provider())
@@ -92,11 +127,35 @@ def _run_script(db: Session, project: Project, progress, params: dict) -> dict:
     return data
 
 
+def _run_storyboard(db: Session, project: Project, progress, params: dict) -> dict:
+    script = _require(db, project, "script", "Primero hay que escribir el guion.")
+    ai = get_ai_provider(db)
+    data = run_storyboard(project, script, ai, progress)
+    remember_working_model(db, ai)
+    return data
+
+
+def _run_voice(db: Session, project: Project, progress, params: dict) -> dict:
+    script = _require(db, project, "script", "Primero hay que escribir el guion.")
+    tts = get_voice_provider()
+    chosen = voice_params(db, project, params)
+    if hasattr(tts, "is_downloaded") and not tts.is_downloaded(chosen["voice"]):
+        progress(3, "Descargando la voz (solo la primera vez, unos 60 MB)")
+        tts.ensure_downloaded(chosen["voice"])
+    previous = get_result(db, project.id, "voice")
+    folder = project_dir(project.id) / "voz"
+    data = run_voice(project, script, previous, tts, chosen, folder, progress)
+    set_setting(db, "voice_default", chosen["voice"])
+    return data
+
+
 Runner = Callable[[Session, Project, Callable[[int, str], None], dict], dict]
 RUNNERS: dict[str, Runner] = {
     "research": _run_research,
     "strategy": _run_strategy,
     "script": _run_script,
+    "storyboard": _run_storyboard,
+    "voice": _run_voice,
 }
 
 

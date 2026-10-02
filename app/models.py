@@ -24,7 +24,7 @@ STAGES = {
     "research": "Investigación",
     "strategy": "Estrategia",
     "script": "Guion",
-    "storyboard": "Storyboard",
+    "storyboard": "Escenas",
     "visuals": "Visuales",
     "voice": "Voz",
     "edit": "Edición",

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% import "_project.html" as ui %}
+{% block content %}
+{% set board = result %}
+{{ ui.header(project) }}
+{{ ui.tabs(project, stage, slugs, stages, results, jobs) }}
+
+<div class="card">
+  <div class="row">
+    <div>
+      <h2>Escenas</h2>
+      <p class="muted small">Cada párrafo del guion se convierte en una escena con su plan visual.</p>
+    </div>
+    {% if 'script' in results and not (job and job.active) %}
+    <form method="post" action="/proyectos/{{ project.id }}/etapas/storyboard">
+      <button class="btn {{ 'secondary' if board and not (stale.changed or stale.new) }}" {% if not has_gemini %}disabled{% endif %}>
+        {% if board %}Rehacer escenas{% else %}Crear escenas{% endif %}
+      </button>
+    </form>
+    {% endif %}
+  </div>
+  {{ ui.no_gemini(has_gemini) }}
+  {{ ui.job_status(job) }}
+  {% if 'script' not in results %}
+  <p class="alert info">Primero hay que <a href="/proyectos/{{ project.id }}/guion">escribir el guion</a>.</p>
+  {% endif %}
+  {% if board and (stale.changed or stale.new) %}
+  <p class="alert info">⚠️ El guion cambió después de crear las escenas:
+    {% if stale.changed %}{{ stale.changed|length }} escena(s) tienen texto distinto (marcadas abajo){% endif %}
+    {% if stale.changed and stale.new %} y {% endif %}
+    {% if stale.new %}{{ stale.new|length }} párrafo(s) nuevo(s) no tienen escena{% endif %}.
+    Pulsa «Rehacer escenas» para actualizarlas.</p>
+  {% endif %}
+</div>
+
+{% if board %}
+{% set vb = board.visual_bible %}
+<div class="card">
+  <h2>Biblia visual</h2>
+  <p class="muted small">La guía de estilo que siguen todas las escenas, para que el vídeo se vea coherente.</p>
+  <dl class="meta">
+    <dt>Estilo</dt><dd>{{ vb.style }}</dd>
+    <dt>Colores</dt><dd>{{ vb.palette }}</dd>
+    <dt>Época</dt><dd>{{ vb.era }}</dd>
+    <dt>Luz</dt><dd>{{ vb.lighting }}</dd>
+    <dt>Cámara</dt><dd>{{ vb.camera }}</dd>
+    {% if vb.characters %}<dt>Personajes</dt><dd>{{ vb.characters|join(' · ') }}</dd>{% endif %}
+    {% if vb.locations %}<dt>Lugares</dt><dd>{{ vb.locations|join(' · ') }}</dd>{% endif %}
+  </dl>
+</div>
+
+<p class="muted small">{{ board.scenes|length }} escenas · duración estimada {{ (board.total_seconds / 60)|round(1) }} min
+  (se ajustará con la voz real).</p>
+<div class="scenes">
+  {% for s in board.scenes %}
+  <div class="card scene {{ 'stale' if s.number in stale.changed }}">
+    <div class="row">
+      <strong>Escena {{ '%02d'|format(s.number) }}</strong>
+      <span class="muted small"><span class="kind">{{ labels.get(s.section, s.section) }}</span> {{ s.seconds }} s</span>
+    </div>
+    {% if s.number in stale.changed %}<p class="small status-failed">⚠️ El texto de esta escena cambió en el guion.</p>{% endif %}
+    <p class="narration">«{{ s.narration }}»</p>
+    <dl class="meta small">
+      <dt>Visual</dt><dd><span class="badge">{{ s.visual_type }}</span> {{ s.visual }}</dd>
+      <dt>Movimiento</dt><dd>{{ s.motion }} · {{ s.transition }}</dd>
+      {% if s.on_screen_text %}<dt>Texto</dt><dd><strong>{{ s.on_screen_text }}</strong></dd>{% endif %}
+      {% if s.sfx %}<dt>Sonido</dt><dd>{{ s.sfx|join(', ') }}</dd>{% endif %}
+      {% if s.music_mood %}<dt>Música</dt><dd>{{ s.music_mood }}</dd>{% endif %}
+    </dl>
+    {% if s.stock_query or s.image_prompt %}
+    <details class="tech">
+      <summary>Búsqueda y prompt de imagen</summary>
+      {% if s.stock_query %}<p class="small">Buscar: <code>{{ s.stock_query }}</code></p>{% endif %}
+      {% if s.image_prompt %}<p class="small">Prompt: <code>{{ s.image_prompt }}</code></p>{% endif %}
+    </details>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+<div class="next-inline">
+  <a class="btn" href="/proyectos/{{ project.id }}/voz">Siguiente: la voz →</a>
+</div>
+{% endif %}
+{{ ui.live_updates(project, jobs) }}
+{% endblock %}

@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from app import jobs
 from app.auth import DB, CurrentUser
+from app.media import delete_project_files
 from app.models import (
     AUTOMATION_MODES,
     DURATIONS,
@@ -212,4 +213,5 @@ def project_status(db: DB, user: CurrentUser, project_id: int) -> dict:
 def delete_project(db: DB, user: CurrentUser, project_id: int):
     db.delete(_get_project(db, project_id))
     db.commit()
+    delete_project_files(project_id)
     return _redirect("/")

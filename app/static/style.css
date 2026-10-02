@@ -203,3 +203,20 @@ code { background: var(--bg); padding: 2px 6px; border-radius: 4px; }
 .tone-pick select { width: auto; padding: 5px 8px; font-size: .85rem; }
 .danger-link { color: var(--accent); }
 @media (max-width: 720px) { .tone-form { grid-template-columns: 1fr; } }
+
+/* Escenas */
+.scenes { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.scene { margin: 0; }
+.scene.stale { border-color: var(--accent); }
+.narration { font-style: italic; color: #cfd3dc; }
+.meta.small { font-size: .85rem; }
+
+/* Voz */
+.voice-form { grid-template-columns: 2fr 1fr auto auto; }
+.sample { margin-top: 12px; }
+audio { width: 100%; max-width: 520px; height: 36px; }
+.full-audio { max-width: none; margin: 8px 0 12px; }
+.takes { padding-left: 20px; display: grid; gap: 12px; }
+.takes p { margin: 0 0 4px; color: #cfd3dc; }
+.takes audio { max-width: 360px; vertical-align: middle; }
+@media (max-width: 720px) { .voice-form { grid-template-columns: 1fr; } }

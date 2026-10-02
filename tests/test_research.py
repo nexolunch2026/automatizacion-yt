@@ -7,6 +7,7 @@ from app.db import SessionLocal
 from app.models import Job, Project, StageResult
 from app.pipeline.research import Angle, Fact, ResearchBrief, SearchQueries
 from app.pipeline.script import Paragraph, Rewrite, Script, Section
+from app.pipeline.storyboard import SceneSpec, Storyboard, VisualBible
 from app.pipeline.strategy import Concept, Strategy, Thumbnail, TitleOption
 from app.providers.ai import GroundedText, ProviderError, Source
 from tests.conftest import FakeSearch
@@ -59,6 +60,39 @@ def fake_script():
     )
 
 
+def fake_storyboard(prompt):
+    import re
+
+    ids = re.findall(r"^\[([0-9a-f]{8})\]", prompt, re.MULTILINE)
+    return Storyboard(
+        visual_bible=VisualBible(
+            style="Documental oscuro",
+            palette="Azules fríos",
+            era="EE. UU., 2001",
+            lighting="Baja",
+            camera="Planos lentos",
+            characters=[],
+            locations=["Houston"],
+        ),
+        # La IA «se olvida» del último párrafo, para comprobar que no se pierde.
+        scenes=[
+            SceneSpec(
+                paragraph_id=pid,
+                visual_type="video",
+                visual=f"Plano {i}",
+                stock_query="empty office",
+                image_prompt="dark office, cinematic",
+                motion="zoom lento",
+                transition="fundido",
+                on_screen_text="2001" if i == 1 else "",
+                sfx=["viento"],
+                music_mood="tensión",
+            )
+            for i, pid in enumerate(ids[:-1])
+        ],
+    )
+
+
 class FakeAI:
     name = "fake"
 
@@ -76,6 +110,8 @@ class FakeAI:
             return fake_strategy()
         if schema is Script:
             return fake_script()
+        if schema is Storyboard:
+            return fake_storyboard(prompt)
         if schema is Rewrite:
             return Rewrite(text="Párrafo reescrito por la IA.", sources=[2, 7])
         assert schema is ResearchBrief
@@ -209,7 +245,7 @@ def test_interrupted_jobs_are_resumed(project, monkeypatch):
 
 
 def test_unknown_stage_returns_404(project):
-    assert project.post("/proyectos/1/etapas/voice").status_code == 404
+    assert project.post("/proyectos/1/etapas/thumbnail").status_code == 404
 
 
 def test_deleting_project_removes_jobs_and_results(project, monkeypatch):

@@ -1,6 +1,6 @@
 # Plataforma de producción Faceless para YouTube — Documento de diseño
 
-> Estado: **v0.4** — M0–M4 hechos (investigación, estrategia y guion).
+> Estado: **v0.5** — investigación, estrategia, guion, escenas y voz.
 >
 > **Cambio v0.3 (prioriza la sencillez de instalación):** el usuario es principiante y
 > usa Windows, así que se sustituye la pila con Docker por una app que arranca con
@@ -353,8 +353,8 @@ Login → Dashboard (tarjetas de proyecto con estado y progreso)
 | M2 ✅ | Orquestador | Etapas con estados, SSE, reintentos, aprobación; etapa de prueba de punta a punta |
 | M3 ✅ | Research + estrategia | Brief con fuentes reales para un tema |
 | M4 ✅ | Guion + editor | Guion editable por párrafos; marca escenas obsoletas |
-| M5 | Storyboard + stock | Escenas con visual de stock y licencia guardada |
-| M6 | Voz + subtítulos | Narración por escena + SRT sincronizado |
+| M5 (escenas ✅, stock pendiente) | Storyboard + stock | Escenas con visual de stock y licencia guardada |
+| M6 (voz ✅, subtítulos pendientes) | Voz + subtítulos | Narración por escena + SRT sincronizado |
 | M7 | Montaje + render | **Primer MP4 completo** con música, voz, visuales y subtítulos |
 | M8 | Costes + editor por escenas | Estimación previa, presupuesto máximo, edición y re-render |
 | — | **Fin del MVP** | De una idea a un MP4 descargable |
@@ -477,3 +477,19 @@ generar una miniatura en el chat de ChatGPT o Gemini, etc.).
 - **Migración ligera**: `init_db` añade a las tablas existentes las columnas nuevas
   opcionales (p. ej. `jobs.params`) para no perder datos al actualizar.
 - **Páginas**: el proyecto tiene pestañas Resumen / Investigación / Estrategia / Guion.
+
+## 18. Notas de implementación (escenas y voz, v0.5)
+
+- **Escenas** (`app/pipeline/storyboard.py`): una escena por párrafo del guion (por su
+  `id`), con biblia visual del proyecto, tipo de visual, búsqueda de stock (en inglés),
+  prompt de imagen, movimiento, transición, texto en pantalla, SFX y ambiente musical.
+  Cada escena guarda el texto del párrafo con el que se creó; `stale_scenes` detecta las
+  escenas cuyo texto cambió y los párrafos nuevos sin escena.
+- **Voz** (`app/providers/voice.py`, `app/pipeline/voice.py`): Piper (local, gratis).
+  Las voces se descargan una vez a `datos/voces/` (descarga atómica con `.part`).
+  Grabación por párrafo con clave = hash(voz, velocidad, texto): al regrabar solo se
+  sintetizan los párrafos cambiados. Se une todo en `voz/narracion.wav` con pausas de
+  0,35 s. Muestra de voz síncrona desde la página Voz.
+- **Archivos**: `datos/proyectos/<id>/`, servidos con sesión y protección de rutas.
+- **Pendiente**: Piper no se ha probado con una voz real en el entorno de desarrollo (sin
+  acceso a HuggingFace); las pruebas usan una voz simulada.

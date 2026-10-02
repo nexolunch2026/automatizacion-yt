@@ -4,21 +4,31 @@ import copy
 from typing import Annotated
 
 from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy import select
 
 from app import jobs
 from app.auth import DB, CurrentUser
+from app.media import project_dir, safe_path
 from app.models import LEVELS, SCRIPT_TONES, STAGES, Project, StageResult
 from app.pipeline.script import SECTION_LABELS, default_params, rewrite_paragraph, with_stats
+from app.pipeline.storyboard import paragraphs_of, stale_scenes
+from app.pipeline.voice import take_key
 from app.providers.ai import ProviderError
+from app.providers.voice import SPEEDS, VOICE_IDS, VOICES
 from app.settings_store import api_key_hint
 from app.templating import render
 
 router = APIRouter(prefix="/proyectos/{project_id}")
 
 # Dirección de cada etapa en la web.
-SLUGS = {"research": "investigacion", "strategy": "estrategia", "script": "guion"}
+SLUGS = {
+    "research": "investigacion",
+    "strategy": "estrategia",
+    "script": "guion",
+    "storyboard": "escenas",
+    "voice": "voz",
+}
 STAGE_BY_SLUG = {slug: stage for stage, slug in SLUGS.items()}
 
 
@@ -88,6 +98,85 @@ def script_page(request: Request, db: DB, user: CurrentUser, project_id: int):
     )
 
 
+@router.get("/escenas")
+def storyboard_page(request: Request, db: DB, user: CurrentUser, project_id: int):
+    project = _project(db, project_id)
+    board = jobs.get_result(db, project_id, "storyboard")
+    script = jobs.get_result(db, project_id, "script")
+    stale = stale_scenes(board, script) if board and script else {"changed": [], "new": []}
+    return _stage_page(request, db, project, "storyboard", stale=stale, labels=SECTION_LABELS)
+
+
+def _voice_context(db: DB, project: Project) -> dict:
+    script = jobs.get_result(db, project.id, "script") or {}
+    voice = jobs.get_result(db, project.id, "voice")
+    params = jobs.voice_params(db, project, voice)
+    takes = {t["paragraph_id"]: t for t in (voice or {}).get("takes", [])}
+    paragraphs = []
+    for p in paragraphs_of(script):
+        take = takes.get(p["id"])
+        current = take and take["key"] == take_key(p["text"], params["voice"], params["speed"])
+        paragraphs.append({**p, "take": take, "outdated": bool(take) and not current})
+    sample = project_dir(project.id) / "voz" / "muestra.wav"
+    return {
+        "voices": VOICES,
+        "speeds": list(SPEEDS),
+        "params": params,
+        "paragraphs": paragraphs,
+        "pending": sum(1 for p in paragraphs if not p["take"] or p["outdated"]),
+        "has_sample": sample.exists(),
+    }
+
+
+@router.get("/voz")
+def voice_page(request: Request, db: DB, user: CurrentUser, project_id: int):
+    project = _project(db, project_id)
+    return _stage_page(request, db, project, "voice", **_voice_context(db, project))
+
+
+def make_sample(text: str, voice: str, speed: str) -> bytes:
+    """Graba una muestra corta. Se reemplaza en los tests."""
+    return jobs.get_voice_provider().synthesize(text, voice, speed)
+
+
+@router.post("/voz/muestra")
+def voice_sample(
+    request: Request,
+    db: DB,
+    user: CurrentUser,
+    project_id: int,
+    voice: Annotated[str, Form()],
+    speed: Annotated[str, Form()] = "Normal",
+):
+    project = _project(db, project_id)
+    if voice not in VOICE_IDS or speed not in SPEEDS:
+        raise HTTPException(400, "Voz no válida")
+    script = jobs.get_result(db, project_id, "script") or {}
+    first = next(iter(paragraphs_of(script)), None)
+    text = (first or {}).get("text") or "Hola, esta es una muestra de la voz que narrará tu vídeo."
+    try:
+        audio = make_sample(text[:300], voice, speed)
+    except ProviderError as exc:
+        ctx = _voice_context(db, project)
+        return _stage_page(request, db, project, "voice", status_code=400, error=str(exc), **ctx)
+    folder = project_dir(project_id) / "voz"
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "muestra.wav").write_bytes(audio)
+    from app.settings_store import set_setting
+
+    set_setting(db, "voice_default", voice)
+    return _redirect(f"/proyectos/{project_id}/voz?muestra={voice}-{speed}#muestra")
+
+
+@router.get("/archivos/{path:path}")
+def project_file(db: DB, user: CurrentUser, project_id: int, path: str):
+    _project(db, project_id)
+    target = safe_path(project_id, path)
+    if target is None:
+        raise HTTPException(404, "Archivo no encontrado")
+    return FileResponse(target)
+
+
 @router.post("/etapas/{stage}")
 def run_stage(
     db: DB,
@@ -97,6 +186,8 @@ def run_stage(
     tone: Annotated[str | None, Form()] = None,
     drama: Annotated[str | None, Form()] = None,
     technical: Annotated[str | None, Form()] = None,
+    voice: Annotated[str | None, Form()] = None,
+    speed: Annotated[str | None, Form()] = None,
 ):
     _project(db, project_id)
     if stage not in jobs.RUNNERS:
@@ -108,6 +199,11 @@ def run_stage(
             "tone": tone if tone in SCRIPT_TONES else defaults["tone"],
             "drama": drama if drama in LEVELS else defaults["drama"],
             "technical": technical if technical in LEVELS else defaults["technical"],
+        }
+    elif stage == "voice":
+        params = {
+            "voice": voice if voice in VOICE_IDS else None,
+            "speed": speed if speed in SPEEDS else None,
         }
     jobs.enqueue(db, project_id, stage, params)
     return _redirect(f"/proyectos/{project_id}/{SLUGS[stage]}")

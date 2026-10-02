@@ -30,10 +30,16 @@
   {% elif 'script' not in results %}
     <p>Escribir el guion con el enfoque elegido.</p>
     <a class="btn" href="/proyectos/{{ project.id }}/guion">Ir al guion</a>
+  {% elif 'storyboard' not in results %}
+    <p>Convertir el guion en escenas con su plan visual.</p>
+    <a class="btn" href="/proyectos/{{ project.id }}/escenas">Ir a escenas</a>
+  {% elif 'voice' not in results %}
+    <p>Grabar la narración con la voz que elijas.</p>
+    <a class="btn" href="/proyectos/{{ project.id }}/voz">Ir a la voz</a>
   {% else %}
-    <p>El guion está listo. Revísalo y ajusta lo que quieras. La voz y las imágenes llegarán
-      en las próximas versiones.</p>
-    <a class="btn" href="/proyectos/{{ project.id }}/guion">Ver guion</a>
+    <p>Guion, escenas y narración listos. Las imágenes y el montaje del vídeo llegarán en
+      las próximas versiones.</p>
+    <a class="btn" href="/proyectos/{{ project.id }}/voz">Escuchar narración</a>
   {% endif %}
   {{ ui.no_gemini(has_gemini) }}
 </div>

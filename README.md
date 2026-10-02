@@ -2,8 +2,8 @@
 
 Programa para crear vídeos de YouTube sin salir en cámara.
 Por ahora tiene: **cuentas para 2 personas, canales, proyectos de vídeo, investigación
-automática con fuentes, propuestas de enfoques y títulos, y guion editable**
-(usa Gemini, gratis).
+automática con fuentes, propuestas de enfoques y títulos, guion editable, escenas y
+narración con voz** (usa Gemini y Piper, gratis).
 La creación automática de los vídeos se irá añadiendo poco a poco.
 
 ---

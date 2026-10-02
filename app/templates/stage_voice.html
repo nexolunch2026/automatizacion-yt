@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% import "_project.html" as ui %}
+{% block content %}
+{% set narration = result %}
+{{ ui.header(project) }}
+{{ ui.tabs(project, stage, slugs, stages, results, jobs) }}
+
+{% if error %}<p class="alert">{{ error }}</p>{% endif %}
+
+<div class="card">
+  <h2>Voz</h2>
+  <p class="muted small">La narración se graba en tu propio ordenador con Piper: gratis y sin
+    límites. La primera vez que uses una voz se descarga (unos 60 MB).</p>
+  {{ ui.job_status(job) }}
+  {% if 'script' not in results %}
+  <p class="alert info">Primero hay que <a href="/proyectos/{{ project.id }}/guion">escribir el guion</a>.</p>
+  {% elif not (job and job.active) %}
+  <form method="post" class="tone-form voice-form" id="voice-form">
+    <label>Voz
+      <select name="voice">
+        {% for v in voices %}
+        <option value="{{ v.id }}" {% if params.voice == v.id %}selected{% endif %}>{{ v.label }} ({{ v.language }})</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Velocidad
+      <select name="speed">{% for s in speeds %}<option {% if params.speed == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+    </label>
+    <button class="btn secondary" formaction="/proyectos/{{ project.id }}/voz/muestra"
+      onclick="this.textContent='Grabando muestra…'">Escuchar muestra</button>
+    <button class="btn" formaction="/proyectos/{{ project.id }}/etapas/voice">
+      {% if not narration %}Grabar narración{% elif pending %}Grabar lo que falta ({{ pending }}){% else %}Grabar con la voz elegida{% endif %}
+    </button>
+  </form>
+  <p class="muted small">La primera vez la muestra tarda un poco más, porque descarga la voz.</p>
+  {% if has_sample %}
+  <div id="muestra" class="sample">
+    <p class="small">Muestra:</p>
+    <audio controls src="/proyectos/{{ project.id }}/archivos/voz/muestra.wav?v={{ request.query_params.get('muestra', '') }}"></audio>
+  </div>
+  {% endif %}
+  {% endif %}
+</div>
+
+{% if narration %}
+<div class="card">
+  <div class="row">
+    <h2>Narración completa</h2>
+    <span class="muted small">{{ (narration.seconds / 60)|round(1) }} min · {{ narration.voice }} · {{ narration.speed }}</span>
+  </div>
+  <audio controls class="full-audio" src="/proyectos/{{ project.id }}/archivos/{{ narration.full }}?v={{ narration.seconds }}"></audio>
+  {% if pending %}
+  <p class="alert info">{{ pending }} párrafo(s) cambiaron o son nuevos desde la última grabación.
+    Pulsa «Grabar lo que falta»: solo se graban esos.</p>
+  {% endif %}
+  <h3>Por párrafo</h3>
+  <ol class="takes">
+    {% for p in paragraphs %}
+    <li>
+      <p class="small">{{ p.text }}</p>
+      {% if p.take and not p.outdated %}
+        <audio controls preload="none" src="/proyectos/{{ project.id }}/archivos/{{ p.take.file }}"></audio>
+        <span class="muted small">{{ p.take.seconds }} s</span>
+      {% elif p.outdated %}
+        <span class="small status-failed">Cambió: se volverá a grabar</span>
+      {% else %}
+        <span class="muted small">Sin grabar</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</div>
+{% endif %}
+{{ ui.live_updates(project, jobs) }}
+{% endblock %}

@@ -31,12 +31,41 @@ class FakeSearch:
         return self.documents
 
 
+def silent_wav(seconds: float, rate: int = 16000) -> bytes:
+    import io
+    import wave
+
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(rate)
+        wav.writeframes(b"\x00\x00" * int(rate * seconds))
+    return buffer.getvalue()
+
+
+class FakeVoice:
+    """Voz simulada: devuelve silencio de 0,4 s por palabra."""
+
+    name = "fake-voice"
+
+    def __init__(self):
+        self.calls = []
+
+    def synthesize(self, text, voice, speed):
+        self.calls.append(text)
+        return silent_wav(0.4 * len(text.split()))
+
+
 @pytest.fixture(autouse=True)
 def no_real_internet(monkeypatch):
-    """Ningún test llama a Wikipedia de verdad."""
+    """Ningún test llama a Wikipedia ni descarga voces de verdad."""
     from app import jobs
 
     monkeypatch.setattr(jobs, "get_search_provider", lambda: FakeSearch())
+    voice = FakeVoice()
+    monkeypatch.setattr(jobs, "get_voice_provider", lambda: voice)
+    return voice
 
 
 @pytest.fixture

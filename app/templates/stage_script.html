@@ -80,7 +80,9 @@
     {% endfor %}
   </section>
   {% endfor %}
-  <p class="muted small next-inline">Siguiente paso (próximamente): voz e imágenes.</p>
+  <div class="next-inline">
+    <a class="btn" href="/proyectos/{{ project.id }}/escenas">Siguiente: escenas →</a>
+  </div>
 </div>
 {% endif %}
 <script>
