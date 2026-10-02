@@ -16,3 +16,11 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pytest -q
+
+  integraciones:
+    # Comprueba con servicios reales: voces de Piper y descarga del actualizador.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv run --no-dev python -m scripts.comprobar_integraciones
