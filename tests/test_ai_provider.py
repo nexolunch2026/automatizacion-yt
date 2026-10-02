@@ -169,3 +169,28 @@ def test_diagnose_reports_each_function_separately():
         ("gemini-2.5-flash — búsqueda de Google", False),
     ]
     assert "limit: 0" in results[2]["detail"]
+
+
+def test_overloaded_model_tries_the_next_one():
+    overloaded = errors.APIError(
+        503,
+        {"error": {"code": 503, "message": "The model is overloaded.", "status": "UNAVAILABLE"}},
+    )
+    fake = FakeModels(
+        ["gemini-2.5-flash", "gemini-2.5-flash-lite"], {"gemini-2.5-flash": overloaded}
+    )
+    provider = provider_with(fake)
+    provider.grounded_research("tema")
+    assert provider.last_model == "gemini-2.5-flash-lite"
+
+
+def test_all_models_overloaded_is_retryable():
+    overloaded = errors.APIError(
+        503,
+        {"error": {"code": 503, "message": "The model is overloaded.", "status": "UNAVAILABLE"}},
+    )
+    fake = FakeModels(["gemini-2.5-flash"], {"gemini-2.5-flash": overloaded})
+    with pytest.raises(ProviderError) as info:
+        provider_with(fake).grounded_research("tema")
+    assert info.value.transient
+    assert "saturado" in str(info.value)

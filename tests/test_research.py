@@ -101,6 +101,9 @@ def test_transient_errors_retry_then_fail(project, monkeypatch):
         def grounded_research(self, prompt):
             raise ProviderError("Límite alcanzado.", transient=True)
 
+        def generate_json(self, prompt, schema):
+            raise ProviderError("Límite alcanzado.", transient=True)
+
     monkeypatch.setattr(jobs, "get_ai_provider", lambda db: RateLimited())
     run_stage(project)
 
@@ -120,6 +123,9 @@ def test_transient_errors_retry_then_fail(project, monkeypatch):
 def test_retry_waits_before_running_again(project, monkeypatch):
     class Flaky(FakeAI):
         def grounded_research(self, prompt):
+            raise ProviderError("Servicio caído.", transient=True)
+
+        def generate_json(self, prompt, schema):
             raise ProviderError("Servicio caído.", transient=True)
 
     monkeypatch.setattr(jobs, "get_ai_provider", lambda db: Flaky())
@@ -192,19 +198,33 @@ def test_falls_back_to_wikipedia_when_google_search_unavailable(project, monkeyp
     assert "se usó Wikipedia" in page
 
 
-def test_transient_google_error_does_not_fall_back(project, monkeypatch):
+def test_busy_google_search_falls_back_to_wikipedia(project, monkeypatch):
     class Busy(FakeAI):
         def grounded_research(self, prompt):
-            raise ProviderError("Límite por minuto.", transient=True)
+            raise ProviderError("Google está saturado.", transient=True)
 
     search = FakeSearch()
     monkeypatch.setattr(jobs, "get_ai_provider", lambda db: Busy())
     monkeypatch.setattr(jobs, "get_search_provider", lambda: search)
     run_stage(project)
     jobs.process_next_job()
-    assert search.queries is None  # se reintentará con Google más tarde
+    assert search.queries == ["Enron", "quiebra de Enron"]
     with SessionLocal() as db:
-        assert db.get(Job, 1).status == "queued"
+        assert db.get(Job, 1).status == "done"
+
+
+def test_invalid_key_does_not_fall_back(project, monkeypatch):
+    class BadKey(FakeAI):
+        def grounded_research(self, prompt):
+            raise ProviderError("La clave de Gemini no es válida. Revísala en Configuración.")
+
+    search = FakeSearch()
+    monkeypatch.setattr(jobs, "get_ai_provider", lambda db: BadKey())
+    monkeypatch.setattr(jobs, "get_search_provider", lambda: search)
+    run_stage(project)
+    jobs.process_next_job()
+    assert search.queries is None
+    assert "clave de Gemini no es válida" in project.get("/proyectos/1").text
 
 
 def test_wikipedia_without_results(project, monkeypatch):

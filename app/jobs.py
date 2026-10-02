@@ -21,8 +21,8 @@ from app.settings_store import get_api_key
 
 log = logging.getLogger(__name__)
 
-MAX_ATTEMPTS = 3
-RETRY_DELAYS = [timedelta(seconds=20), timedelta(seconds=60)]
+MAX_ATTEMPTS = 4
+RETRY_DELAYS = [timedelta(seconds=30), timedelta(seconds=90), timedelta(minutes=3)]
 
 # Estado del proyecto cuando termina cada etapa.
 STAGE_DONE_STATUS = {"research": "Investigación"}

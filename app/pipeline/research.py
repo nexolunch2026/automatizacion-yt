@@ -125,9 +125,9 @@ def _research_with_wikipedia(
 
 
 def _should_fall_back(error: ProviderError) -> bool:
-    """La búsqueda de Google falló por algo que Wikipedia puede sortear (cuota, permisos).
-    Los errores temporales se reintentan, y una clave inválida no se arregla cambiando de fuente."""
-    return not error.transient and "clave" not in str(error)
+    """Si la búsqueda de Google falla (cuota, permisos, saturación), se usa Wikipedia en vez
+    de esperar. Solo una clave inválida no se arregla cambiando de fuente."""
+    return "clave" not in str(error)
 
 
 def run_research(

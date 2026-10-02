@@ -234,8 +234,8 @@ class GeminiProvider:
                     f"{q['id']} (límite {q['value']})" if q["value"] else q["id"] for q in quotas
                 )
             error = _friendly_error(exc.code, str(exc), detail[:600], quotas)
-            # Sin cuota para este modelo (429) o modelo inexistente (404): probar otro.
-            if exc.code in (404, 429):
+            # Sin cuota (429), inexistente (404) o saturado (500/503): probar otro modelo.
+            if exc.code in (404, 429, 500, 503):
                 raise ModelUnavailable(error) from exc
             raise error from exc
         except OSError as exc:  # sin conexión, DNS, timeout…
@@ -297,6 +297,8 @@ def _friendly_error(
         return ProviderError("Ese modelo de Gemini no está disponible.", detail=detail)
     if code is not None and code >= 500:
         return ProviderError(
-            "El servicio de Gemini falló temporalmente.", transient=True, detail=detail
+            "Google está saturado en este momento. Se volverá a intentar en unos minutos.",
+            transient=True,
+            detail=detail,
         )
     return ProviderError(f"Error de Gemini ({code}).", detail=detail)
