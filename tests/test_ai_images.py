@@ -276,3 +276,56 @@ def test_exhausted_chain_explains_why():
 def test_save_pollinations_token(logged_in):
     r = logged_in.post("/configuracion/pollinations", data={"token": "tok-abcd"})
     assert "Clave de Pollinations guardada" in r.text and "••••abcd" in r.text
+
+
+def test_bulk_upload_by_scene_number(board):
+    scenes = result("storyboard")["scenes"]
+    files = [
+        ("images", ("2.png", png_bytes((200, 0, 0)), "image/png")),
+        ("images", ("escena 1.png", png_bytes((0, 200, 0)), "image/png")),
+    ]
+    r = board.post("/proyectos/1/visuales/subir-varias", files=files, data={"is_ai": "1"})
+    assert "Se colocaron <strong>2</strong>" in r.text
+    items = result("visuals")["items"]
+    first = items[scenes[0]["paragraph_id"]]
+    second = items[scenes[1]["paragraph_id"]]
+    assert first["uploaded"] and second["uploaded"]
+    # La imagen «2.png» (roja) quedó en la escena 2.
+    with Image.open(project_dir(1) / "visuales" / second["file"]) as img:
+        assert img.getpixel((5, 5))[0] > 150
+
+
+def test_bulk_upload_in_order_from_a_start_scene(board):
+    scenes = result("storyboard")["scenes"]
+    names = [
+        "ChatGPT Image 10_16_01.png",
+        "ChatGPT Image 9_59_10.png",
+        "ChatGPT Image 10_15_32.png",
+    ]
+    files = [("images", (n, png_bytes(), "image/png")) for n in names]
+    board.post("/proyectos/1/visuales/subir-varias", files=files, data={"start": "2"})
+    items = result("visuals")["items"]
+    assert scenes[0]["paragraph_id"] not in items  # empieza en la escena 2
+    assert all(scenes[i]["paragraph_id"] in items for i in (1, 2, 3))
+
+
+def test_bulk_upload_reports_problems(board):
+    files = [
+        ("images", ("1.png", png_bytes(), "image/png")),
+        ("images", ("roto.png", b"no es imagen", "image/png")),
+        ("images", ("99.png", png_bytes(), "image/png")),
+    ]
+    r = board.post("/proyectos/1/visuales/subir-varias", files=files)
+    assert "no se pudieron usar" in r.text.lower() or "No se pudieron usar" in r.text
+    assert "roto.png" in r.text or "99.png" in r.text
+
+
+def test_scene_number_from_name():
+    from app.stages_web import match_files_to_scenes, scene_number_from_name
+
+    assert scene_number_from_name("Escena-05.webp") == 5
+    assert scene_number_from_name("scene_12.png") == 12
+    assert scene_number_from_name("ChatGPT Image 2 oct 2026, 10_15_32.png") is None
+    # Orden natural: 9_59 va antes que 10_15.
+    assert match_files_to_scenes(["a 10_15.png", "a 9_59.png"], 28) == {1: 1, 0: 2}
+    assert match_files_to_scenes(["1.png", "x.png"], 28) == {0: 1, 1: 2}  # mezcla → por orden

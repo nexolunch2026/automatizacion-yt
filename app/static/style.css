@@ -235,3 +235,8 @@ audio { width: 100%; max-width: 520px; height: 36px; }
   display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
   background: var(--bg); border-radius: 8px; padding: 10px 12px; margin: 12px 0;
 }
+.chatgpt-tip .full { flex-basis: 100%; }
+.bulk-upload { display: grid; grid-template-columns: 2fr 1fr; gap: 10px 14px; align-items: end; margin-top: 6px; }
+.bulk-upload .radio, .bulk-upload .btn, .bulk-upload p { grid-column: 1 / -1; }
+.bulk-upload .btn { justify-self: start; }
+@media (max-width: 720px) { .bulk-upload { grid-template-columns: 1fr; } }

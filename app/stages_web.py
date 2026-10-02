@@ -289,6 +289,55 @@ def prompts_file(db: DB, user: CurrentUser, project_id: int):
 MAX_UPLOAD = 20 * 1024 * 1024
 
 
+def _store_image(project_id: int, scene: dict, data: bytes) -> str:
+    """Valida la imagen, la convierte a JPEG (máx. 2560 px) y devuelve el nombre de archivo."""
+    import io
+    import secrets
+
+    from PIL import Image, UnidentifiedImageError
+
+    if len(data) > MAX_UPLOAD:
+        raise ValueError("es demasiado grande (máximo 20 MB)")
+    try:
+        picture = Image.open(io.BytesIO(data))
+        picture.load()
+    except (UnidentifiedImageError, OSError) as exc:
+        raise ValueError("no es una imagen válida") from exc
+    picture = picture.convert("RGB")
+    picture.thumbnail((2560, 2560))
+    folder = project_dir(project_id) / "visuales"
+    folder.mkdir(parents=True, exist_ok=True)
+    filename = f"{scene['number']:03}-subida-{secrets.token_hex(3)}.jpg"
+    picture.save(folder / filename, "JPEG", quality=92)
+    return filename
+
+
+def _uploaded_entry(filename: str, is_ai: bool) -> dict:
+    return {
+        "kind": "image",
+        "file": filename,
+        "provider": "manual",
+        "id": filename,
+        "author": "",
+        "license": "Imagen subida por ti" + (" (generada con IA)" if is_ai else ""),
+        "page_url": "",
+        "query": "",
+        "ai": is_ai,
+        "uploaded": True,
+    }
+
+
+def _save_visual_items(db: DB, project_id: int, new_items: dict) -> None:
+    row = _result_row(db, project_id, "visuals")
+    visuals = copy.deepcopy(row.data) if row else {"items": {}, "providers": []}
+    visuals["items"].update(new_items)
+    if row:
+        row.data = visuals
+    else:
+        db.add(StageResult(project_id=project_id, stage="visuals", data=visuals))
+    db.commit()
+
+
 @router.post("/visuales/subir/{paragraph_id}")
 async def upload_visual(
     db: DB,
@@ -299,11 +348,6 @@ async def upload_visual(
     is_ai: Annotated[str | None, Form()] = None,
 ):
     """Usa una imagen propia (por ejemplo, hecha en ChatGPT) para una escena."""
-    import io
-    import secrets
-
-    from PIL import Image, UnidentifiedImageError
-
     _project(db, project_id)
     board = jobs.get_result(db, project_id, "storyboard")
     scene = next(
@@ -311,41 +355,80 @@ async def upload_visual(
     )
     if scene is None:
         raise HTTPException(404, "Escena no encontrada")
-    data = await image.read(MAX_UPLOAD + 1)
-    if len(data) > MAX_UPLOAD:
-        raise HTTPException(400, "La imagen es demasiado grande (máximo 20 MB)")
     try:
-        picture = Image.open(io.BytesIO(data))
-        picture.load()
-    except (UnidentifiedImageError, OSError) as exc:
-        raise HTTPException(400, "El archivo no es una imagen válida") from exc
-    picture = picture.convert("RGB")
-    picture.thumbnail((2560, 2560))
-    folder = project_dir(project_id) / "visuales"
-    folder.mkdir(parents=True, exist_ok=True)
-    filename = f"{scene['number']:03}-subida-{secrets.token_hex(3)}.jpg"
-    picture.save(folder / filename, "JPEG", quality=92)
-
-    row = _result_row(db, project_id, "visuals")
-    visuals = copy.deepcopy(row.data) if row else {"items": {}, "providers": []}
-    visuals["items"][paragraph_id] = {
-        "kind": "image",
-        "file": filename,
-        "provider": "manual",
-        "id": filename,
-        "author": "",
-        "license": "Imagen subida por ti" + (" (generada con IA)" if is_ai else ""),
-        "page_url": "",
-        "query": "",
-        "ai": bool(is_ai),
-        "uploaded": True,
-    }
-    if row:
-        row.data = visuals
-    else:
-        db.add(StageResult(project_id=project_id, stage="visuals", data=visuals))
-    db.commit()
+        filename = _store_image(project_id, scene, await image.read(MAX_UPLOAD + 1))
+    except ValueError as exc:
+        raise HTTPException(400, f"El archivo {exc}") from exc
+    _save_visual_items(db, project_id, {paragraph_id: _uploaded_entry(filename, bool(is_ai))})
     return _redirect(f"/proyectos/{project_id}/visuales#escena-{paragraph_id}")
+
+
+SCENE_IN_NAME = re.compile(r"^(?:(?:escena|scene|imagen|image|img)[\s_-]*)?0*(\d{1,3})$", re.I)
+
+
+def scene_number_from_name(filename: str) -> int | None:
+    """«5.png», «05.jpg», «escena 5.png», «Escena-05.webp», «scene_5.png» → 5."""
+    stem = filename.rsplit("/", 1)[-1].rsplit("\\", 1)[-1].rsplit(".", 1)[0].strip()
+    match = SCENE_IN_NAME.match(stem)
+    return int(match.group(1)) if match else None
+
+
+def _natural_key(name: str) -> list:
+    return [int(part) if part.isdigit() else part.lower() for part in re.split(r"(\d+)", name)]
+
+
+def match_files_to_scenes(names: list[str], scene_count: int, start: int = 1) -> dict[int, int]:
+    """Índice de archivo → número de escena. Si todos los nombres indican su escena, se
+    respeta; si no, se asignan en orden (por nombre) a partir de la escena `start`."""
+    numbers = [scene_number_from_name(n) for n in names]
+    if names and all(n is not None for n in numbers):
+        return {i: n for i, n in enumerate(numbers) if 1 <= n <= scene_count}
+    order = sorted(range(len(names)), key=lambda i: _natural_key(names[i]))
+    return {
+        index: start + position
+        for position, index in enumerate(order)
+        if start + position <= scene_count
+    }
+
+
+@router.post("/visuales/subir-varias")
+async def upload_many(
+    db: DB,
+    user: CurrentUser,
+    project_id: int,
+    images: Annotated[list[UploadFile], File()],
+    start: Annotated[int, Form()] = 1,
+    is_ai: Annotated[str | None, Form()] = None,
+):
+    """Sube muchas imágenes de una vez y las reparte entre las escenas."""
+    _project(db, project_id)
+    board = jobs.get_result(db, project_id, "storyboard")
+    if board is None:
+        raise HTTPException(404, "Primero crea las escenas")
+    scenes = {s["number"]: s for s in board["scenes"]}
+    files = [f for f in images if f.filename]
+    mapping = match_files_to_scenes([f.filename for f in files], len(scenes), max(start, 1))
+    new_items, problems = {}, []
+    for index, upload in enumerate(files):
+        number = mapping.get(index)
+        if number is None or number not in scenes:
+            problems.append(f"{upload.filename}: no hay escena para ella")
+            continue
+        try:
+            filename = _store_image(project_id, scenes[number], await upload.read(MAX_UPLOAD + 1))
+        except ValueError as exc:
+            problems.append(f"{upload.filename}: {exc}")
+            continue
+        new_items[scenes[number]["paragraph_id"]] = _uploaded_entry(filename, bool(is_ai))
+    if new_items:
+        _save_visual_items(db, project_id, new_items)
+    row = _result_row(db, project_id, "visuals")
+    if row:  # el resumen se muestra en la página
+        data = copy.deepcopy(row.data)
+        data["upload_report"] = {"ok": len(new_items), "problems": problems[:20]}
+        row.data = data
+        db.commit()
+    return _redirect(f"/proyectos/{project_id}/visuales#subida")
 
 
 @router.get("/video")

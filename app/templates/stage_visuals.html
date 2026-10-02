@@ -22,10 +22,35 @@
       <button class="btn secondary" {% if not has_stock %}disabled title="Necesitas una clave de Pixabay"{% endif %}>Buscar en bancos de imágenes</button>
     </form>
   </div>
-  <div class="chatgpt-tip">
-    <strong>¿Prefieres hacerlas en ChatGPT?</strong>
-    <a class="btn small secondary" href="/proyectos/{{ project.id }}/visuales/prompts.txt" download>Descargar todos los prompts</a>
-    <span class="muted small">Pega cada prompt en ChatGPT, guarda la imagen y súbela en su escena con «Subir imagen».</span>
+  <div class="chatgpt-tip" id="subida">
+    <div>
+      <strong>¿Prefieres hacerlas en ChatGPT?</strong>
+      <p class="muted small">1) Descarga los prompts · 2) Crea las imágenes en ChatGPT y guárdalas ·
+        3) Súbelas todas a la vez aquí abajo.</p>
+    </div>
+    <a class="btn small secondary" href="/proyectos/{{ project.id }}/visuales/prompts.txt" download>1) Descargar todos los prompts</a>
+    {% if result and result.upload_report %}
+    {% set rep = result.upload_report %}
+    <p class="alert {{ 'ok' if not rep.problems else 'info' }} full">
+      Se colocaron <strong>{{ rep.ok }}</strong> imágenes en sus escenas.
+      {% if rep.problems %}<br>No se pudieron usar:
+        {% for p in rep.problems %}<br>· {{ p }}{% endfor %}{% endif %}
+    </p>
+    {% endif %}
+    <form method="post" action="/proyectos/{{ project.id }}/visuales/subir-varias"
+          enctype="multipart/form-data" class="bulk-upload full">
+      <label>3) Elige todas las imágenes a la vez (puedes seleccionar varias con Ctrl o arrastrando)
+        <input type="file" name="images" accept="image/*" multiple required>
+      </label>
+      <label>Empezar por la escena
+        <input type="number" name="start" value="1" min="1" max="{{ rows|length }}">
+      </label>
+      <label class="radio"><input type="checkbox" name="is_ai" value="1" checked> Son imágenes generadas con IA</label>
+      <button class="btn small" onclick="this.textContent='Subiendo… (puede tardar)'">Subir y colocar en las escenas</button>
+      <p class="muted small">Si los archivos se llaman con el número de escena (<code>1.png</code>,
+        <code>escena 2.png</code>…), cada uno va a su escena. Si no, se colocan en orden por nombre
+        (las de ChatGPT quedan en el orden en que las creaste). Luego puedes cambiar cualquiera.</p>
+    </form>
   </div>
   <p class="muted small">Con IA: primero se intenta con tu Gemini y, si tu cuenta no lo permite,
     con Pollinations (gratis). Tarda unos segundos por imagen; puedes dejarlo trabajando.
