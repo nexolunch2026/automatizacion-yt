@@ -69,6 +69,28 @@ def get_result(db: Session, project_id: int, stage: str) -> dict | None:
     return result.data if result else None
 
 
+def select_concept(db: Session, project_id: int, concept: int, title: int = 0) -> dict:
+    """Guarda el enfoque (y el título) elegidos en la estrategia."""
+    import copy
+
+    row = db.scalar(
+        select(StageResult).where(
+            StageResult.project_id == project_id, StageResult.stage == "strategy"
+        )
+    )
+    if row is None:
+        raise ProviderError("Todavía no hay propuestas.")
+    data = copy.deepcopy(row.data)
+    if not 0 <= concept < len(data["concepts"]):
+        raise ProviderError("Ese enfoque no existe.")
+    if not 0 <= title < len(data["concepts"][concept]["titles"]):
+        title = 0
+    data["selected"] = {"concept": concept, "title": title}
+    row.data = data
+    db.commit()
+    return data
+
+
 def _require(db: Session, project: Project, stage: str, message: str) -> dict:
     data = get_result(db, project.id, stage)
     if data is None:
@@ -417,6 +439,8 @@ def _chain_next(db: Session, project: Project, stage: str, data: dict) -> None:
     next_stage = NEXT_STAGE.get(stage)
     if next_stage is None or project.automation_mode == "manual":
         return
+    if stage == "edit" and get_result(db, project.id, "publish"):
+        return  # rehacer el vídeo (p. ej. la versión final) no rehace los textos
     if project.automation_mode == "asistido" and stage != "research":
         return
     if next_stage == "script" and not data.get("selected"):

@@ -570,17 +570,12 @@ def choose_concept(
     title: Annotated[int, Form()] = 0,
 ):
     _project(db, project_id)
-    row = _result_row(db, project_id, "strategy")
-    if row is None:
+    if _result_row(db, project_id, "strategy") is None:
         raise HTTPException(404, "Todavía no hay propuestas")
-    data = copy.deepcopy(row.data)
-    if not (0 <= concept < len(data["concepts"])):
-        raise HTTPException(400, "Enfoque no válido")
-    if not (0 <= title < len(data["concepts"][concept]["titles"])):
-        title = 0
-    data["selected"] = {"concept": concept, "title": title}
-    row.data = data
-    db.commit()
+    try:
+        jobs.select_concept(db, project_id, concept, title)
+    except ProviderError as exc:
+        raise HTTPException(400, "Enfoque no válido") from exc
     return _redirect(f"/proyectos/{project_id}/guion")
 
 

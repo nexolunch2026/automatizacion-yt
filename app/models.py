@@ -152,6 +152,7 @@ class Job(Base):
     params: Mapped[dict | None] = mapped_column(JSON)  # opciones elegidas (tono del guion…)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     finished_at: Mapped[datetime | None]
+    notified: Mapped[bool | None]  # JARVIS ya avisó por Telegram de cómo terminó
 
     @property
     def active(self) -> bool:

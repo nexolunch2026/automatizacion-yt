@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="jarvis-hero">
+  <div class="reactor" id="reactor" aria-hidden="true">
+    <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="core"></div>
+  </div>
+  <div>
+    <h1>JARVIS</h1>
+    <p class="muted">Tu asistente de producción. Háblale o escríbele como a una persona:
+      <em>«hazme un vídeo sobre la caída de Kodak»</em>, <em>«dame ideas»</em>, <em>«¿cómo va todo?»</em>.</p>
+  </div>
+</div>
+
+<div class="jarvis-grid">
+  <div class="card chat-card">
+    <div class="chat-log" id="chat-log">
+      <div class="bubble bot">🤖 Sistemas en línea. ¿Qué hacemos hoy?</div>
+    </div>
+    <form class="chat-form" id="chat-form">
+      <button type="button" class="mic" id="mic" title="Hablar (pulsa y habla)">🎙️</button>
+      <input id="chat-input" name="text" autocomplete="off" placeholder="Escribe una orden…">
+      <button class="btn">Enviar</button>
+    </form>
+    <label class="radio small muted"><input type="checkbox" id="speak" checked> JARVIS responde en voz alta</label>
+  </div>
+
+  <div class="card">
+    <h2>📡 En este momento</h2>
+    <div class="hud-status" id="hud-status">{{ status|safe }}</div>
+    <div class="quick">
+      <button class="btn small secondary" data-button="status">📊 Estado</button>
+      <button class="btn small secondary" data-button="ideas">💡 Ideas</button>
+      <button class="btn small secondary" data-button="autopilot">🛫 Piloto</button>
+    </div>
+  </div>
+</div>
+
+<div class="card form-card" id="telegram">
+  <h2>📱 JARVIS en tu celular (Telegram)</h2>
+  {% if saved == '1' %}<p class="alert ok">¡Bot conectado! Ahora haz el paso 3.</p>{% endif %}
+  {% if telegram_error %}<p class="alert">{{ telegram_error }}</p>{% endif %}
+  {% if test_ok %}<p class="alert ok">Mensaje de prueba enviado. Mira tu Telegram.</p>{% endif %}
+  <p class="muted small">Con esto le das órdenes desde el trabajo y te avisa cuando cada vídeo avanza.
+    El ordenador tiene que estar encendido con la ventana negra abierta.</p>
+
+  {% if not telegram_hint %}
+  <h3>Paso 1 — Crear tu bot (2 minutos, gratis)</h3>
+  <ol class="steps">
+    <li>En el celular abre <strong>Telegram</strong> (si no lo tienes, instálalo desde la tienda de apps).</li>
+    <li>En el buscador escribe <strong>BotFather</strong> y abre el que tiene la <strong>palomita azul ✔️</strong>.</li>
+    <li>Pulsa <strong>Iniciar</strong> y escribe: <code>/newbot</code></li>
+    <li>Te pide un <strong>nombre</strong>: escribe por ejemplo <code>JARVIS Anatomía</code></li>
+    <li>Te pide un <strong>usuario</strong> que termine en «bot»: por ejemplo <code>jarvis_anatomia_bot</code>
+      (si está ocupado, añade números).</li>
+    <li>Te responde con un <strong>token</strong>: un texto como <code>1234567890:AAH…</code>. Cópialo.
+      <span class="muted">(Truco: ábrelo en Telegram del ordenador, o mándatelo por WhatsApp para copiarlo aquí.)</span></li>
+  </ol>
+  <h3>Paso 2 — Pegar el token aquí</h3>
+  <form method="post" action="/jarvis/telegram" class="stack">
+    <label>Token del bot
+      <input name="token" type="password" autocomplete="off" placeholder="1234567890:AAH…" required>
+    </label>
+    <button class="btn">Conectar</button>
+  </form>
+  {% else %}
+  <p>Bot: <span class="badge ok">Conectado</span>
+    {% if bot_name %}<a href="https://t.me/{{ bot_name }}" target="_blank" rel="noopener">@{{ bot_name }}</a>{% endif %}
+    <span class="muted small">Token {{ telegram_hint }}</span></p>
+
+  <h3>Paso 3 — Vincular tu chat</h3>
+  <ol class="steps">
+    <li>Abre tu bot en Telegram{% if bot_name %} (<a href="https://t.me/{{ bot_name }}" target="_blank" rel="noopener">t.me/{{ bot_name }}</a>){% endif %} y pulsa <strong>Iniciar</strong>.</li>
+    <li>Escríbele este código: <span class="big-code">{{ code }}</span></li>
+  </ol>
+  <p class="muted small">Tu amigo puede hacer lo mismo con su Telegram: después de cada vinculación sale un código nuevo.
+    Nadie más puede usar tu bot sin el código.</p>
+
+  {% if chats %}
+  <h3>Chats vinculados</h3>
+  <ul class="songs">
+    {% for c in chats %}
+    <li class="row"><span>👤 {{ c.name or c.id }}</span>
+      <form method="post" action="/jarvis/telegram/desvincular">
+        <input type="hidden" name="chat_id" value="{{ c.id }}">
+        <button class="btn-link">Desvincular</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <div class="row-actions">
+    <form method="post" action="/jarvis/telegram/prueba"><button class="btn secondary">Enviar mensaje de prueba</button></form>
+    <form method="post" action="/jarvis/telegram/borrar" onsubmit="return confirm('¿Desconectar el bot?')">
+      <button class="btn-link">Desconectar bot</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card form-card" id="piloto">
+  <h2>🛫 Piloto automático</h2>
+  {% if saved == 'piloto' %}<p class="alert ok">Guardado.</p>{% endif %}
+  <p class="muted small">Deja una lista de temas. Cada día, a la hora que elijas, JARVIS empieza el siguiente
+    (si no hay otro vídeo en marcha), elige él el mejor enfoque y lo hace entero.
+    Tú solo revisas el resultado antes de subirlo: nada se publica sin ti.</p>
+  <form method="post" action="/jarvis/piloto" class="stack">
+    <label>Temas (uno por línea)
+      <textarea name="queue" rows="6" placeholder="La caída de Nokia&#10;Cómo Netflix mató a Blockbuster&#10;El error de Kodak">{{ pilot.queue|join('\n') }}</textarea>
+    </label>
+    <div class="row-fields">
+      <label>Empezar cada día a partir de las
+        <select name="hour">
+          {% for h in range(24) %}<option value="{{ h }}" {% if h == pilot.hour %}selected{% endif %}>{{ h }}:00</option>{% endfor %}
+        </select>
+      </label>
+      <label class="radio"><input type="checkbox" name="on" value="1" {% if pilot.on %}checked{% endif %}> Encendido</label>
+    </div>
+    <button class="btn">Guardar</button>
+  </form>
+</div>
+
+<script>
+(() => {
+  const log = document.getElementById("chat-log");
+  const input = document.getElementById("chat-input");
+  const reactor = document.getElementById("reactor");
+  const speakBox = document.getElementById("speak");
+  try { speakBox.checked = localStorage.getItem("jarvis-speak") !== "0"; } catch (e) {}
+  speakBox.addEventListener("change", () => {
+    try { localStorage.setItem("jarvis-speak", speakBox.checked ? "1" : "0"); } catch (e) {}
+  });
+
+  function bubble(html, who) {
+    const div = document.createElement("div");
+    div.className = "bubble " + who;
+    div.innerHTML = html;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+    return div;
+  }
+
+  function say(html) {
+    if (!speakBox.checked || !("speechSynthesis" in window)) return;
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html;
+    const text = tmp.innerText.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, "").slice(0, 400);
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "es-ES";
+    const voice = speechSynthesis.getVoices().find(v => v.lang.startsWith("es"));
+    if (voice) u.voice = voice;
+    u.onstart = () => reactor.classList.add("talking");
+    u.onend = () => reactor.classList.remove("talking");
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  }
+
+  async function send(text, button) {
+    if (text) bubble(text.replace(/&/g, "&amp;").replace(/</g, "&lt;"), "me");
+    const thinking = bubble("…", "bot thinking");
+    reactor.classList.add("busy");
+    const body = new URLSearchParams({ text: text || "", button: button || "" });
+    try {
+      const r = await fetch("/jarvis/orden", { method: "POST", body });
+      const data = await r.json();
+      thinking.remove();
+      data.replies.forEach((reply, i) => {
+        const div = bubble(reply.html, "bot");
+        if (reply.video) {
+          const v = document.createElement("video");
+          v.src = reply.video; v.controls = true; v.className = "player";
+          div.appendChild(v);
+        }
+        reply.buttons.forEach(row => {
+          const line = document.createElement("div");
+          line.className = "bubble-buttons";
+          row.forEach(b => {
+            const btn = document.createElement("button");
+            btn.className = "btn small secondary";
+            btn.textContent = b.text;
+            btn.onclick = () => send("", b.data);
+            line.appendChild(btn);
+          });
+          div.appendChild(line);
+        });
+        if (i === 0) say(reply.html);
+      });
+      document.getElementById("hud-status").innerHTML = data.status;
+    } catch (e) {
+      thinking.innerHTML = "⚠️ No pude conectar con el programa. ¿Sigue abierta la ventana negra?";
+    }
+    reactor.classList.remove("busy");
+  }
+
+  document.getElementById("chat-form").addEventListener("submit", e => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    send(text);
+  });
+  document.querySelectorAll("[data-button]").forEach(b => b.addEventListener("click", () => send("", b.dataset.button)));
+
+  // Micrófono: reconocimiento de voz del navegador (Chrome y Edge), gratis.
+  const mic = document.getElementById("mic");
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Recognition) {
+    mic.title = "Tu navegador no permite hablar. Usa Chrome o Edge.";
+    mic.disabled = true;
+  } else {
+    const rec = new Recognition();
+    rec.lang = "es-ES";
+    rec.interimResults = true;
+    rec.onresult = e => {
+      const text = Array.from(e.results).map(r => r[0].transcript).join("");
+      input.value = text;
+      if (e.results[e.results.length - 1].isFinal) { input.value = ""; send(text); }
+    };
+    rec.onstart = () => { mic.classList.add("listening"); reactor.classList.add("listening"); };
+    rec.onend = () => { mic.classList.remove("listening"); reactor.classList.remove("listening"); };
+    mic.addEventListener("click", () => { try { rec.start(); } catch (e) { rec.stop(); } });
+  }
+
+  // El panel «En este momento» se actualiza solo.
+  setInterval(async () => {
+    try {
+      const r = await fetch("/jarvis/estado");
+      const data = await r.json();
+      document.getElementById("hud-status").innerHTML = data.status;
+    } catch (e) {}
+  }, 5000);
+})();
+</script>
+{% endblock %}

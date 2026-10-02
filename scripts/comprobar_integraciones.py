@@ -136,6 +136,17 @@ def main() -> None:
         except ProviderError as exc:  # servicio externo gratuito: solo aviso
             print(f"   {n}: AVISO {exc} | {exc.detail}")
 
+    print("6) Telegram responde (con un token falso debe decir que no es válido)")
+    from app.telegram import TelegramAPI
+
+    try:
+        TelegramAPI("123456:token-falso").get_me()
+        failures.append("Telegram aceptó un token falso")
+    except ProviderError as exc:
+        print(f"   {exc}")
+        if "token" not in str(exc):
+            failures.append(f"Telegram no respondió como se esperaba: {exc} {exc.detail}")
+
     if failures:
         print("\nFALLOS:\n- " + "\n- ".join(failures))
         sys.exit(1)

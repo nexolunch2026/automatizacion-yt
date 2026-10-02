@@ -42,6 +42,12 @@ La creación automática de los vídeos se irá añadiendo poco a poco.
 2. Sigue los pasos que aparecen ahí para conseguir la clave gratis y pégala.
 3. Abre un proyecto y pulsa **Investigar el tema**.
 
+### Paso 6 (opcional) — JARVIS en tu celular
+Pulsa **🤖 JARVIS** (arriba) y sigue los pasos para crear tu bot de Telegram.
+Después podrás escribirle o mandarle notas de voz desde el móvil:
+*«hazme un vídeo sobre la caída de Kodak»*, *«ideas»*, *«estado»*,
+*«cola: Nokia, Blockbuster»*. Te avisa en cada paso y te manda un avance del vídeo.
+
 ### Para apagarlo
 Cierra la **ventana negra**.
 

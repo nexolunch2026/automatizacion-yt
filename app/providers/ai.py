@@ -242,6 +242,18 @@ class GeminiProvider:
                 "La IA devolvió un formato inesperado. Se volverá a intentar.", transient=True
             ) from exc
 
+    def transcribe(self, audio: bytes, mime_type: str) -> str:
+        """Pasa a texto una nota de voz (por ejemplo, las que llegan por Telegram)."""
+        from google.genai import types
+
+        contents = [
+            types.Part.from_bytes(data=audio, mime_type=mime_type),
+            "Transcribe exactamente lo que dice este audio, en su idioma. "
+            "Responde solo con la transcripción.",
+        ]
+        response = self._generate(contents, types.GenerateContentConfig(temperature=0))
+        return (response.text or "").strip()
+
     @staticmethod
     def _call(fn):
         from google.genai import errors
