@@ -45,13 +45,13 @@ Cierra la **ventana negra**.
 ---
 
 ## Cómo actualizar a una versión nueva
-1. **Cierra la ventana negra** del programa viejo. Esto es importante.
-2. **Borra o cambia de nombre** el archivo `.zip` viejo que tengas en Descargas, para no confundirlos.
-3. Descarga de nuevo desde el enlace del Paso 1 y descomprime (Paso 2).
-4. Copia la carpeta **`datos`** de la carpeta vieja y pégala dentro de la nueva
-   (así conservas cuentas, canales y proyectos).
-5. Haz doble clic en **`Iniciar`** dentro de la carpeta **nueva**.
-6. Comprueba la versión: aparece arriba a la izquierda, junto a «Faceless Studio» (por ejemplo **v0.3**).
+1. **Cierra la ventana negra** del programa.
+2. Haz **doble clic** en **`Actualizar`** (está al lado de `Iniciar`).
+3. Espera a que diga **«¡Listo!»** y pulsa una tecla para cerrar.
+4. Haz doble clic en **`Iniciar`**. La versión nueva aparece arriba a la izquierda.
+
+Tus cuentas, proyectos y claves **no se tocan**. Además, antes de actualizar se guarda
+una copia de seguridad en la carpeta `copias_de_seguridad`.
 
 ---
 
