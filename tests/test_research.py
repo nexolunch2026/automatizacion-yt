@@ -7,6 +7,7 @@ from app.db import SessionLocal
 from app.models import Job, Project, StageResult
 from app.pipeline.research import Angle, Fact, ResearchBrief, SearchQueries
 from app.pipeline.script import Outline, OutlineSection, Paragraph, Rewrite, SectionDraft
+from app.pipeline.seo import SeoDraft
 from app.pipeline.storyboard import SceneSpec, Storyboard, VisualBible
 from app.pipeline.strategy import Concept, Strategy, Thumbnail, TitleOption
 from app.providers.ai import GroundedText, ProviderError, Source
@@ -117,6 +118,15 @@ class FakeAI:
             return fake_section(prompt)
         if schema is Storyboard:
             return fake_storyboard(prompt)
+        if schema is SeoDraft:
+            return SeoDraft(
+                titles=["El colapso de Enron", "Título 0-0", "¿Cómo cayó Enron?"],
+                description_intro="La historia de la mayor quiebra de su época.",
+                tags=["Enron", "enron", "quiebras, empresas", "#documental", ""],
+                hashtags=["#Enron", "documental empresas", "#Negocios", "#extra"],
+                pinned_comment="¿Crees que se pudo evitar?",
+                category="Educación",
+            )
         if schema is Rewrite:
             return Rewrite(text="Párrafo reescrito por la IA.", sources=[2, 7])
         assert schema is ResearchBrief

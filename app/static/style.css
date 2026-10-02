@@ -245,3 +245,8 @@ audio { width: 100%; max-width: 520px; height: 36px; }
 .songs li { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .songs li span { min-width: 220px; }
 .songs audio { max-width: 320px; }
+
+/* Publicación */
+.copy-row { display: flex; gap: 12px; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.copy-row .copy-text { flex: 1; }
+.description { white-space: pre-wrap; font-family: inherit; background: var(--bg); padding: 12px; border-radius: 8px; max-height: 420px; overflow: auto; }

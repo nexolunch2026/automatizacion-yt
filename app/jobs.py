@@ -19,6 +19,7 @@ from app.models import STATUSES, Job, Project, StageResult
 from app.pipeline.render import DEFAULT_STYLE, MUSIC_VOLUMES, QUALITIES, render_video
 from app.pipeline.research import run_research
 from app.pipeline.script import default_params, run_script
+from app.pipeline.seo import run_seo
 from app.pipeline.storyboard import run_storyboard
 from app.pipeline.strategy import run_strategy
 from app.pipeline.visuals import credits_text, run_visuals
@@ -57,6 +58,7 @@ NEXT_STAGE = {
     "storyboard": "voice",
     "voice": "visuals",
     "visuals": "edit",
+    "edit": "publish",
 }
 
 
@@ -216,6 +218,25 @@ def _check_eleven_credits(tts, characters: int) -> None:
         )
 
 
+def _run_publish(db: Session, project: Project, progress, params: dict) -> dict:
+    script = _require(db, project, "script", "Primero hay que escribir el guion.")
+    research = get_result(db, project.id, "research") or {}
+    visuals = get_result(db, project.id, "visuals") or {"items": {}}
+    ai = get_ai_provider(db)
+    data = run_seo(
+        project,
+        script,
+        research,
+        get_result(db, project.id, "voice"),
+        credits_text(visuals),
+        any(e.get("ai") for e in visuals["items"].values()),
+        ai,
+        progress,
+    )
+    remember_working_model(db, ai)
+    return data
+
+
 def is_portrait(project: Project) -> bool:
     return project.duration == "Short"
 
@@ -320,6 +341,7 @@ RUNNERS: dict[str, Runner] = {
     "voice": _run_voice,
     "visuals": _run_visuals,
     "edit": _run_edit,
+    "publish": _run_publish,
 }
 
 

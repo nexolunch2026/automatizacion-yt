@@ -42,9 +42,12 @@
   {% elif 'edit' not in results %}
     <p>Montar el vídeo con los visuales y la voz.</p>
     <a class="btn" href="/proyectos/{{ project.id }}/video">Ir al vídeo</a>
+  {% elif 'publish' not in results %}
+    <p>¡Tu vídeo está montado! Prepara el título, la descripción con capítulos y las etiquetas.</p>
+    <a class="btn" href="/proyectos/{{ project.id }}/publicacion">Ir a publicación</a>
   {% else %}
-    <p>¡Tu vídeo está montado! Revísalo y descárgalo.</p>
-    <a class="btn" href="/proyectos/{{ project.id }}/video">Ver vídeo</a>
+    <p>Todo listo para subir a YouTube.</p>
+    <a class="btn" href="/proyectos/{{ project.id }}/publicacion">Ver textos de publicación</a>
   {% endif %}
   {{ ui.no_gemini(has_gemini) }}
 </div>

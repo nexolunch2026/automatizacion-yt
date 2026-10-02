@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% import "_project.html" as ui %}
+{% block content %}
+{% set seo = result %}
+{{ ui.header(project) }}
+{{ ui.tabs(project, stage, slugs, stages, results, jobs) }}
+
+<div class="card">
+  <div class="row">
+    <div>
+      <h2>Publicación</h2>
+      <p class="muted small">Todo lo que necesitas para subir el vídeo a YouTube, listo para copiar y pegar.</p>
+    </div>
+    {% if 'script' in results and not (job and job.active) %}
+    <form method="post" action="/proyectos/{{ project.id }}/etapas/publish">
+      <button class="btn {{ 'secondary' if seo }}" {% if not has_gemini %}disabled{% endif %}>
+        {% if seo %}Volver a generar{% else %}Preparar textos de publicación{% endif %}
+      </button>
+    </form>
+    {% endif %}
+  </div>
+  {{ ui.no_gemini(has_gemini) }}
+  {{ ui.job_status(job) }}
+  {% if 'script' not in results %}
+  <p class="alert info">Primero hay que <a href="/proyectos/{{ project.id }}/guion">escribir el guion</a>.</p>
+  {% endif %}
+  {% if seo and not seo.chapters_exact %}
+  <p class="alert info">Los minutos de los capítulos son aproximados porque la voz aún no estaba grabada.
+    Cuando la grabes, pulsa «Volver a generar» para que coincidan exactamente.</p>
+  {% endif %}
+</div>
+
+{% if seo %}
+<div class="card copy-block">
+  <h3>Título</h3>
+  {% for t in seo.titles %}
+  <div class="copy-row">
+    <span class="copy-text" id="titulo-{{ loop.index }}">{{ t }}</span>
+    <span class="muted small">{{ t|length }}/100</span>
+    <button class="btn small secondary" data-copy="titulo-{{ loop.index }}">Copiar</button>
+  </div>
+  {% endfor %}
+  <p class="muted small">El primero es el que elegiste en Estrategia. Lo ideal es que no pase de unos 60–70 caracteres.</p>
+</div>
+
+<div class="card copy-block">
+  <div class="row">
+    <h3>Descripción</h3>
+    <button class="btn small secondary" data-copy="descripcion">Copiar descripción</button>
+  </div>
+  <pre class="copy-text description" id="descripcion">{{ seo.description }}</pre>
+  <p class="muted small">{{ seo.description|length }}/5000 caracteres. Incluye capítulos con minutos, fuentes y créditos.</p>
+</div>
+
+<div class="two-col">
+  <div class="card copy-block">
+    <div class="row"><h3>Etiquetas</h3><button class="btn small secondary" data-copy="etiquetas">Copiar</button></div>
+    <p class="copy-text" id="etiquetas">{{ seo.tags|join(', ') }}</p>
+    <p class="muted small">En YouTube Studio: «Mostrar más» → «Etiquetas».</p>
+  </div>
+  <div class="card copy-block">
+    <div class="row"><h3>Comentario fijado</h3><button class="btn small secondary" data-copy="comentario">Copiar</button></div>
+    <p class="copy-text" id="comentario">{{ seo.pinned_comment }}</p>
+    <p class="muted small">Publícalo tú mismo al subir el vídeo y fíjalo (⋮ → Fijar).</p>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Lista para subir el vídeo</h3>
+  <ol class="steps">
+    <li>En YouTube Studio pulsa <strong>Crear → Subir vídeos</strong> y elige el MP4 final (pestaña Vídeo → Descargar MP4).</li>
+    <li>Pega el <strong>título</strong> y la <strong>descripción</strong>.</li>
+    <li>Sube la <strong>miniatura</strong>.</li>
+    <li>Categoría sugerida: <strong>{{ seo.category or 'Educación' }}</strong>.</li>
+    <li>«Contenido alterado o sintético»: {% if has_ai_images %}<strong>revísalo</strong>: marca «Sí» si alguna imagen de IA
+      parece real (personas o hechos que podrían confundirse con reales); si son ilustraciones claras, «No».{% else %}normalmente «No».{% endif %}</li>
+    <li>En <strong>Subtítulos</strong>, sube el archivo <strong>.srt</strong> (pestaña Vídeo).</li>
+    <li>Pega las <strong>etiquetas</strong> y, al publicar, escribe y fija el <strong>comentario</strong>.</li>
+  </ol>
+</div>
+{% endif %}
+<script>
+  document.querySelectorAll("[data-copy]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const text = document.getElementById(btn.dataset.copy).innerText;
+      try { await navigator.clipboard.writeText(text); } catch (e) {
+        const area = document.createElement("textarea"); area.value = text;
+        document.body.appendChild(area); area.select(); document.execCommand("copy"); area.remove();
+      }
+      const old = btn.textContent; btn.textContent = "¡Copiado!";
+      setTimeout(() => btn.textContent = old, 1500);
+    });
+  });
+</script>
+{{ ui.live_updates(project, jobs) }}
+{% endblock %}

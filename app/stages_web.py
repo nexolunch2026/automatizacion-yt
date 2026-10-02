@@ -33,6 +33,7 @@ SLUGS = {
     "voice": "voz",
     "visuals": "visuales",
     "edit": "video",
+    "publish": "publicacion",
 }
 STAGE_BY_SLUG = {slug: stage for stage, slug in SLUGS.items()}
 
@@ -494,6 +495,19 @@ def video_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         has_srt=(folder / "subtitulos.srt").exists(),
         has_credits=(folder / "creditos.txt").exists()
         and (folder / "creditos.txt").read_text(encoding="utf-8").strip() != "",
+    )
+
+
+@router.get("/publicacion")
+def publish_page(request: Request, db: DB, user: CurrentUser, project_id: int):
+    project = _project(db, project_id)
+    visuals = jobs.get_result(db, project_id, "visuals") or {}
+    return _stage_page(
+        request,
+        db,
+        project,
+        "publish",
+        has_ai_images=any(e.get("ai") for e in visuals.get("items", {}).values()),
     )
 
 
