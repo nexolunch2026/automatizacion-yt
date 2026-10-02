@@ -219,3 +219,15 @@ def test_settings_show_detail_and_key_hint(logged_in, monkeypatch):
     r = logged_in.post("/configuracion/elevenlabs", data={"api_key": "abc"})
     assert "empiezan por «sk_»" in r.text
     assert "Detalle técnico" in r.text
+
+
+def test_missing_permission_is_explained():
+    body = (
+        '{"detail":{"type":"authentication_error","code":"unauthorized","message":"The API key '
+        'you used is missing the permission voices_read to execute this operation.",'
+        '"status":"missing_permissions"}}'
+    )
+    with pytest.raises(ProviderError) as info:
+        eleven(lambda r: httpx.Response(401, text=body)).list_voices()
+    assert "Voices → Read" in str(info.value)
+    assert not info.value.transient

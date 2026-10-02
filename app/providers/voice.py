@@ -161,6 +161,12 @@ ELEVEN_MODELS = {
 }
 ELEVEN_SPEEDS = {"Lenta": 0.9, "Normal": 1.0, "Rápida": 1.1}
 ELEVEN_RATE = 22050  # formato PCM disponible en todos los planes
+# Nombre del permiso tal como aparece en la pantalla de claves de ElevenLabs.
+PERMISSION_NAMES = {
+    "voices_read": "Voices → Read (leer voces)",
+    "text_to_speech": "Text to Speech (texto a voz)",
+    "user_read": "User → Read (leer usuario)",
+}
 
 
 def is_eleven(voice: str) -> bool:
@@ -210,6 +216,17 @@ class ElevenLabsVoices:
         if response.status_code < 400:
             return response
         detail = response.text[:300]
+        if "missing_permissions" in detail:
+            import re
+
+            match = re.search(r"permission (\w+)", detail)
+            permission = PERMISSION_NAMES.get(match.group(1), match.group(1)) if match else ""
+            raise ProviderError(
+                "A tu clave de ElevenLabs le falta un permiso"
+                + (f": «{permission}»" if permission else "")
+                + ". Edita la clave en ElevenLabs (Settings → API Keys) y actívalo.",
+                detail=detail,
+            )
         if response.status_code == 401 and "quota" not in detail:
             raise ProviderError(
                 "La clave de ElevenLabs no es válida o no tiene permisos. Revísala en "
