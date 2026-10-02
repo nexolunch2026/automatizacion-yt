@@ -270,16 +270,21 @@ def prompts_file(db: DB, user: CurrentUser, project_id: int):
     shape = "vertical 9:16" if jobs.is_portrait(project) else "horizontal 16:9"
     lines = [
         f"PROMPTS DE IMÁGENES — {project.title}",
-        f"Formato: {shape}. Pide a la IA que no ponga texto ni marcas de agua.",
-        "Truco: en ChatGPT puedes escribir «Genera esta imagen en formato "
-        f"{shape}:» y pegar el prompt.",
+        f"Formato: {shape}.",
+        "IMPORTANTE: las imágenes NO deben llevar texto, números, gráficos ni rótulos.",
+        "La IA se inventa esos datos (y en inglés). Las cifras y fechas las pone el",
+        "programa encima, con los datos reales de tu investigación.",
+        "",
+        "Truco: en ChatGPT escribe «Genera esta imagen en formato "
+        f"{shape}, sin ningún texto, número ni gráfico:» y pega el prompt.",
         "",
     ]
     for scene in board["scenes"]:
         lines += [
             f"=== Escena {scene['number']:02} ({scene['seconds']} s) ===",
             f"Lo que se narra: {scene['narration']}",
-            f"Prompt: {image_prompt(scene, board.get('visual_bible') or {})}",
+            f"Prompt: {image_prompt(scene, board.get('visual_bible') or {})}. "
+            "No text, no numbers, no charts, no infographics, no signs.",
             "",
         ]
     filename = f"prompts-proyecto-{project_id}.txt"

@@ -166,6 +166,7 @@ def test_download_prompts(board):
     assert "attachment" in r.headers["content-disposition"]
     assert "=== Escena 01" in r.text and "dark office, cinematic" in r.text
     assert "horizontal 16:9" in r.text
+    assert "NO deben llevar texto" in r.text and "No text, no numbers" in r.text
 
 
 def test_upload_own_image(board):

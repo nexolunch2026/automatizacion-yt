@@ -65,6 +65,11 @@ def _prompt(project: Project, script: dict) -> str:
    - No muestres caras de personas reales inventadas como si fueran reales.
    - stock_query: palabras en inglés, concretas y visuales.
    - image_prompt: en inglés, describiendo estilo, encuadre e iluminación de la biblia.
+     MUY IMPORTANTE: la imagen NO debe llevar texto, letras, números, rótulos, gráficos,
+     infografías, líneas de tiempo, pantallas con datos ni logotipos legibles (la IA se
+     inventa esos textos y cifras). Describe escenas, objetos, lugares y ambiente.
+     Las cifras, fechas y nombres van en «on_screen_text», que el programa escribe
+     encima con los datos reales.
 
 GUION:
 {lines}"""

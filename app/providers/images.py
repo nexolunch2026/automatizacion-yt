@@ -15,7 +15,10 @@ from app.config import VERSION
 from app.providers.ai import GeminiProvider, ModelUnavailable, ProviderError
 
 SLEEP = time.sleep  # se reemplaza en los tests
-STYLE_SUFFIX = ", high quality, detailed, no text, no letters, no watermark, no logo"
+STYLE_SUFFIX = (
+    ", high quality, detailed, photographic scene, absolutely no text, no words, no letters,"
+    " no numbers, no captions, no charts, no infographics, no signs, no watermark, no logo"
+)
 
 
 class ImageProvider(Protocol):
