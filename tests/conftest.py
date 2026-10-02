@@ -69,6 +69,11 @@ def no_real_internet(monkeypatch):
     voice = FakeVoice()
     monkeypatch.setattr(jobs, "get_voice_provider", lambda *args, **kwargs: voice)
     monkeypatch.setattr(jobs, "get_image_providers", lambda db: ImageChain([FakeImageMaker()]))
+    # Los montajes de las pruebas se hacen en miniatura para que sean rápidos.
+    from app.pipeline import render
+
+    monkeypatch.setitem(render.QUALITIES, "preview", render.QUALITIES["test"])
+    monkeypatch.setitem(render.QUALITIES, "final", render.QUALITIES["test"])
     return voice
 
 

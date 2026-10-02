@@ -2,6 +2,7 @@
 
 import copy
 import re
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
@@ -10,8 +11,9 @@ from sqlalchemy import select
 
 from app import jobs
 from app.auth import DB, CurrentUser
-from app.media import project_dir, safe_path
+from app.media import MUSIC_DIR, MUSIC_EXTENSIONS, music_library, project_dir, safe_path
 from app.models import LEVELS, SCRIPT_TONES, STAGES, Project, StageResult
+from app.pipeline.render import MUSIC_VOLUMES
 from app.pipeline.script import SECTION_LABELS, default_params, rewrite_paragraph, with_stats
 from app.pipeline.storyboard import paragraphs_of, stale_scenes
 from app.pipeline.voice import pending_characters, take_key
@@ -431,6 +433,45 @@ async def upload_many(
     return _redirect(f"/proyectos/{project_id}/visuales#subida")
 
 
+MAX_MUSIC = 60 * 1024 * 1024
+
+
+@router.post("/musica/subir")
+async def upload_music(
+    db: DB, user: CurrentUser, project_id: int, songs: Annotated[list[UploadFile], File()]
+):
+    """Añade canciones a la biblioteca de música (sirve para todos los proyectos)."""
+    import re as _re
+
+    _project(db, project_id)
+    MUSIC_DIR.mkdir(parents=True, exist_ok=True)
+    for song in songs:
+        name = Path(song.filename or "").name
+        if Path(name).suffix.lower() not in MUSIC_EXTENSIONS:
+            continue
+        safe = _re.sub(r"[^\w .()-]", "_", name).strip() or "cancion.mp3"
+        data = await song.read(MAX_MUSIC + 1)
+        if len(data) <= MAX_MUSIC:
+            (MUSIC_DIR / safe).write_bytes(data)
+    return _redirect(f"/proyectos/{project_id}/video#musica")
+
+
+@router.post("/musica/borrar")
+def delete_music(db: DB, user: CurrentUser, project_id: int, name: Annotated[str, Form()]):
+    _project(db, project_id)
+    if name in music_library():
+        (MUSIC_DIR / name).unlink(missing_ok=True)
+    return _redirect(f"/proyectos/{project_id}/video#musica")
+
+
+@router.get("/musica/{name}")
+def play_music(db: DB, user: CurrentUser, project_id: int, name: str):
+    _project(db, project_id)
+    if name not in music_library():
+        raise HTTPException(404, "Canción no encontrada")
+    return FileResponse(MUSIC_DIR / name)
+
+
 @router.get("/video")
 def video_page(request: Request, db: DB, user: CurrentUser, project_id: int):
     project = _project(db, project_id)
@@ -441,6 +482,9 @@ def video_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         db,
         project,
         "edit",
+        style=jobs.render_style(db),
+        library=music_library(),
+        music_volumes=list(MUSIC_VOLUMES),
         has_ai_images=any(e.get("ai") for e in visuals.get("items", {}).values()),
         has_srt=(folder / "subtitulos.srt").exists(),
         has_credits=(folder / "creditos.txt").exists()
@@ -462,6 +506,10 @@ def run_stage(
     quality: Annotated[str | None, Form()] = None,
     model: Annotated[str | None, Form()] = None,
     mode: Annotated[str | None, Form()] = None,
+    subtitles: Annotated[str | None, Form()] = None,
+    film_look: Annotated[str | None, Form()] = None,
+    music: Annotated[str | None, Form()] = None,
+    music_volume: Annotated[str | None, Form()] = None,
 ):
     _project(db, project_id)
     if stage not in jobs.RUNNERS:
@@ -475,7 +523,13 @@ def run_stage(
             "technical": technical if technical in LEVELS else defaults["technical"],
         }
     elif stage == "edit":
-        params = {"quality": quality if quality in ("preview", "final") else "preview"}
+        params = {
+            "quality": quality if quality in ("preview", "final") else "preview",
+            "subtitles": subtitles == "1",
+            "film_look": film_look == "1",
+            "music": music if music in ("", *music_library()) else "",
+            "music_volume": music_volume if music_volume in MUSIC_VOLUMES else "media",
+        }
     elif stage == "visuals" and mode in ("stock", "ai"):
         params = {"mode": mode}
     elif stage == "voice":

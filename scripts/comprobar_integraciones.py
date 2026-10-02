@@ -88,6 +88,20 @@ def main() -> None:
             },
         ]
         takes = {"a": wav_seconds(clips[0]), "b": wav_seconds(clips[1])}
+        from app.pipeline.render import run_ffmpeg
+
+        run_ffmpeg(
+            [
+                "-f",
+                "lavfi",
+                "-i",
+                "sine=frequency=110:duration=4",
+                "-ac",
+                "2",
+                str(folder / "musica.mp3"),
+            ]
+        )
+        # Todo activado: subtítulos animados (libass), acabado de cine y música.
         out = render_video(
             scenes,
             {"a": {"path": folder / "foto.jpg", "kind": "image"}},
@@ -97,6 +111,8 @@ def main() -> None:
             "preview",
             False,
             lambda p, m: None,
+            style={"subtitles": True, "film_look": True, "music_volume": "media"},
+            music=folder / "musica.mp3",
         )
         size = (folder / "video" / out["file"].removeprefix("video/")).stat().st_size
         print(f"   {out['file']}: {out['seconds']} s, {size} bytes")

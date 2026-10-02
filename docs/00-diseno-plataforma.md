@@ -544,3 +544,20 @@ generar una miniatura en el chat de ChatGPT o Gemini, etc.).
   convertida a JPEG ≤ 2560 px). Las imágenes subidas nunca se reemplazan automáticamente.
 - La página Vídeo recuerda la casilla de contenido sintético de YouTube cuando hay
   imágenes de IA.
+
+## 22. Paquete de calidad del montaje (v0.9)
+
+- **Planos**: cada foto se divide en planos de 3–6 s (máx. 4) que alternan zoom de
+  entrada, paneo a la derecha, zoom de salida y paneo a la izquierda, con aceleración
+  suave. El zoom se calcula sobre la imagen ampliada ×2 (vista previa) o ×3 (final) para
+  evitar los «saltitos» de zoompan.
+- **Fundidos** de 0,4 s entre escenas con `xfade`; cada clip dura su escena + fundido y el
+  fundido empieza donde empieza la escena siguiente, así la duración total no cambia.
+- **Subtítulos animados** (ASS + libass) con Montserrat ExtraBold; la palabra que se dice
+  se resalta en el rojo de la marca. Tiempos por palabra repartidos según su longitud.
+- **Música** de una biblioteca local (`datos/musica`, subida por el usuario) con bucle,
+  entrada/salida suaves y `sidechaincompress` para bajarla cuando habla la voz.
+- **Acabado de cine**: `eq` (contraste/saturación), `vignette` y `noise` (grano).
+- **Marca**: textos en pantalla y tarjetas con Bebas Neue, blanco y rojo (fuentes OFL en
+  `app/static/fonts`). Vista previa ahora a 720p/30.
+- Todo el acabado se aplica en una única pasada final; las opciones se recuerdan.

@@ -14,9 +14,9 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
-from app.media import project_dir
+from app.media import music_library, music_path, project_dir
 from app.models import STATUSES, Job, Project, StageResult
-from app.pipeline.render import QUALITIES, render_video
+from app.pipeline.render import DEFAULT_STYLE, MUSIC_VOLUMES, QUALITIES, render_video
 from app.pipeline.research import run_research
 from app.pipeline.script import default_params, run_script
 from app.pipeline.storyboard import run_storyboard
@@ -250,6 +250,25 @@ def _run_visuals(db: Session, project: Project, progress, params: dict) -> dict:
     )
 
 
+def render_style(db: Session, params: dict | None = None) -> dict:
+    """Opciones de acabado: las de esta tarea, o las últimas que se usaron."""
+    import json
+
+    saved = get_setting(db, "render_style")
+    style = {**DEFAULT_STYLE, **(json.loads(saved) if saved else {})}
+    for key in ("subtitles", "film_look", "music", "music_volume"):
+        if params and key in params:
+            style[key] = params[key]
+    if style["music"] == "auto":  # primera canción de la biblioteca
+        library = music_library()
+        style["music"] = library[0] if library else ""
+    if style["music"] and style["music"] not in music_library():
+        style["music"] = ""
+    if style["music_volume"] not in MUSIC_VOLUMES:
+        style["music_volume"] = "media"
+    return style
+
+
 def _run_edit(db: Session, project: Project, progress, params: dict) -> dict:
     board = _require(db, project, "storyboard", "Primero hay que crear las escenas.")
     voice = _require(db, project, "voice", "Primero hay que grabar la voz.")
@@ -267,6 +286,7 @@ def _run_edit(db: Session, project: Project, progress, params: dict) -> dict:
         if entry.get("file") and (folder / "visuales" / entry["file"]).exists():
             media[pid] = {"path": folder / "visuales" / entry["file"], "kind": entry["kind"]}
     quality = params.get("quality") if params.get("quality") in QUALITIES else "preview"
+    style = render_style(db, params)
     result = render_video(
         board["scenes"],
         media,
@@ -276,11 +296,16 @@ def _run_edit(db: Session, project: Project, progress, params: dict) -> dict:
         quality,
         is_portrait(project),
         progress,
+        style=style,
+        music=music_path(style["music"]),
     )
     try:  # los créditos no deben hacer fallar el montaje
         (folder / "video" / "creditos.txt").write_text(credits_text(visuals), encoding="utf-8")
     except OSError:
         log.warning("No se pudo escribir creditos.txt", exc_info=True)
+    import json
+
+    set_setting(db, "render_style", json.dumps(style))
     previous = get_result(db, project.id, "edit") or {}
     renders = {**previous.get("renders", {}), quality: result}
     return {"renders": renders, "last": quality}

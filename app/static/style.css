@@ -240,3 +240,8 @@ audio { width: 100%; max-width: 520px; height: 36px; }
 .bulk-upload .radio, .bulk-upload .btn, .bulk-upload p { grid-column: 1 / -1; }
 .bulk-upload .btn { justify-self: start; }
 @media (max-width: 720px) { .bulk-upload { grid-template-columns: 1fr; } }
+.render-form fieldset { margin-bottom: 12px; display: grid; gap: 8px; }
+.songs { list-style: none; padding: 0; display: grid; gap: 8px; }
+.songs li { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.songs li span { min-width: 220px; }
+.songs audio { max-width: 320px; }

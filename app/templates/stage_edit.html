@@ -14,22 +14,39 @@
     y la <a href="/proyectos/{{ project.id }}/voz">voz</a>.
     Los <a href="/proyectos/{{ project.id }}/visuales">visuales</a> son recomendables.</p>
   {% elif not (job and job.active) %}
-  <div class="row-actions">
-    <form method="post" action="/proyectos/{{ project.id }}/etapas/edit">
-      <input type="hidden" name="quality" value="preview">
-      <button class="btn secondary">Vista previa rápida (480p)</button>
-    </form>
-    <form method="post" action="/proyectos/{{ project.id }}/etapas/edit">
-      <input type="hidden" name="quality" value="final">
-      <button class="btn">Vídeo final (1080p)</button>
-    </form>
-  </div>
-  <p class="muted small">La vista previa tarda poco y sirve para revisar. El vídeo final tarda más
-    (puede ser bastante en vídeos largos; puedes dejarlo trabajando).</p>
+  <form method="post" action="/proyectos/{{ project.id }}/etapas/edit" class="render-form">
+    <fieldset>
+      <legend>Acabado</legend>
+      <label class="radio"><input type="checkbox" name="subtitles" value="1" {% if style.subtitles %}checked{% endif %}>
+        Subtítulos animados en pantalla (la palabra que se dice se resalta en rojo)</label>
+      <label class="radio"><input type="checkbox" name="film_look" value="1" {% if style.film_look %}checked{% endif %}>
+        Acabado de cine (viñeta, contraste suave y grano de película)</label>
+      <div class="row-fields">
+        <label>Música de fondo
+          <select name="music">
+            <option value="">Sin música</option>
+            {% for song in library %}<option value="{{ song }}" {% if style.music == song %}selected{% endif %}>{{ song }}</option>{% endfor %}
+          </select>
+        </label>
+        <label>Volumen de la música
+          <select name="music_volume">
+            {% for v in music_volumes %}<option value="{{ v }}" {% if style.music_volume == v %}selected{% endif %}>{{ v|capitalize }}</option>{% endfor %}
+          </select>
+        </label>
+      </div>
+      {% if not library %}<p class="muted small">Aún no tienes música: súbela abajo, en «Biblioteca de música».</p>{% endif %}
+    </fieldset>
+    <div class="row-actions">
+      <button class="btn secondary" name="quality" value="preview">Vista previa (720p)</button>
+      <button class="btn" name="quality" value="final">Vídeo final (1080p)</button>
+    </div>
+  </form>
+  <p class="muted small">La vista previa sirve para revisar; el vídeo final tarda más (en vídeos
+    largos puede llevar bastante: puedes dejarlo trabajando).</p>
   {% endif %}
 </div>
 
-{% for quality, label in [('final', 'Vídeo final (1080p)'), ('preview', 'Vista previa (480p)')] %}
+{% for quality, label in [('final', 'Vídeo final (1080p)'), ('preview', 'Vista previa')] %}
 {% set r = renders.get(quality) %}
 {% if r %}
 <div class="card">
@@ -46,6 +63,33 @@
 </div>
 {% endif %}
 {% endfor %}
+
+
+<div class="card" id="musica">
+  <h2>Biblioteca de música</h2>
+  <p class="muted small">Las canciones que subas sirven para todos tus proyectos. Usa solo música
+    <strong>libre de derechos para YouTube</strong>, por ejemplo de la <strong>Biblioteca de audio de
+    YouTube</strong> (YouTube Studio → Biblioteca de audio: gratis y apta para canales monetizados) o
+    de <a href="https://pixabay.com/music/" target="_blank" rel="noopener">Pixabay Music</a>.
+    Para documentales de misterio van bien géneros como «Cinematic», «Ambient» o «Dramatic».</p>
+  {% if library %}
+  <ul class="songs">
+    {% for song in library %}
+    <li>
+      <span>{{ song }}</span>
+      <audio controls preload="none" src="/proyectos/{{ project.id }}/musica/{{ song|urlencode }}"></audio>
+      <form method="post" action="/proyectos/{{ project.id }}/musica/borrar" onsubmit="return confirm('¿Quitar esta canción?')">
+        <input type="hidden" name="name" value="{{ song }}"><button class="btn-link danger-link">Quitar</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <form method="post" action="/proyectos/{{ project.id }}/musica/subir" enctype="multipart/form-data" class="row-actions">
+    <input type="file" name="songs" accept=".mp3,.wav,.m4a,.ogg,.flac,.aac" multiple required>
+    <button class="btn small">Subir canciones</button>
+  </form>
+</div>
 
 {% if renders %}
 <div class="card">
