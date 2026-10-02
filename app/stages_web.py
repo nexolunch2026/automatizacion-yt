@@ -511,6 +511,15 @@ def publish_page(request: Request, db: DB, user: CurrentUser, project_id: int):
     )
 
 
+@router.post("/publicado")
+def mark_published(db: DB, user: CurrentUser, project_id: int):
+    """El vídeo ya está en YouTube: deja de aparecer en las tareas de JARVIS."""
+    project = _project(db, project_id)
+    project.status = "Publicado"
+    db.commit()
+    return _redirect(f"/proyectos/{project_id}/publicacion")
+
+
 @router.post("/etapas/{stage}")
 def run_stage(
     db: DB,

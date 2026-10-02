@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>J.A.R.V.I.S.</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='jarvis_hud.css') }}">
+</head>
+<body class="state-off">
+  <canvas id="bg"></canvas>
+
+  <div id="hud">
+    <header class="hud-top">
+      <div class="clock-box">
+        <div id="clock">--:--<span id="seconds">--</span></div>
+        <div id="date" class="label"></div>
+      </div>
+      <div class="title-box">
+        <div class="title">J.A.R.V.I.S.</div>
+        <div class="label">FACELESS STUDIO · ANATOMÍA DE UNA MARCA</div>
+      </div>
+      <div class="weather-box" id="weather"><div class="label">CLIMA</div><div class="muted">Pon tu ciudad en la página JARVIS</div></div>
+    </header>
+
+    <section class="col col-left">
+      <div class="panel">
+        <div class="panel-title"><span>PRODUCCIÓN</span><span id="prod-count" class="label"></span></div>
+        <div id="production"><div class="muted">Sin vídeos en marcha</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><span>SISTEMA</span><span id="telegram-state" class="label"></span></div>
+        <div class="gauges">
+          <div class="gauge" data-key="cpu"><svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="42"/><circle class="value" cx="50" cy="50" r="42"/></svg><b>--</b><span>CPU</span></div>
+          <div class="gauge" data-key="ram"><svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="42"/><circle class="value" cx="50" cy="50" r="42"/></svg><b>--</b><span>RAM</span></div>
+          <div class="gauge" data-key="disk"><svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="42"/><circle class="value" cx="50" cy="50" r="42"/></svg><b>--</b><span>DISCO</span></div>
+        </div>
+        <div id="disk-free" class="label center-text"></div>
+      </div>
+    </section>
+
+    <section class="core-area">
+      <canvas id="reactor" width="640" height="640" title="Tócame o aplaude dos veces"></canvas>
+      <div id="state-label">EN ESPERA</div>
+      <div id="heard"></div>
+      <div id="caption"></div>
+      <div id="choices"></div>
+    </section>
+
+    <section class="col col-right">
+      <div class="panel">
+        <div class="panel-title"><span>TAREAS DEL DÍA</span><span id="task-count" class="label"></span></div>
+        <ul id="tasks"></ul>
+        <form id="task-form"><input id="task-input" placeholder="+ Nueva tarea (o díselo: «anota…»)" autocomplete="off"></form>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><span>PILOTO AUTOMÁTICO</span><span id="pilot-state" class="label"></span></div>
+        <ol id="pilot"></ol>
+      </div>
+    </section>
+
+    <footer class="hud-bottom">
+      <div class="mic-box" title="Nivel del micrófono: las palmadas deben pasar la raya roja">
+        <span class="label">MIC</span>
+        <div class="meter"><div id="mic-level"></div><div id="mic-threshold"></div></div>
+        <span id="clap-dots">👏</span>
+      </div>
+      <form id="type-form"><input id="type-input" placeholder="Escríbele a JARVIS… (o pulsa ESPACIO y habla)" autocomplete="off"></form>
+      <div class="foot-buttons">
+        <button id="btn-settings" title="Ajustes">⚙</button>
+        <button id="btn-full" title="Pantalla completa">⛶</button>
+        <a href="/" title="Volver al programa">✕</a>
+      </div>
+    </footer>
+  </div>
+
+  <div id="boot">
+    <div class="boot-box">
+      <div class="title">J.A.R.V.I.S.</div>
+      <div id="boot-lines" class="label"></div>
+      <button id="boot-button">TOCA PARA INICIAR</button>
+      <p class="muted small">Necesito el micrófono para oír tus palmadas y tu voz.</p>
+    </div>
+  </div>
+
+  <div id="settings" hidden>
+    <div class="settings-box panel">
+      <div class="panel-title"><span>AJUSTES DE JARVIS</span><button id="settings-close">✕</button></div>
+      <label>Voz de JARVIS <select id="set-voice"></select></label>
+      <label>Acento al escucharte
+        <select id="set-lang">
+          <option value="es-CO">Español (Colombia)</option>
+          <option value="es-MX">Español (México)</option>
+          <option value="es-ES">Español (España)</option>
+          <option value="es-US">Español (EE. UU.)</option>
+        </select>
+      </label>
+      <label>Sensibilidad a las palmadas <input id="set-sens" type="range" min="1" max="10" step="1"></label>
+      <p class="muted small">Aplaude fuerte dos veces y mira la barra «MIC» de abajo: cada palmada debe pasar la raya roja.
+        Si se despierta solo con ruidos, baja la sensibilidad.</p>
+      <label class="check"><input id="set-claps" type="checkbox"> Despertar con dos palmadas</label>
+      <label class="check"><input id="set-briefing" type="checkbox"> Dar el resumen del día al despertar (una vez cada 3 horas)</label>
+      <button id="set-test" class="hud-button">🔊 Probar la voz</button>
+    </div>
+  </div>
+
+  <script>window.JARVIS_NAME = {{ call_me|tojson }};</script>
+  <script src="{{ url_for('static', path='jarvis_hud.js') }}"></script>
+</body>
+</html>

@@ -48,6 +48,17 @@ Después podrás escribirle o mandarle notas de voz desde el móvil:
 *«hazme un vídeo sobre la caída de Kodak»*, *«ideas»*, *«estado»*,
 *«cola: Nokia, Blockbuster»*. Te avisa en cada paso y te manda un avance del vídeo.
 
+### Paso 7 (opcional) — Modo JARVIS, como en Iron Man
+Doble clic en **`JARVIS`** (al lado de `Iniciar`). Se abre una pantalla futurista a
+pantalla completa:
+- **👏👏 Dos palmadas** y despierta: te saluda, te dice la hora, el clima, tus tareas
+  y cómo va la producción.
+- Háblale: *«anota: comprar micrófono»*, *«qué tengo hoy»*, *«hazme un vídeo sobre Nokia»*,
+  *«el dos»* (para elegir enfoque), *«gracias Jarvis»* (vuelve a dormir).
+- La primera vez entra con tu usuario y **permite el micrófono**.
+- Para que se encienda solo al prender el ordenador: doble clic en **`JARVIS al encender`**.
+- Consejo: usa **Microsoft Edge** (viene con Windows): sus voces «Natural» suenan casi humanas.
+
 ### Para apagarlo
 Cierra la **ventana negra**.
 

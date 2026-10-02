@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import RedirectResponse
 
-from app import assistant, telegram
+from app import agenda, assistant, telegram
 from app.assistant import Incoming
 from app.auth import DB, CurrentUser
 from app.media import PROJECTS_DIR
@@ -43,6 +43,8 @@ def _page(request: Request, db: DB, status_code: int = 200, **ctx):
         code=assistant.link_code(db),
         pilot=assistant.autopilot_state(db),
         status=assistant.status_text(db),
+        city=get_setting(db, "jarvis_city") or "",
+        call_me=get_setting(db, "jarvis_name") or "",
         **ctx,
     )
 
@@ -77,6 +79,7 @@ def order(
                 "html": r.text,
                 "buttons": [[{"text": t, "data": d} for t, d in row] for row in r.buttons or []],
                 "video": _video_url(r.video) if r.video else None,
+                "action": r.action,
             }
             for r in replies
         ],
@@ -151,3 +154,63 @@ def save_pilot(
     state["on"] = on == "1"
     assistant.save_autopilot(db, state)
     return _redirect("/jarvis?guardado=piloto#piloto")
+
+
+# ---------------------------------------------------------------- pantalla completa (HUD)
+
+
+@router.get("/hud")
+def hud(request: Request, db: DB, user: CurrentUser):
+    return render(request, "jarvis_hud.html", call_me=get_setting(db, "jarvis_name") or "")
+
+
+@router.get("/hud/datos")
+def hud_data(db: DB, user: CurrentUser) -> dict:
+    """Todo lo que muestra la pantalla; se pide cada pocos segundos."""
+    pilot = assistant.autopilot_state(db)
+    return {
+        "production": agenda.production(db),
+        "studio_tasks": agenda.studio_tasks(db),
+        "tasks": agenda.personal_tasks(db),
+        "pilot": {"on": pilot["on"], "hour": pilot["hour"], "queue": pilot["queue"][:6]},
+        "system": agenda.system(),
+        "weather": agenda.weather(db),
+        "telegram": bool(api_key_hint(db, "telegram")) and bool(assistant.linked_chats(db)),
+    }
+
+
+@router.get("/hud/saludo")
+def hud_greeting(db: DB, user: CurrentUser) -> dict:
+    name = get_setting(db, "jarvis_name") or ""
+    return {"text": agenda.briefing_text(db, name=name)}
+
+
+@router.post("/tareas")
+def add_task(db: DB, user: CurrentUser, text: Annotated[str, Form()]) -> dict:
+    if text.strip():
+        agenda.add_task(db, text.strip())
+    return {"tasks": agenda.personal_tasks(db)}
+
+
+@router.post("/tareas/{task_id}/hecha")
+def done_task(db: DB, user: CurrentUser, task_id: int) -> dict:
+    agenda.complete_task(db, task_id)
+    return {"tasks": agenda.personal_tasks(db)}
+
+
+@router.post("/tareas/{task_id}/borrar")
+def remove_task(db: DB, user: CurrentUser, task_id: int) -> dict:
+    agenda.delete_task(db, task_id)
+    return {"tasks": agenda.personal_tasks(db)}
+
+
+@router.post("/preferencias")
+def save_preferences(
+    db: DB,
+    user: CurrentUser,
+    city: Annotated[str, Form()] = "",
+    call_me: Annotated[str, Form()] = "",
+):
+    set_setting(db, "jarvis_city", city.strip()[:80])
+    set_setting(db, "jarvis_name", call_me.strip()[:40])
+    return _redirect("/jarvis?guardado=preferencias#preferencias")

@@ -35,6 +35,36 @@
   </div>
 </div>
 
+<div class="card form-card" id="modo-jarvis">
+  <h2>🖥️ Modo JARVIS (pantalla completa, como en Iron Man)</h2>
+  <p class="muted small">Una pantalla futurista que se enciende con <strong>dos palmadas</strong>, te saluda,
+    te dice la hora, el tiempo, tus tareas y cómo va la producción, y te escucha para darle órdenes con la voz.</p>
+  <ol class="steps">
+    <li>En la carpeta del programa haz doble clic en <strong>JARVIS</strong> (o <code>JARVIS.bat</code>).
+      Se abre a pantalla completa. <span class="muted">(Para salir de pantalla completa: tecla <strong>F11</strong> o <strong>Esc</strong>.)</span></li>
+    <li>La primera vez: entra con tu usuario y <strong>permite el micrófono</strong> cuando lo pregunte.</li>
+    <li>Toca la pantalla una vez. A partir de ahí: <strong>👏👏 dos palmadas</strong> y JARVIS despierta.</li>
+    <li>¿Quieres que se encienda solo al prender el ordenador? Doble clic en <strong>JARVIS al encender</strong>.</li>
+  </ol>
+  <p><a class="btn" href="/jarvis/hud">Abrir aquí el modo JARVIS</a></p>
+</div>
+
+<div class="card form-card" id="preferencias">
+  <h2>⚙️ Cómo te habla JARVIS</h2>
+  {% if saved == 'preferencias' %}<p class="alert ok">Guardado.</p>{% endif %}
+  <form method="post" action="/jarvis/preferencias" class="stack">
+    <div class="row-fields">
+      <label>Cómo quieres que te llame
+        <input name="call_me" value="{{ call_me }}" placeholder="Por ejemplo: jefe, señor, tu nombre">
+      </label>
+      <label>Tu ciudad (para el tiempo)
+        <input name="city" value="{{ city }}" placeholder="Por ejemplo: Medellín">
+      </label>
+    </div>
+    <button class="btn">Guardar</button>
+  </form>
+</div>
+
 <div class="card form-card" id="telegram">
   <h2>📱 JARVIS en tu celular (Telegram)</h2>
   {% if saved == '1' %}<p class="alert ok">¡Bot conectado! Ahora haz el paso 3.</p>{% endif %}

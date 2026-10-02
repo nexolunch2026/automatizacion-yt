@@ -92,5 +92,15 @@
     });
   });
 </script>
+<div class="card">
+  {% if project.status == 'Publicado' %}
+  <p class="alert ok">✅ Marcado como publicado en YouTube.</p>
+  {% else %}
+  <form method="post" action="/proyectos/{{ project.id }}/publicado" class="row">
+    <span class="muted small">¿Ya lo subiste? Márcalo y JARVIS lo quitará de tus tareas.</span>
+    <button class="btn secondary">✅ Ya está publicado en YouTube</button>
+  </form>
+  {% endif %}
+</div>
 {{ ui.live_updates(project, jobs) }}
 {% endblock %}

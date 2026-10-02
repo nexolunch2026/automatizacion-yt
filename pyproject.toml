@@ -1,6 +1,6 @@
 [project]
 name = "faceless-studio"
-version = "0.10.0"
+version = "0.11.0"
 description = "Productora de vídeos faceless para YouTube"
 requires-python = ">=3.11"
 dependencies = [
@@ -16,6 +16,7 @@ dependencies = [
     "piper-tts>=1.8",
     "imageio-ffmpeg>=0.6.0",
     "pillow>=12.3.0",
+    "psutil>=7.2.2",
 ]
 
 [dependency-groups]

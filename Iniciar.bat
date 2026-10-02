@@ -29,7 +29,7 @@ if errorlevel 1 (
 )
 
 echo   Abriendo Faceless Studio en tu navegador...
-uv run --no-dev python -m app
+uv run --no-dev python -m app %*
 
 echo.
 echo   Faceless Studio se ha cerrado.

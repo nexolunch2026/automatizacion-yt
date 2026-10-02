@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import jobs
+from app import agenda, jobs
 from app.media import project_dir
 from app.models import DURATIONS, STAGES, Channel, Job, Project, User
 from app.pipeline.render import run_ffmpeg
@@ -42,6 +42,7 @@ class Reply:
     buttons: Buttons | None = None
     video: Path | None = None
     chat_id: int | None = None  # None: a todos los chats vinculados
+    action: str = ""  # para la pantalla JARVIS: «sleep» = volver a dormir
 
 
 @dataclass
@@ -160,12 +161,26 @@ def _mark_old_jobs_notified(db: Session) -> None:
 
 class Intent(BaseModel):
     action: Literal[
-        "new_video", "status", "ideas", "queue_add", "queue_show", "autopilot", "help", "chat"
+        "new_video",
+        "status",
+        "ideas",
+        "queue_add",
+        "queue_show",
+        "autopilot",
+        "task_add",
+        "task_list",
+        "task_done",
+        "briefing",
+        "time",
+        "sleep",
+        "help",
+        "chat",
     ]
     topic: str = Field(default="", description="Tema del vídeo, si pide uno")
     topics: list[str] = Field(default_factory=list, description="Temas para la cola")
     duration: str = Field(default="", description="Duración pedida, p. ej. «10 minutos»")
     on: bool | None = Field(default=None, description="Encender/apagar el piloto automático")
+    task: str = Field(default="", description="Texto de la tarea a anotar o a completar")
     reply: str = Field(default="", description="Respuesta corta si es una conversación")
 
 
@@ -201,10 +216,72 @@ def _clean_topic(topic: str) -> str:
     return topic.strip(" .,:;¡!¿?\"'«»").strip()
 
 
+WAKE_WORD = re.compile(r"^\W*(?:oye\s+|hola\s+|ok\s+)?(?:jarvis|yarvis|harvey|jarbis)\b[\s,.:!]*")
+TASK_ADD = re.compile(
+    r"^(?:anota(?:me)?|apunta(?:me)?|recuerdame|agrega (?:la )?tarea|anade (?:la )?tarea|"
+    r"nueva tarea|tarea nueva|crea (?:una )?tarea)\s*:?\s+(?:que\s+)?"
+)
+TASK_DONE = re.compile(
+    r"^(?:ya (?:hice|termine|complete)|termine|complete|completa(?:r)?|marca(?:r)? como hecha|"
+    r"tache|tacha|borra (?:la )?tarea|quita (?:la )?tarea|lista la tarea|hecha la tarea)"
+    r"\s*:?\s*(?:la tarea\s+|la\s+)?"
+)
+
+
 def quick_intent(text: str) -> Intent | None:
     """Órdenes habituales sin gastar IA."""
+    wake = WAKE_WORD.match(normalize(text))
+    if wake:  # «Jarvis, …»: se quita el nombre
+        text = text[wake.end() :]
+        if not text.strip():
+            return Intent(action="briefing")
     norm = normalize(text).strip()
     bare = norm.strip(" .!?¡¿")
+    if bare in (
+        "buenos dias",
+        "buenas tardes",
+        "buenas noches",
+        "resumen",
+        "resumen del dia",
+        "informe del dia",
+        "que hay para hoy",
+        "despierta",
+        "/resumen",
+    ):
+        return Intent(action="briefing")
+    if bare in (
+        "tareas",
+        "/tareas",
+        "mis tareas",
+        "que tengo hoy",
+        "que tengo que hacer",
+        "pendientes",
+        "agenda",
+        "que hay pendiente",
+        "lista de tareas",
+    ):
+        return Intent(action="task_list")
+    if bare in ("que hora es", "hora", "que dia es", "que dia es hoy", "fecha"):
+        return Intent(action="time")
+    if bare in (
+        "descansa",
+        "duerme",
+        "a dormir",
+        "apagate",
+        "gracias",
+        "gracias jarvis",
+        "eso es todo",
+        "hasta luego",
+        "adios",
+        "chao",
+    ):
+        return Intent(action="sleep")
+    match = TASK_ADD.match(norm)
+    if match and text[match.end() :].strip():
+        return Intent(action="task_add", task=text[match.end() :].strip(" .,:;"))
+    match = TASK_DONE.match(norm)
+    if match and text[match.end() :].strip():
+        return Intent(action="task_done", task=text[match.end() :].strip(" .,:;"))
     if bare in ("/start", "start", "ayuda", "/ayuda", "/help", "help", "menu", "/menu", "hola"):
         return Intent(action="help")
     if bare in ("estado", "/estado", "como va", "como vamos", "que haces", "reporte", "informe"):
@@ -242,6 +319,12 @@ documentales sin rostro). Clasifica el mensaje del creador:
 - queue_add: quiere dejar varios temas en la cola del piloto automático (topics).
 - queue_show: quiere ver la cola.
 - autopilot: encender o apagar el piloto automático (on).
+- task_add: quiere anotar una tarea o recordatorio (task = el texto).
+- task_list: pregunta qué tareas o pendientes tiene.
+- task_done: dice que ya hizo una tarea o quiere quitarla (task = cuál).
+- briefing: pide el resumen del día o te saluda para empezar.
+- time: pregunta la hora o la fecha.
+- sleep: se despide o te manda a descansar.
 - help: pregunta qué puedes hacer.
 - chat: cualquier otra cosa; responde en «reply» en 1–3 frases, en español, con el
   tono de JARVIS (educado, eficiente, un toque de humor). No inventes datos del canal.
@@ -268,6 +351,9 @@ def help_replies() -> list[Reply]:
             "📊 <b>«estado»</b> — cómo va todo.\n"
             "🛫 <b>«cola: Nokia, Blockbuster, Kodak»</b> — los dejo en fila y el piloto "
             "automático hace uno al día.\n"
+            "📝 <b>«anota: comprar micrófono»</b>, <b>«tareas»</b>, <b>«ya hice lo del "
+            "micrófono»</b> — tu lista del día.\n"
+            "☀️ <b>«resumen»</b> — el informe del día (tiempo, tareas y producción).\n"
             "🎙️ También puedes <b>mandarme notas de voz</b>.",
             buttons=[
                 [("📊 Estado", "status"), ("💡 Ideas", "ideas")],
@@ -525,9 +611,43 @@ def _act(db: Session, intent: Intent, text: str) -> list[Reply]:
             state["on"] = intent.on
             save_autopilot(db, state)
         return [Reply(_queue_text(state), buttons=_autopilot_buttons(state))]
+    if intent.action.startswith("task_") or intent.action in ("briefing", "time", "sleep"):
+        return _agenda_act(db, intent)
     if intent.action == "chat" and intent.reply.strip():
         return [Reply(escape(intent.reply.strip()))]
     return help_replies()
+
+
+def tasks_text(db: Session) -> str:
+    studio = agenda.studio_tasks(db)
+    mine = [t for t in agenda.personal_tasks(db) if not t.get("done")]
+    if not studio and not mine:
+        return "✅ No tienes nada pendiente. Día libre… o día de hacer un vídeo nuevo. 😉"
+    lines = ["📝 <b>Tareas de hoy</b>"]
+    lines += [f"🎬 {escape(t['text'])}" for t in studio]
+    lines += [f"{n}. {escape(t['text'])}" for n, t in enumerate(mine, 1)]
+    return "\n".join(lines)
+
+
+def _agenda_act(db: Session, intent: Intent) -> list[Reply]:
+    now = datetime.now()
+    if intent.action == "task_add" and intent.task.strip():
+        task = agenda.add_task(db, intent.task.strip())
+        return [Reply(f"📝 Anotado: «{escape(task['text'])}».")]
+    if intent.action == "task_done" and intent.task.strip():
+        task = agenda.find_task(db, intent.task)
+        if task is None:
+            return [Reply("No encontré esa tarea. Di «tareas» para ver la lista.")]
+        agenda.complete_task(db, task["id"])
+        left = len([t for t in agenda.personal_tasks(db) if not t.get("done")])
+        return [Reply(f"✅ Hecho: «{escape(task['text'])}». Te quedan {left}.")]
+    if intent.action == "briefing":
+        return [Reply(escape(agenda.briefing_text(db, now)))]
+    if intent.action == "time":
+        return [Reply(f"🕒 Son las {agenda.spoken_time(now)} del {agenda.spoken_date(now)}.")]
+    if intent.action == "sleep":
+        return [Reply("A sus órdenes. Aplaude dos veces si me necesitas. 👋", action="sleep")]
+    return [Reply(tasks_text(db))]
 
 
 def _project_or_none(db: Session, raw: str) -> Project | None:
@@ -542,6 +662,8 @@ def _button(db: Session, data: str) -> list[Reply]:
         return _ideas(db)
     if kind == "autopilot":
         return _act(db, Intent(action="queue_show"), "")
+    if kind == "tasks":
+        return [Reply(tasks_text(db))]
     if kind == "idea":
         ideas = _json_setting(db, "telegram_ideas", [])
         if rest == "all":
@@ -791,7 +913,8 @@ def briefing(db: Session, now: datetime | None = None) -> list[Reply]:
     return [
         Reply(
             "☀️ <b>Buenos días.</b> Resumen del estudio:\n\n"
-            f"{status_text(db)}\n\n🎞️ Vídeos montados en los últimos 7 días: {week}",
+            f"{status_text(db)}\n\n{tasks_text(db)}\n\n"
+            f"🎞️ Vídeos montados en los últimos 7 días: {week}",
             buttons=[[("💡 Ideas para hoy", "ideas"), ("🛫 Piloto", "autopilot")]],
         )
     ]

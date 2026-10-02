@@ -22,7 +22,7 @@ PUBLIC_URL = f"https://github.com/{REPO}/archive/refs/heads/{BRANCH}.zip"
 # Con token (repositorio privado) se usa la API de GitHub.
 API_URL = f"https://api.github.com/repos/{REPO}/zipball/{BRANCH}"
 # Lo que nunca se sobrescribe: tus datos, el entorno de Python y las copias de seguridad.
-PROTECTED = {"datos", ".venv", "copias_de_seguridad", ".git"}
+PROTECTED = {"datos", ".venv", "copias_de_seguridad", ".git", "navegador_jarvis"}
 BACKUPS_TO_KEEP = 5
 
 
