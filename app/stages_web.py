@@ -4,8 +4,8 @@ import copy
 import re
 from typing import Annotated
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
 from sqlalchemy import select
 
 from app import jobs
@@ -232,15 +232,133 @@ def change_visual(db: DB, user: CurrentUser, project_id: int, paragraph_id: str)
     return _redirect(f"/proyectos/{project_id}/visuales#escena-{paragraph_id}")
 
 
+@router.post("/visuales/ia/{paragraph_id}")
+def ai_visual(
+    db: DB,
+    user: CurrentUser,
+    project_id: int,
+    paragraph_id: str,
+    prompt: Annotated[str | None, Form()] = None,
+):
+    """Genera (o regenera) con IA la imagen de una escena, opcionalmente con otro prompt."""
+    _project(db, project_id)
+    row = _result_row(db, project_id, "storyboard")
+    if row is None:
+        raise HTTPException(404, "No hay escenas")
+    if prompt is not None and prompt.strip():
+        board = copy.deepcopy(row.data)
+        for scene in board["scenes"]:
+            if scene["paragraph_id"] == paragraph_id:
+                scene["image_prompt"] = prompt.strip()[:1000]
+        row.data = board
+        db.commit()
+    jobs.enqueue(db, project_id, "visuals", {"mode": "ai", "only": [paragraph_id]})
+    return _redirect(f"/proyectos/{project_id}/visuales#escena-{paragraph_id}")
+
+
+@router.get("/visuales/prompts.txt")
+def prompts_file(db: DB, user: CurrentUser, project_id: int):
+    """Todos los prompts numerados, para pegarlos en ChatGPT u otra herramienta."""
+    from app.pipeline.visuals import image_prompt
+
+    project = _project(db, project_id)
+    board = jobs.get_result(db, project_id, "storyboard")
+    if board is None:
+        raise HTTPException(404, "Todavía no hay escenas")
+    shape = "vertical 9:16" if jobs.is_portrait(project) else "horizontal 16:9"
+    lines = [
+        f"PROMPTS DE IMÁGENES — {project.title}",
+        f"Formato: {shape}. Pide a la IA que no ponga texto ni marcas de agua.",
+        "Truco: en ChatGPT puedes escribir «Genera esta imagen en formato "
+        f"{shape}:» y pegar el prompt.",
+        "",
+    ]
+    for scene in board["scenes"]:
+        lines += [
+            f"=== Escena {scene['number']:02} ({scene['seconds']} s) ===",
+            f"Lo que se narra: {scene['narration']}",
+            f"Prompt: {image_prompt(scene, board.get('visual_bible') or {})}",
+            "",
+        ]
+    filename = f"prompts-proyecto-{project_id}.txt"
+    return PlainTextResponse(
+        "\n".join(lines), headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+MAX_UPLOAD = 20 * 1024 * 1024
+
+
+@router.post("/visuales/subir/{paragraph_id}")
+async def upload_visual(
+    db: DB,
+    user: CurrentUser,
+    project_id: int,
+    paragraph_id: str,
+    image: Annotated[UploadFile, File()],
+    is_ai: Annotated[str | None, Form()] = None,
+):
+    """Usa una imagen propia (por ejemplo, hecha en ChatGPT) para una escena."""
+    import io
+    import secrets
+
+    from PIL import Image, UnidentifiedImageError
+
+    _project(db, project_id)
+    board = jobs.get_result(db, project_id, "storyboard")
+    scene = next(
+        (s for s in (board or {}).get("scenes", []) if s["paragraph_id"] == paragraph_id), None
+    )
+    if scene is None:
+        raise HTTPException(404, "Escena no encontrada")
+    data = await image.read(MAX_UPLOAD + 1)
+    if len(data) > MAX_UPLOAD:
+        raise HTTPException(400, "La imagen es demasiado grande (máximo 20 MB)")
+    try:
+        picture = Image.open(io.BytesIO(data))
+        picture.load()
+    except (UnidentifiedImageError, OSError) as exc:
+        raise HTTPException(400, "El archivo no es una imagen válida") from exc
+    picture = picture.convert("RGB")
+    picture.thumbnail((2560, 2560))
+    folder = project_dir(project_id) / "visuales"
+    folder.mkdir(parents=True, exist_ok=True)
+    filename = f"{scene['number']:03}-subida-{secrets.token_hex(3)}.jpg"
+    picture.save(folder / filename, "JPEG", quality=92)
+
+    row = _result_row(db, project_id, "visuals")
+    visuals = copy.deepcopy(row.data) if row else {"items": {}, "providers": []}
+    visuals["items"][paragraph_id] = {
+        "kind": "image",
+        "file": filename,
+        "provider": "manual",
+        "id": filename,
+        "author": "",
+        "license": "Imagen subida por ti" + (" (generada con IA)" if is_ai else ""),
+        "page_url": "",
+        "query": "",
+        "ai": bool(is_ai),
+        "uploaded": True,
+    }
+    if row:
+        row.data = visuals
+    else:
+        db.add(StageResult(project_id=project_id, stage="visuals", data=visuals))
+    db.commit()
+    return _redirect(f"/proyectos/{project_id}/visuales#escena-{paragraph_id}")
+
+
 @router.get("/video")
 def video_page(request: Request, db: DB, user: CurrentUser, project_id: int):
     project = _project(db, project_id)
     folder = project_dir(project_id) / "video"
+    visuals = jobs.get_result(db, project_id, "visuals") or {}
     return _stage_page(
         request,
         db,
         project,
         "edit",
+        has_ai_images=any(e.get("ai") for e in visuals.get("items", {}).values()),
         has_srt=(folder / "subtitulos.srt").exists(),
         has_credits=(folder / "creditos.txt").exists()
         and (folder / "creditos.txt").read_text(encoding="utf-8").strip() != "",
@@ -260,6 +378,7 @@ def run_stage(
     speed: Annotated[str | None, Form()] = None,
     quality: Annotated[str | None, Form()] = None,
     model: Annotated[str | None, Form()] = None,
+    mode: Annotated[str | None, Form()] = None,
 ):
     _project(db, project_id)
     if stage not in jobs.RUNNERS:
@@ -274,6 +393,8 @@ def run_stage(
         }
     elif stage == "edit":
         params = {"quality": quality if quality in ("preview", "final") else "preview"}
+    elif stage == "visuals" and mode in ("stock", "ai"):
+        params = {"mode": mode}
     elif stage == "voice":
         params = {
             "voice": voice if voice and _valid_voice(voice) else None,

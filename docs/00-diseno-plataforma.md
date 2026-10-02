@@ -528,3 +528,19 @@ generar una miniatura en el chat de ChatGPT o Gemini, etc.).
 - Antes de grabar se calculan los caracteres pendientes y, si la clave permite leer la
   suscripción, se para sin gastar nada cuando no alcanzan los créditos.
 - La interfaz avisa de que el plan gratuito de ElevenLabs no permite uso comercial.
+
+## 21. Imágenes con IA y subida manual (v0.8)
+
+- `app/providers/images.py`: `GeminiImages` (modelos `gemini-*-image*` de la cuenta,
+  relación de aspecto 16:9 o 9:16) y `PollinationsImages` (gratis, sin clave, FLUX; pausa
+  entre peticiones y reintento ante 429). `ImageChain` prueba en orden y descarta un
+  proveedor para el resto de la tarea si falla por cuota o permisos.
+- Visuales en modo `ai`: prompt de la escena + biblia visual (estilo, colores, luz, época)
+  + sufijo «sin texto ni marcas de agua». Genera solo las escenas sin imagen propia; cada
+  escena se puede regenerar con un prompt editado (que se guarda en el storyboard).
+  Sin clave de bancos de imágenes, la etapa usa IA por defecto.
+- Flujo ChatGPT (suscripción del usuario, sin API): descarga de todos los prompts
+  numerados (`/visuales/prompts.txt`) y subida de imagen por escena (validada con Pillow,
+  convertida a JPEG ≤ 2560 px). Las imágenes subidas nunca se reemplazan automáticamente.
+- La página Vídeo recuerda la casilla de contenido sintético de YouTube cuando hay
+  imágenes de IA.

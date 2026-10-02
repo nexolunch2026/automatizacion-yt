@@ -103,6 +103,18 @@ def main() -> None:
         if size < 1000:
             failures.append("El vídeo montado está vacío")
 
+    print("5) Imagen con IA gratis (Pollinations)")
+    from app.providers.ai import ProviderError
+    from app.providers.images import PollinationsImages
+
+    try:
+        data, ext = PollinationsImages(pause_seconds=0).generate(
+            "a quiet lighthouse at dusk, cinematic", portrait=False, seed=7
+        )
+        print(f"   OK: imagen {ext} de {len(data)} bytes")
+    except ProviderError as exc:  # servicio externo gratuito: solo aviso
+        print(f"   AVISO: Pollinations no respondió ({exc}; {exc.detail})")
+
     if failures:
         print("\nFALLOS:\n- " + "\n- ".join(failures))
         sys.exit(1)

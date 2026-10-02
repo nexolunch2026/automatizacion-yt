@@ -54,7 +54,13 @@
     <li>Mira el vídeo entero: revisa que las imágenes encajen con lo que se dice.</li>
     <li>Sube el archivo <strong>.srt</strong> a YouTube como subtítulos (mejor que quemarlos en el vídeo).</li>
     <li>Pega los créditos de imágenes en la descripción (no es obligatorio, pero es buena práctica).</li>
+    {% if has_ai_images %}
+    <li><strong>Este vídeo tiene imágenes generadas con IA.</strong> Si alguna parece real (personas,
+      lugares o hechos que podrían confundirse con reales), al subirlo marca en YouTube la casilla
+      de «contenido alterado o sintético». Si son claramente ilustraciones, no hace falta.</li>
+    {% else %}
     <li>Si usas imágenes generadas por IA realistas, marca en YouTube la casilla de «contenido alterado o sintético».</li>
+    {% endif %}
   </ul>
 </div>
 {% endif %}

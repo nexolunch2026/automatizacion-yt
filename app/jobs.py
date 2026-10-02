@@ -23,6 +23,7 @@ from app.pipeline.strategy import run_strategy
 from app.pipeline.visuals import credits_text, run_visuals
 from app.pipeline.voice import pending_characters, run_voice
 from app.providers.ai import AIProvider, GeminiProvider, ProviderError
+from app.providers.images import GeminiImages, ImageChain, PollinationsImages
 from app.providers.search import SearchProvider, WikipediaSearch
 from app.providers.stock import PexelsStock, PixabayStock, StockProvider
 from app.providers.voice import (
@@ -218,19 +219,33 @@ def is_portrait(project: Project) -> bool:
     return project.duration == "Short"
 
 
+def get_image_providers(db: Session) -> ImageChain:
+    providers = []
+    if key := get_api_key(db, "gemini"):
+        providers.append(GeminiImages(key))
+    providers.append(PollinationsImages())
+    return ImageChain(providers)
+
+
 def _run_visuals(db: Session, project: Project, progress, params: dict) -> dict:
     board = _require(db, project, "storyboard", "Primero hay que crear las escenas.")
     folder = project_dir(project.id) / "visuales"
     only = set(params["only"]) if params.get("only") else None
+    stock = get_stock_providers(db)
+    # Sin clave de bancos de imágenes, se generan con IA.
+    mode = params.get("mode") or ("stock" if stock else "ai")
     return run_visuals(
         board["scenes"],
-        get_stock_providers(db),
+        stock,
         is_portrait(project),
         folder,
         get_result(db, project.id, "visuals"),
         progress,
         only,
         params.get("skip"),
+        mode=mode,
+        images=get_image_providers(db) if mode == "ai" else None,
+        visual_bible=board.get("visual_bible"),
     )
 
 

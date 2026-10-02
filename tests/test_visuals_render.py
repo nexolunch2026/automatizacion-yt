@@ -249,11 +249,11 @@ def test_change_one_visual(produced, stock):
     assert all(after[p] == before[p] for p in before if p != pid)  # el resto igual
 
 
-def test_without_stock_keys_scenes_use_text_cards(produced):
+def test_without_stock_keys_scenes_use_ai_images(produced):
     produced.post("/proyectos/1/etapas/visuals")
     run_all()
-    assert all(e["kind"] == "card" for e in result("visuals")["items"].values())
-    assert "necesitas una clave gratis" in produced.get("/proyectos/1/visuales").text
+    assert all(e.get("ai") for e in result("visuals")["items"].values())
+    assert "necesitas una clave gratis de Pixabay" in produced.get("/proyectos/1/visuales").text
 
 
 def test_full_video_render(produced, stock):

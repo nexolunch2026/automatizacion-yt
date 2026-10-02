@@ -3,8 +3,8 @@
 Programa para crear vídeos de YouTube sin salir en cámara.
 Por ahora tiene: **cuentas para 2 personas, canales, proyectos de vídeo, investigación
 automática con fuentes, propuestas de enfoques y títulos, guion editable, escenas y
-narración con voz, imágenes y vídeos de Pexels/Pixabay y montaje del vídeo MP4 con
-subtítulos** (todo con servicios gratuitos).
+narración con voz (Piper o ElevenLabs), imágenes generadas con IA o de Pixabay, y
+montaje del vídeo MP4 con subtítulos**.
 La creación automática de los vídeos se irá añadiendo poco a poco.
 
 ---

@@ -59,9 +59,15 @@ def run_visuals(
     progress: Callable[[int, str], None],
     only: set[str] | None = None,
     skip: dict[str, int] | None = None,
+    mode: str = "stock",
+    images=None,
+    visual_bible: dict | None = None,
 ) -> dict:
     """Asigna un visual a cada escena. Reutiliza los ya descargados de la vez anterior
-    salvo para las escenas de `only` (las que se quieren cambiar)."""
+    salvo para las escenas de `only` (las que se quieren cambiar).
+
+    mode="stock": bancos de imágenes. mode="ai": imágenes generadas con IA (`images` es
+    un `ImageChain`); sin `only`, genera las que aún no tienen imagen de IA."""
     folder.mkdir(parents=True, exist_ok=True)
     old = (previous or {}).get("items", {})
     items, used = {}, set()
@@ -69,11 +75,35 @@ def run_visuals(
         if entry.get("provider"):
             used.add(f"{entry['provider']}:{entry['id']}")
 
+    errors = []
     for i, scene in enumerate(scenes):
         pid = scene["paragraph_id"]
         keep = old.get(pid)
+        exists = keep and (keep["kind"] == "card" or (folder / keep.get("file", "")).exists())
+        if mode == "ai":
+            own = keep and (keep.get("ai") or keep.get("uploaded")) and exists
+            wanted = pid in only if only is not None else not own
+            if not wanted:
+                if keep:
+                    items[pid] = keep
+                continue
+            progress(
+                round(5 + 90 * i / len(scenes)),
+                f"Creando imagen con IA para la escena {i + 1} de {len(scenes)}",
+            )
+            try:
+                items[pid] = _ai_image(scene, images, portrait, folder, visual_bible or {})
+            except ProviderError as exc:
+                if exc.transient and not items and i == 0:
+                    raise  # ni siquiera la primera: que la tarea se reintente más tarde
+                errors.append(f"Escena {scene['number']}: {exc}")
+                if keep:
+                    items[pid] = keep
+                else:
+                    items[pid] = {"kind": "card", "reason": "no se pudo generar"}
+            continue
         changing = only is not None and pid in only
-        if keep and not changing and (keep["kind"] == "card" or (folder / keep["file"]).exists()):
+        if keep and not changing and exists:
             items[pid] = keep
             continue
         progress(
@@ -107,7 +137,52 @@ def run_visuals(
         if leftover.is_file() and leftover.name not in in_use:
             leftover.unlink(missing_ok=True)
     progress(100, "Visuales listos")
-    return {"items": items, "providers": [p.name for p in providers]}
+    notes = list(getattr(images, "notes", []) or [])
+    return {
+        "items": items,
+        "providers": [p.name for p in providers],
+        "errors": errors[:10],
+        "notes": notes,
+    }
+
+
+def image_prompt(scene: dict, visual_bible: dict) -> str:
+    """Prompt de la escena con la biblia visual, para que todas se vean coherentes."""
+    base = (scene.get("image_prompt") or scene.get("visual") or "").strip()
+    style = ", ".join(
+        v
+        for v in (
+            visual_bible.get("style"),
+            visual_bible.get("palette"),
+            visual_bible.get("lighting"),
+            visual_bible.get("era"),
+        )
+        if v
+    )
+    return f"{base}. Style: {style}" if style else base
+
+
+def _ai_image(scene: dict, images, portrait: bool, folder: Path, visual_bible: dict) -> dict:
+    import random
+
+    prompt = image_prompt(scene, visual_bible)
+    if not prompt:
+        raise ProviderError("Esta escena no tiene prompt de imagen.")
+    seed = random.randint(1, 10_000_000)
+    data, ext, provider = images.generate(prompt, portrait, seed)
+    filename = f"{scene['number']:03}-ia-{seed}{ext}"
+    (folder / filename).write_bytes(data)
+    return {
+        "kind": "image",
+        "file": filename,
+        "provider": provider.name,
+        "id": str(seed),
+        "author": "",
+        "license": f"Imagen generada con IA ({provider.label})",
+        "page_url": "",
+        "query": prompt,
+        "ai": True,
+    }
 
 
 def _poster(video: Path) -> str | None:
@@ -128,7 +203,7 @@ def credits_text(visuals: dict) -> str:
     """Créditos para la descripción del vídeo (no obligatorios, pero recomendables)."""
     lines = []
     for entry in visuals.get("items", {}).values():
-        if entry.get("provider"):
+        if entry.get("provider") and not entry.get("ai"):
             name = "Pexels" if entry["provider"] == "pexels" else "Pixabay"
             lines.append(
                 f"- {entry['author'] or 'Autor desconocido'} ({name}): {entry['page_url']}"

@@ -5,24 +5,44 @@
 {{ ui.tabs(project, stage, slugs, stages, results, jobs) }}
 
 <div class="card">
-  <div class="row">
-    <div>
-      <h2>Visuales</h2>
-      <p class="muted small">Imágenes y vídeos gratis de Pexels y Pixabay para cada escena.</p>
-    </div>
-    {% if 'storyboard' in results and not (job and job.active) %}
-    <form method="post" action="/proyectos/{{ project.id }}/etapas/visuals">
-      <button class="btn {{ 'secondary' if result }}">{% if result %}Buscar los que faltan{% else %}Buscar visuales{% endif %}</button>
-    </form>
-    {% endif %}
-  </div>
-  {% if not has_stock %}
-  <p class="alert info">Para buscar imágenes y vídeos necesitas una clave gratis de Pixabay:
-    ve a <a href="/configuracion#stock">Configuración</a>. Sin clave, cada escena se monta con una tarjeta de texto.</p>
-  {% endif %}
+  <h2>Visuales</h2>
+  <p class="muted small">Elige de dónde salen las imágenes de cada escena: de un banco de
+    imágenes gratis (Pixabay/Pexels) o <strong>generadas con IA</strong> a partir del prompt de la escena.</p>
   {{ ui.job_status(job) }}
   {% if 'storyboard' not in results %}
   <p class="alert info">Primero hay que <a href="/proyectos/{{ project.id }}/escenas">crear las escenas</a>.</p>
+  {% elif not (job and job.active) %}
+  <div class="row-actions">
+    <form method="post" action="/proyectos/{{ project.id }}/etapas/visuals">
+      <input type="hidden" name="mode" value="ai">
+      <button class="btn">Generar imágenes con IA (todas las escenas)</button>
+    </form>
+    <form method="post" action="/proyectos/{{ project.id }}/etapas/visuals">
+      <input type="hidden" name="mode" value="stock">
+      <button class="btn secondary" {% if not has_stock %}disabled title="Necesitas una clave de Pixabay"{% endif %}>Buscar en bancos de imágenes</button>
+    </form>
+  </div>
+  <div class="chatgpt-tip">
+    <strong>¿Prefieres hacerlas en ChatGPT?</strong>
+    <a class="btn small secondary" href="/proyectos/{{ project.id }}/visuales/prompts.txt" download>Descargar todos los prompts</a>
+    <span class="muted small">Pega cada prompt en ChatGPT, guarda la imagen y súbela en su escena con «Subir imagen».</span>
+  </div>
+  <p class="muted small">Con IA: primero se intenta con tu Gemini y, si tu cuenta no lo permite,
+    con Pollinations (gratis). Tarda unos segundos por imagen; puedes dejarlo trabajando.
+    Las escenas que ya tengan imagen de IA no se repiten.</p>
+  {% if not has_stock %}
+  <p class="muted small">Para usar bancos de imágenes necesitas una clave gratis de Pixabay en
+    <a href="/configuracion#stock">Configuración</a>.</p>
+  {% endif %}
+  {% endif %}
+  {% if result and result.notes %}
+  <details class="tech"><summary>Avisos de la última generación</summary>
+    <ul class="small">{% for n in result.notes %}<li>{{ n }}</li>{% endfor %}</ul></details>
+  {% endif %}
+  {% if result and result.errors %}
+  <div class="alert">Algunas escenas no se pudieron generar:
+    <ul class="small">{% for e in result.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    Puedes volver a intentarlo con «Generar con IA» en cada una.</div>
   {% endif %}
 </div>
 
@@ -47,7 +67,11 @@
       {% endif %}
     </div>
     <p class="small narration">«{{ s.narration|truncate(140) }}»</p>
-    {% if v and v.provider %}
+    {% if v and v.uploaded %}
+      <p class="muted small">{{ v.license }}</p>
+    {% elif v and v.ai %}
+      <p class="muted small">Imagen generada con IA · {{ v.license.replace('Imagen generada con IA ', '') }}</p>
+    {% elif v and v.provider %}
       <p class="muted small">{{ 'Vídeo' if v.kind == 'video' else 'Foto' }} de {{ v.author or 'autor desconocido' }} ·
         <a href="{{ v.page_url }}" target="_blank" rel="noopener">{{ 'Pexels' if v.provider == 'pexels' else 'Pixabay' }}</a>
         · búsqueda «{{ v.query }}»</p>
@@ -55,9 +79,32 @@
       <p class="muted small">Tarjeta de texto ({{ v.reason or 'gráfico' }}).</p>
     {% endif %}
     {% if not (job and job.active) %}
-    <form method="post" action="/proyectos/{{ project.id }}/visuales/cambiar/{{ s.paragraph_id }}">
-      <button class="btn small secondary" {% if not has_stock %}disabled{% endif %}>Cambiar por otro</button>
-    </form>
+    <div class="row-actions">
+      <form method="post" action="/proyectos/{{ project.id }}/visuales/ia/{{ s.paragraph_id }}">
+        <button class="btn small">{{ 'Otra imagen con IA' if v and v.ai else 'Generar con IA' }}</button>
+      </form>
+      {% if has_stock %}
+      <form method="post" action="/proyectos/{{ project.id }}/visuales/cambiar/{{ s.paragraph_id }}">
+        <button class="btn small secondary">Buscar en banco</button>
+      </form>
+      {% endif %}
+    </div>
+    <details class="para-tools">
+      <summary>Subir imagen (por ejemplo, de ChatGPT)</summary>
+      <form method="post" action="/proyectos/{{ project.id }}/visuales/subir/{{ s.paragraph_id }}"
+            enctype="multipart/form-data" class="stack">
+        <input type="file" name="image" accept="image/*" required>
+        <label class="radio"><input type="checkbox" name="is_ai" value="1" checked> Es una imagen generada con IA</label>
+        <button class="btn small">Usar esta imagen</button>
+      </form>
+    </details>
+    <details class="para-tools">
+      <summary>Editar prompt de la imagen</summary>
+      <form method="post" action="/proyectos/{{ project.id }}/visuales/ia/{{ s.paragraph_id }}" class="stack">
+        <textarea name="prompt" rows="3">{{ s.image_prompt }}</textarea>
+        <button class="btn small">Generar con este prompt</button>
+      </form>
+    </details>
     {% endif %}
   </div>
   {% endfor %}

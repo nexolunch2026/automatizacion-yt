@@ -57,6 +57,9 @@ class FakeVoice:
         return silent_wav(0.4 * len(text.split()))
 
 
+from app.providers.images import ImageChain  # noqa: E402
+
+
 @pytest.fixture(autouse=True)
 def no_real_internet(monkeypatch):
     """Ningún test llama a Wikipedia ni descarga voces de verdad."""
@@ -65,7 +68,24 @@ def no_real_internet(monkeypatch):
     monkeypatch.setattr(jobs, "get_search_provider", lambda: FakeSearch())
     voice = FakeVoice()
     monkeypatch.setattr(jobs, "get_voice_provider", lambda *args, **kwargs: voice)
+    monkeypatch.setattr(jobs, "get_image_providers", lambda db: ImageChain([FakeImageMaker()]))
     return voice
+
+
+class FakeImageMaker:
+    """Generador de imágenes simulado: un PNG pequeño de un color."""
+
+    name = "pollinations"
+    label = "Pollinations (FLUX)"
+
+    def generate(self, prompt, portrait, seed):
+        import io
+
+        from PIL import Image
+
+        buffer = io.BytesIO()
+        Image.new("RGB", (64, 36), (seed % 255, 80, 120)).save(buffer, "PNG")
+        return buffer.getvalue(), ".png"
 
 
 @pytest.fixture
