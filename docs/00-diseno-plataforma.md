@@ -1,6 +1,10 @@
 # Plataforma de producción Faceless para YouTube — Documento de diseño
 
-> Estado: **propuesta v0.1** — pendiente de aprobación antes de escribir código.
+> Estado: **v0.2 aprobada** — en construcción (M0 hecho).
+>
+> Contexto: 2 usuarios (el dueño y un amigo), se ejecuta en un ordenador personal
+> con Docker, y el presupuesto en APIs es mínimo: se priorizan las opciones gratuitas
+> o locales y las de pago quedan como opcionales.
 > Fuente: "Prompt maestro" del proyecto (instrucciones originales, secciones 1–47).
 
 Este documento cubre los pasos 1–13 de la sección 47 del prompt maestro:
@@ -128,7 +132,7 @@ encaja mejor en la Fase 2, cuando el formato `Timeline` ya esté probado.
                     │
      ┌──────────────▼─────────────┐      ┌───────────────────────────────┐
      │ PostgreSQL                 │      │ Object storage (S3 / R2 /     │
-     │ estado, escenas, costes…   │      │ MinIO local): vídeo, audio,   │
+     │ estado, escenas, costes…   │      │ SeaweedFS): vídeo, audio,     │
      └────────────────────────────┘      │ imágenes, renders             │
                                          └───────────────────────────────┘
 ```
@@ -161,26 +165,26 @@ research → strategy → script → storyboard ─┬─→ visuals ─┐
 | Backend | **Python 3.12 + FastAPI + SQLAlchemy + Alembic** | Node/NestJS | El ecosistema de audio, vídeo e IA (FFmpeg, Whisper, pydub) es mejor en Python |
 | Cola | **Celery + Redis** | Temporal | Celery es suficiente con el estado guardado en Postgres; Temporal es más robusto pero añade mucha infraestructura |
 | Base de datos | **PostgreSQL 16** | — | JSONB para salidas flexibles de etapas |
-| Storage | **S3-compatible** (MinIO en local, Cloudflare R2 en producción) | Disco local | R2 no cobra la transferencia de salida |
+| Storage | **S3-compatible** (SeaweedFS en local) | Cloudflare R2 si algún día se sube a un servidor | MinIO dejó de publicar imágenes Docker; SeaweedFS ofrece la misma API S3 |
 | Render | **FFmpeg** a partir del `Timeline` JSON | Remotion | FFmpeg es gratuito y sin límites de licencia; Remotion es más cómodo para animaciones, pero exige licencia de pago para empresas |
 | Tiempo real | **Server-Sent Events** | WebSockets | El progreso solo va en una dirección |
-| Auth | **Sesiones con cookie httpOnly + Argon2** | Clerk/Auth0 | Sin dependencias externas para empezar |
+| Auth | **Sesiones con cookie httpOnly + Argon2, registro cerrado** (solo 2 cuentas, creadas por comando) | Clerk/Auth0 | Sin dependencias externas; no hace falta registro público |
 | Secretos | **Cifrado con Fernet (AES) y clave maestra en variable de entorno** | Vault / KMS | Simple y suficiente para una persona o un equipo pequeño |
-| Despliegue | **Docker Compose en un VPS** | Kubernetes | Un solo comando; se escala añadiendo workers |
+| Despliegue | **Docker Compose en el ordenador del usuario** | VPS más adelante | Un solo comando y coste cero |
 | Tests | **pytest, Vitest, Playwright** | — | Unitarios, integración y E2E |
 
 ### Proveedores iniciales (todos intercambiables)
 
 | Interfaz | MVP | Alternativas |
 |---|---|---|
-| `AIProvider` | Claude (API de Anthropic) | OpenAI, Gemini |
-| `SearchProvider` | Tavily | Brave Search API, Exa |
+| `AIProvider` | **Gemini API (nivel gratuito con límites)** | Claude o OpenAI (API de pago por uso) |
+| `SearchProvider` | Tavily (1.000 búsquedas/mes gratis) | Brave Search API, Exa |
 | `StockProvider` | Pexels + Pixabay (gratis, con licencia de uso) | Storyblocks |
 | `ImageProvider` | — (Fase 2) | fal.ai / Replicate (Flux), OpenAI Images |
 | `VideoProvider` | — (Fase 2+) | Runway, Kling, Veo |
-| `VoiceProvider` | ElevenLabs (incluye marcas de tiempo por palabra) | OpenAI TTS, Azure TTS |
+| `VoiceProvider` | **Piper (local y gratis)** | Gemini TTS, ElevenLabs (de pago, mejor calidad), OpenAI TTS |
 | `MusicProvider` | Biblioteca local con licencia | Proveedores con API y licencia comercial |
-| `StorageProvider` | MinIO / R2 | AWS S3 |
+| `StorageProvider` | SeaweedFS (local) | R2, AWS S3 |
 | `YouTubeProvider` | — (Fase 3) | YouTube Data API v3 + Analytics API |
 
 Subtítulos: marcas de tiempo del TTS cuando las haya; si no, alineación con
@@ -258,10 +262,10 @@ PUT    /settings/providers/{provider} (guarda la clave; solo devuelve los 4 últ
 
 | API | Fase | Necesita |
 |---|---|---|
-| Anthropic API | 1 | Clave API |
-| Tavily (o Brave Search) | 1 | Clave API |
+| Gemini API | 1 | Clave gratuita de Google AI Studio |
+| Tavily (o Brave Search) | 1 | Clave gratuita |
 | Pexels, Pixabay | 1 | Claves gratuitas |
-| ElevenLabs | 1 | Clave API (plan de pago para uso comercial) |
+| Anthropic / OpenAI / ElevenLabs | Opcional | Clave API de pago por uso |
 | fal.ai / Replicate | 2 | Clave API |
 | YouTube Data API v3 + Analytics API | 3 | Proyecto en Google Cloud, OAuth y **auditoría** para subir vídeos públicos |
 
@@ -322,7 +326,7 @@ Login → Dashboard (tarjetas de proyecto con estado y progreso)
 
 | # | Milestone | Resultado verificable |
 |---|---|---|
-| M0 | Esqueleto | `docker compose up` levanta frontend, API, worker, Postgres, Redis y MinIO; CI con tests |
+| M0 ✅ | Esqueleto | `docker compose up` levanta frontend, API, worker, Postgres, Redis y SeaweedFS; CI con tests |
 | M1 | Auth + canales + proyectos | Login, crear canal, crear proyecto, dashboard |
 | M2 | Orquestador | Etapas con estados, SSE, reintentos, aprobación; etapa de prueba de punta a punta |
 | M3 | Research + estrategia | Brief con fuentes reales para un tema |
@@ -362,7 +366,7 @@ automatizacion-yt/
 │     │  └─ workers/          # tareas Celery
 │     └─ tests/
 ├─ docs/                      # este documento + un README por módulo
-├─ infra/                     # docker-compose, Dockerfiles, Caddy
+├─ docker-compose.yml         # entorno local completo
 └─ .env.example
 ```
 
@@ -377,14 +381,32 @@ REDIS_URL=redis://redis:6379/0
 S3_ENDPOINT=  S3_BUCKET=  S3_ACCESS_KEY=  S3_SECRET_KEY=
 WEB_ORIGIN=http://localhost:3000
 # Opcionales a nivel de servidor (los usuarios también pueden guardar las suyas cifradas)
-ANTHROPIC_API_KEY=  TAVILY_API_KEY=  PEXELS_API_KEY=  PIXABAY_API_KEY=  ELEVENLABS_API_KEY=
+GEMINI_API_KEY=  TAVILY_API_KEY=  PEXELS_API_KEY=  PIXABAY_API_KEY=
+# De pago, opcionales: ANTHROPIC_API_KEY=  OPENAI_API_KEY=  ELEVENLABS_API_KEY=
 ```
 
 ## 14. Despliegue
 
-- **Local:** `docker compose up` (todo incluido, MinIO como storage).
-- **Producción:** un VPS (4 vCPU / 8 GB basta para 1–2 vídeos al día) con
+- **Local (modo principal):** `docker compose up --build` (todo incluido, SeaweedFS como storage).
+- **Si algún día se quiere en un servidor:** un VPS (4 vCPU / 8 GB basta para 1–2 vídeos al día) con
   Docker Compose, Caddy para HTTPS, Postgres gestionado o en contenedor con
   copias de seguridad diarias, y R2 como storage. El render es el cuello de
   botella: se escala añadiendo réplicas de `worker:render`.
 - CI en GitHub Actions: lint, tipos y tests en cada push.
+
+---
+
+## 15. Suscripciones frente a APIs
+
+Las suscripciones de chat (Claude Pro, ChatGPT Plus, Gemini) **no incluyen acceso
+por API**: las APIs se pagan aparte, por uso. Por eso el MVP se apoya en:
+
+- **Gemini API**, con nivel gratuito (límites por minuto y por día; suficiente para
+  1–2 vídeos al día). Los datos del nivel gratuito pueden usarse para mejorar los
+  productos de Google, así que no se envía nada privado.
+- **Modelos locales** donde sea viable: Piper para la voz y faster-whisper para los
+  subtítulos.
+- **Stock gratuito** (Pexels/Pixabay) para los visuales.
+
+Las suscripciones siguen siendo útiles para trabajo manual (pulir un guion,
+generar una miniatura en el chat de ChatGPT o Gemini, etc.).
