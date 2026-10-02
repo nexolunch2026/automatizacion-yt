@@ -46,13 +46,19 @@ def _page(request: Request, db: DB, status_code: int = 200, **ctx):
         status_code=status_code,
         gemini_hint=api_key_hint(db, "gemini"),
         current_model=get_setting(db, "gemini_model"),
+        github_hint=api_key_hint(db, "github"),
         **ctx,
     )
 
 
 @router.get("")
 def settings_page(request: Request, db: DB, user: CurrentUser):
-    return _page(request, db, saved=request.query_params.get("guardado"))
+    return _page(
+        request,
+        db,
+        saved=request.query_params.get("guardado"),
+        github_saved=request.query_params.get("github"),
+    )
 
 
 @router.post("/gemini")
@@ -84,3 +90,18 @@ def test_gemini(request: Request, db: DB, user: CurrentUser):
     if model:
         set_setting(db, "gemini_model", model)
     return _page(request, db, diagnostics=results, working_model=model)
+
+
+@router.post("/github")
+def save_github(request: Request, db: DB, user: CurrentUser, token: Annotated[str, Form()]):
+    token = token.strip()
+    if not token:
+        return _page(request, db, 400, github_error="Pega el token antes de guardar.")
+    save_api_key(db, "github", token)
+    return RedirectResponse("/configuracion?github=1", status_code=303)
+
+
+@router.post("/github/borrar")
+def delete_github(db: DB, user: CurrentUser):
+    delete_api_key(db, "github")
+    return RedirectResponse("/configuracion", status_code=303)

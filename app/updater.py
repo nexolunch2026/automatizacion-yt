@@ -16,8 +16,11 @@ import httpx
 
 from app.config import DATA_DIR, HOST, PORT, ROOT, VERSION
 
+REPO = "nexolunch2026/automatizacion-yt"
 BRANCH = "claude/hola-5p4ttp"
-DOWNLOAD_URL = f"https://github.com/nexolunch2026/automatizacion-yt/archive/refs/heads/{BRANCH}.zip"
+PUBLIC_URL = f"https://github.com/{REPO}/archive/refs/heads/{BRANCH}.zip"
+# Con token (repositorio privado) se usa la API de GitHub.
+API_URL = f"https://api.github.com/repos/{REPO}/zipball/{BRANCH}"
 # Lo que nunca se sobrescribe: tus datos, el entorno de Python y las copias de seguridad.
 PROTECTED = {"datos", ".venv", "copias_de_seguridad", ".git"}
 BACKUPS_TO_KEEP = 5
@@ -27,15 +30,42 @@ class UpdateError(Exception):
     pass
 
 
-def download(url: str = DOWNLOAD_URL) -> bytes:
+def saved_github_token() -> str | None:
+    """El token de GitHub guardado en Configuración (solo hace falta si el repo es privado)."""
+    from app.db import SessionLocal, init_db
+    from app.settings_store import get_api_key
+
+    init_db()
+    with SessionLocal() as db:
+        return get_api_key(db, "github")
+
+
+def download(token: str | None = None, transport: httpx.BaseTransport | None = None) -> bytes:
+    if token:
+        url = API_URL
+        headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+    else:
+        url, headers = PUBLIC_URL, {}
     try:
-        response = httpx.get(url, follow_redirects=True, timeout=60)
-        response.raise_for_status()
-        return response.content
+        with httpx.Client(transport=transport, timeout=60, follow_redirects=True) as client:
+            response = client.get(url, headers=headers)
     except httpx.HTTPError as exc:
         raise UpdateError(
             f"No se pudo descargar la versión nueva. Revisa tu internet. ({exc})"
         ) from exc
+    if response.status_code in (401, 403, 404):
+        if token:
+            raise UpdateError(
+                "GitHub rechazó el token. Revisa en Configuración que esté bien copiado "
+                "y que no haya caducado."
+            )
+        raise UpdateError(
+            "El repositorio es privado, así que GitHub no deja descargarlo sin permiso. "
+            "Pon un token de GitHub en Configuración (o haz público el repositorio)."
+        )
+    if response.status_code >= 400:
+        raise UpdateError(f"GitHub respondió con un error ({response.status_code}).")
+    return response.content
 
 
 def read_version(config_text: str) -> str:
@@ -83,7 +113,8 @@ def install(source: Path, root: Path) -> int:
     return copied
 
 
-def update(root: Path = ROOT, data_dir: Path = DATA_DIR, fetch=download) -> str:
+def update(root: Path = ROOT, data_dir: Path = DATA_DIR, fetch=None) -> str:
+    fetch = fetch or (lambda: download(saved_github_token()))
     with tempfile.TemporaryDirectory(prefix="faceless-update-") as tmp:
         source = extract(fetch(), Path(tmp))
         new_version = read_version((source / "app" / "config.py").read_text(encoding="utf-8"))

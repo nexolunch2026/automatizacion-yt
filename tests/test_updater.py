@@ -79,3 +79,39 @@ def test_zip_without_program_is_rejected(install_dir):
 def test_read_version():
     assert updater.read_version('X = 1\nVERSION = "0.3.4"\n') == "0.3.4"
     assert updater.read_version("nada") == "?"
+
+
+def transport(status, seen):
+    import httpx
+
+    def handler(request):
+        seen.append(request)
+        return httpx.Response(status, content=b"zip-bytes")
+
+    return httpx.MockTransport(handler)
+
+
+def test_download_public_without_token():
+    seen = []
+    assert updater.download(None, transport(200, seen)) == b"zip-bytes"
+    assert str(seen[0].url) == updater.PUBLIC_URL
+    assert "Authorization" not in seen[0].headers
+
+
+def test_download_private_repo_needs_token():
+    with pytest.raises(updater.UpdateError) as info:
+        updater.download(None, transport(404, []))
+    assert "privado" in str(info.value)
+
+
+def test_download_with_token_uses_api():
+    seen = []
+    updater.download("github_pat_abc", transport(200, seen))
+    assert str(seen[0].url) == updater.API_URL
+    assert seen[0].headers["Authorization"] == "Bearer github_pat_abc"
+
+
+def test_download_with_rejected_token():
+    with pytest.raises(updater.UpdateError) as info:
+        updater.download("github_pat_malo", transport(401, []))
+    assert "rechazó el token" in str(info.value)

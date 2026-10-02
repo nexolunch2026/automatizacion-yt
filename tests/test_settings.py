@@ -70,3 +70,15 @@ def test_diagnostics_without_key(logged_in):
     r = logged_in.post("/configuracion/gemini/probar")
     assert r.status_code == 400
     assert "Primero guarda una clave" in r.text
+
+
+def test_github_token_saved_encrypted_and_hidden(logged_in):
+    r = logged_in.post("/configuracion/github", data={"token": "github_pat_SECRETO9876"})
+    assert "Token guardado" in r.text
+    assert "••••9876" in r.text
+    assert "github_pat_SECRETO9876" not in r.text
+    with SessionLocal() as db:
+        assert "SECRETO" not in db.get(Setting, "api_key:github").value
+
+    r = logged_in.post("/configuracion/github/borrar")
+    assert "Cómo conseguir el token" in r.text

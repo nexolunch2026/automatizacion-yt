@@ -75,4 +75,40 @@
     <button class="btn">Guardar</button>
   </form>
 </div>
+<div class="card form-card">
+  <h2>GitHub — para el botón Actualizar</h2>
+  <p class="muted small">Solo hace falta si tu repositorio de GitHub es <strong>privado</strong>.
+    Si es público, no tienes que poner nada aquí.</p>
+  {% if github_saved %}<p class="alert ok">Token guardado. Ya puedes usar Actualizar.</p>{% endif %}
+  {% if github_error %}<p class="alert">{{ github_error }}</p>{% endif %}
+  {% if github_hint %}
+  <p>Estado: <span class="badge ok">Guardado</span> <span class="muted small">Token {{ github_hint }}</span></p>
+  <form method="post" action="/configuracion/github/borrar"
+        onsubmit="return confirm('¿Quitar el token de GitHub?')">
+    <button class="btn-link">Quitar token</button>
+  </form>
+  {% else %}
+  <h3>Cómo conseguir el token</h3>
+  <ol class="steps">
+    <li>Abre <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a>
+      (con tu sesión de GitHub iniciada).</li>
+    <li>En <strong>Token name</strong> escribe: <code>Faceless Studio</code>.</li>
+    <li>En <strong>Expiration</strong> elige <strong>No expiration</strong> (o la fecha más lejana).</li>
+    <li>En <strong>Repository access</strong> elige <strong>Only select repositories</strong> y
+      selecciona <code>automatizacion-yt</code>.</li>
+    <li>En <strong>Permissions</strong> → <strong>Repository permissions</strong> → <strong>Contents</strong>,
+      elige <strong>Read-only</strong>.</li>
+    <li>Baja del todo y pulsa <strong>Generate token</strong>. Copia el texto que empieza por
+      <code>github_pat_…</code> y pégalo aquí.</li>
+  </ol>
+  <p class="muted small">Este token solo permite <strong>leer</strong> este repositorio; no puede
+    cambiar nada. Se guarda cifrado en tu ordenador.</p>
+  {% endif %}
+  <form method="post" action="/configuracion/github" class="stack">
+    <label>Token de GitHub
+      <input name="token" type="password" autocomplete="off" placeholder="github_pat_…" required>
+    </label>
+    <button class="btn">Guardar token</button>
+  </form>
+</div>
 {% endblock %}
