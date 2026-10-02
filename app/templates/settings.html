@@ -83,7 +83,13 @@
     es); para monetizar necesitas al menos su plan de pago más barato. Comprueba las
     condiciones actuales en <a href="https://elevenlabs.io/pricing" target="_blank" rel="noopener">elevenlabs.io/pricing</a>.</p>
   {% if eleven_saved %}<p class="alert ok">Clave de ElevenLabs guardada y comprobada. Ya puedes elegir sus voces en la pestaña Voz de cada proyecto.</p>{% endif %}
-  {% if eleven_error %}<p class="alert">{{ eleven_error }}</p>{% endif %}
+  {% if eleven_error %}
+  <div class="alert">{{ eleven_error }}
+    {% if eleven_detail %}
+    <details class="tech"><summary>Detalle técnico (cópialo si necesitas ayuda)</summary><code>{{ eleven_detail }}</code></details>
+    {% endif %}
+  </div>
+  {% endif %}
   {% if eleven_hint %}
   <p>Estado: <span class="badge ok">Conectado</span> <span class="muted small">Clave {{ eleven_hint }}</span></p>
   <form method="post" action="/configuracion/elevenlabs/borrar" onsubmit="return confirm('¿Quitar la clave de ElevenLabs?')">
@@ -109,13 +115,15 @@
 <div class="card form-card" id="stock">
   <h2>Imágenes y vídeos — Pexels y Pixabay</h2>
   <p class="muted small">Son bancos de imágenes y vídeos <strong>gratis y con licencia para usar
-    en YouTube</strong>. Necesitas al menos una clave (mejor las dos). Sin clave, las escenas
-    se montan con tarjetas de texto.</p>
+    en YouTube</strong>. Basta con una clave. Sin clave, las escenas se montan con tarjetas de
+    texto.</p>
+  <p class="alert info">Ahora mismo <strong>Pexels no está dando claves nuevas</strong>. Usa
+    <strong>Pixabay</strong> (abajo): funciona igual de bien. Si ya tenías clave de Pexels, puedes ponerla también.</p>
   {% set guides = {
     'pexels': ['https://www.pexels.com/api/', 'Pulsa «Get started» o «Your API key», crea una cuenta gratis (o entra con Google) y rellena el formulario corto (en «website» puedes poner tu canal de YouTube).', 'Copia la clave que aparece («Your API Key»).'],
     'pixabay': ['https://pixabay.com/api/docs/', 'Crea una cuenta gratis (o entra con Google) y vuelve a esa página.', 'Busca el apartado «Parameters»: tu clave aparece en verde junto a «key». Cópiala.'],
   } %}
-  {% for name, label in [('pexels', 'Pexels'), ('pixabay', 'Pixabay')] %}
+  {% for name, label in [('pixabay', 'Pixabay'), ('pexels', 'Pexels')] %}
   <h3>{{ label }}</h3>
   {% if stock_saved == name %}<p class="alert ok">Clave de {{ label }} guardada y comprobada.</p>{% endif %}
   {% if stock_error and stock_error.get(name) %}<p class="alert">{{ stock_error[name] }}</p>{% endif %}

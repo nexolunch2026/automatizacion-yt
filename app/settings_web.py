@@ -161,7 +161,13 @@ def save_eleven(request: Request, db: DB, user: CurrentUser, api_key: Annotated[
             raise ProviderError("Pega la clave antes de guardar.")
         check_eleven_key(api_key)
     except ProviderError as exc:
-        return _page(request, db, 400, eleven_error=str(exc))
+        hint = ""
+        if not api_key.startswith("sk_"):
+            hint = (
+                " Ojo: las claves de ElevenLabs empiezan por «sk_»; revisa que copiaste "
+                "la clave completa."
+            )
+        return _page(request, db, 400, eleven_error=str(exc) + hint, eleven_detail=exc.detail)
     save_api_key(db, "elevenlabs", api_key)
     return RedirectResponse("/configuracion?elevenlabs=1#elevenlabs", status_code=303)
 

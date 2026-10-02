@@ -193,11 +193,14 @@ class ElevenLabsVoices:
             headers={"xi-api-key": api_key},
         )
 
-    def _request(self, method: str, url: str, **kwargs):
+    def _request(self, method: str, url: str, base: str | None = None, **kwargs):
         import httpx
 
         try:
-            response = self._client.request(method, url, **kwargs)
+            if base:  # rutas fuera de /v1 (p. ej. /v2/voices)
+                response = self._client.request(method, base + url, **kwargs)
+            else:
+                response = self._client.request(method, url, **kwargs)
         except httpx.HTTPError as exc:
             raise ProviderError(
                 "No se pudo conectar con ElevenLabs. Revisa tu internet.",
@@ -226,11 +229,25 @@ class ElevenLabsVoices:
         if response.status_code >= 500:
             raise ProviderError("ElevenLabs falló temporalmente.", transient=True, detail=detail)
         raise ProviderError(
-            f"ElevenLabs respondió con un error ({response.status_code}).", detail=detail
+            f"ElevenLabs respondió con un error ({response.status_code}): "
+            f"{_eleven_message(detail)}",
+            detail=detail,
         )
 
     def list_voices(self) -> list[dict]:
-        data = self._request("GET", "/voices").json()
+        """Voces de la cuenta. Prueba primero la API nueva (/v2/voices) y, si no está
+        disponible para esta clave, la antigua (/v1/voices)."""
+        try:
+            data = self._request(
+                "GET", "/v2/voices", base="https://api.elevenlabs.io", params={"page_size": 100}
+            ).json()
+        except ProviderError as first:
+            try:
+                data = self._request("GET", "/voices").json()
+            except ProviderError as second:
+                if second.detail and first.detail and first.detail != second.detail:
+                    second.detail = f"v2: {first.detail} | v1: {second.detail}"[:600]
+                raise second from first
         voices = []
         for v in data.get("voices", []):
             labels = v.get("labels") or {}
@@ -280,3 +297,20 @@ class ElevenLabsVoices:
             },
         )
         return pcm_to_wav(response.content)
+
+
+def _eleven_message(detail: str) -> str:
+    """Extrae el mensaje legible de una respuesta de error de ElevenLabs."""
+    import json
+
+    try:
+        data = json.loads(detail)
+    except ValueError:
+        return detail[:160]
+    info = data.get("detail", data) if isinstance(data, dict) else data
+    if isinstance(info, dict):
+        return str(info.get("message") or info.get("status") or info)[:160]
+    if isinstance(info, list) and info:
+        first = info[0]
+        return str(first.get("msg") if isinstance(first, dict) else first)[:160]
+    return str(info)[:160]

@@ -180,3 +180,42 @@ def test_save_elevenlabs_key(logged_in, monkeypatch):
     monkeypatch.setattr(settings_web, "check_eleven_key", reject)
     r = logged_in.post("/configuracion/elevenlabs", data={"api_key": "mala"})
     assert r.status_code == 400 and "no es válida" in r.text
+
+
+def test_list_voices_falls_back_to_v1():
+    def handler(request):
+        if request.url.path == "/v2/voices":
+            return httpx.Response(400, json={"detail": {"status": "bad", "message": "v2 no"}})
+        return httpx.Response(200, json={"voices": [{"voice_id": "abc123XYZ", "name": "Mateo"}]})
+
+    assert eleven(handler).list_voices() == [{"id": "eleven:abc123XYZ", "label": "Mateo"}]
+
+
+def test_v2_voices_used_first():
+    paths = []
+
+    def handler(request):
+        paths.append(request.url.path)
+        return httpx.Response(200, json={"voices": [{"voice_id": "abc123XYZ", "name": "Mateo"}]})
+
+    eleven(handler).list_voices()
+    assert paths == ["/v2/voices"]
+
+
+def test_400_error_shows_elevenlabs_message():
+    body = '{"detail":{"status":"invalid_request","message":"Ese parámetro no vale"}}'
+    tts = eleven(lambda r: httpx.Response(400, text=body))
+    with pytest.raises(ProviderError) as info:
+        tts.list_voices()
+    assert "Ese parámetro no vale" in str(info.value)
+    assert "v2:" in info.value.detail or "invalid_request" in info.value.detail
+
+
+def test_settings_show_detail_and_key_hint(logged_in, monkeypatch):
+    def reject(key):
+        raise ProviderError("ElevenLabs respondió con un error (400): algo", detail='{"x": 1}')
+
+    monkeypatch.setattr(settings_web, "check_eleven_key", reject)
+    r = logged_in.post("/configuracion/elevenlabs", data={"api_key": "abc"})
+    assert "empiezan por «sk_»" in r.text
+    assert "Detalle técnico" in r.text
