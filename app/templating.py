@@ -3,7 +3,10 @@ from pathlib import Path
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
 
+from app.config import VERSION
+
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
+templates.env.globals["version"] = VERSION
 
 
 def render(request: Request, name: str, status_code: int = 200, **context):

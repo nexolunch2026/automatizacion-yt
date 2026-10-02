@@ -62,3 +62,20 @@ def test_session_not_shared_between_browsers(client):
     register(client)
     with TestClient(app) as other:
         assert other.get("/", follow_redirects=False).status_code == 303
+
+
+def test_version_is_visible(client):
+    assert "v0.3" in client.get("/entrar").text
+
+
+def test_port_in_use_detection():
+    import socket
+
+    from app.__main__ import port_in_use
+
+    with socket.socket() as server:
+        server.bind(("127.0.0.1", 0))
+        server.listen()
+        port = server.getsockname()[1]
+        assert port_in_use("127.0.0.1", port)
+    assert not port_in_use("127.0.0.1", port)
