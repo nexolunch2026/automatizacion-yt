@@ -156,3 +156,17 @@ def test_deleting_project_removes_jobs_and_results(project, monkeypatch):
     with SessionLocal() as db:
         assert db.query(Job).count() == 0
         assert db.query(StageResult).count() == 0
+
+
+def test_failure_shows_technical_detail(project, monkeypatch):
+    class NoQuota(FakeAI):
+        def grounded_research(self, prompt):
+            raise ProviderError("Sin uso gratuito.", detail="429 RESOURCE_EXHAUSTED: limit: 0")
+
+    monkeypatch.setattr(jobs, "get_ai_provider", lambda db: NoQuota())
+    run_stage(project)
+    jobs.process_next_job()
+    page = project.get("/proyectos/1").text
+    assert "Sin uso gratuito." in page
+    assert "Detalle técnico" in page
+    assert "limit: 0" in page

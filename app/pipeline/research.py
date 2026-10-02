@@ -92,6 +92,7 @@ def run_research(project: Project, ai: AIProvider, progress: Callable[[int, str]
         ],
         "queries": grounded.queries,
         "provider": ai.name,
+        "model": getattr(ai, "last_model", None),
     }
     if n == 0:
         data["warning"] = (

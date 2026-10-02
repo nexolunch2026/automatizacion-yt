@@ -133,8 +133,10 @@ def _handle_failure(db: Session, job: Job, exc: Exception) -> None:
         job.run_after = datetime.now() + delay
         job.message = f"{message} Reintento {job.attempts + 1} de {MAX_ATTEMPTS}…"
     else:
+        detail = exc.detail if isinstance(exc, ProviderError) else repr(exc)
         job.status, job.message = "failed", "Falló"
-        job.error = message if isinstance(exc, ProviderError) else f"{message}: {exc}"[:500]
+        # El detalle técnico va tras una línea en blanco; la página lo muestra plegado.
+        job.error = f"{message}\n\n{detail}"[:900] if detail else message
         job.finished_at = datetime.now()
     db.commit()
 

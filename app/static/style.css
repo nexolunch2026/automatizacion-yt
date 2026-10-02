@@ -146,3 +146,6 @@ code { background: var(--bg); padding: 2px 6px; border-radius: 4px; }
 .cite { font-size: .75rem; text-decoration: none; margin-left: 2px; vertical-align: super; }
 .sources { font-size: .9rem; }
 .version { font-size: .7rem; font-weight: 400; color: var(--muted); margin-left: 4px; }
+.tech { margin-top: 8px; font-size: .8rem; }
+.tech summary { cursor: pointer; }
+.tech code { display: block; margin-top: 6px; white-space: pre-wrap; word-break: break-word; }

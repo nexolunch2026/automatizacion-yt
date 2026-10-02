@@ -68,7 +68,16 @@
   <div class="progress"><div id="live-bar" style="width: {{ research_job.progress }}%"></div></div>
   <p class="muted small">Puedes salir de esta página: el trabajo sigue en segundo plano.</p>
   {% elif research_job and research_job.status == 'failed' %}
-  <p class="alert">{{ research_job.error }}</p>
+  {% set parts = (research_job.error or '').split('\n\n', 1) %}
+  <div class="alert">
+    {{ parts[0] }}
+    {% if parts|length > 1 %}
+    <details class="tech">
+      <summary>Detalle técnico (cópialo si necesitas ayuda)</summary>
+      <code>{{ parts[1] }}</code>
+    </details>
+    {% endif %}
+  </div>
   {% endif %}
 
   {% if research %}
@@ -120,6 +129,7 @@
       {% endfor %}
     </ol>
     {% endif %}
+    {% if research.model %}<p class="muted small">Hecho con {{ research.model }}.</p>{% endif %}
   {% elif not (research_job and research_job.active) %}
   <p class="muted">Pulsa «Investigar el tema» y el programa buscará información en internet,
     con sus fuentes, para preparar el guion.</p>
