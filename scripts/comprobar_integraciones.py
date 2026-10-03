@@ -196,6 +196,22 @@ def main() -> None:
     except Exception as exc:  # noqa: BLE001
         print(f"   AVISO canal: {exc}")
 
+    print("9) Script para buscar los datos (sintaxis de PowerShell)")
+    if sys.platform == "win32":
+        import subprocess
+
+        script = Path(__file__).with_name("buscar_datos.ps1")
+        check = (
+            "$e=$null; [System.Management.Automation.Language.Parser]::ParseFile("
+            f"'{script}', [ref]$null, [ref]$e) | Out-Null; $e.Count"
+        )
+        out = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", check], capture_output=True, text=True
+        ).stdout.strip()
+        print(f"   errores de sintaxis: {out}")
+        if out != "0":
+            failures.append(f"buscar_datos.ps1 tiene errores de sintaxis: {out}")
+
     if failures:
         print("\nFALLOS:\n- " + "\n- ".join(failures))
         sys.exit(1)
