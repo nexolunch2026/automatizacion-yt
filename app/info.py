@@ -139,12 +139,20 @@ def parse_channel_page(page: str) -> dict:
         or re.search(r'"channelId":"(UC[\w-]{22})"', page)
     )
     name = re.search(r'<meta property="og:title" content="([^"]+)"', page)
+    space = r"(?:\s|\\u00a0|&nbsp;|\xa0)*"
     subs = re.search(r'"subscriberCountText":\{[^}]*?"(?:simpleText|content)":"([^"]+)"', page)
-    subs = subs or re.search(r"([\d.,]+\s*(?:mil|k|M)?)\s*(?:suscriptores|subscribers)", page)
+    subs = subs or re.search(
+        rf"([\d.,]+{space}(?:mil|k|K|M|mill\.?)?){space}(?:suscriptor(?:es)?|subscribers?)\b", page
+    )
+    count = None
+    if subs:
+        count = _count(re.sub(r"\\u00a0|&nbsp;", " ", subs.group(1)))
+    elif re.search(r"(?:Sin suscriptores|No subscribers)", page):
+        count = 0
     return {
         "id": channel_id.group(1) if channel_id else None,
         "name": html.unescape(name.group(1)) if name else "",
-        "subscribers": _count(subs.group(1)) if subs else None,
+        "subscribers": count,
     }
 
 
