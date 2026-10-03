@@ -4,6 +4,7 @@ manejar el piloto automático."""
 import logging
 import re
 import time
+from html import escape
 from typing import Annotated
 
 from fastapi import APIRouter, Form, Request
@@ -80,7 +81,16 @@ def order(
     """Una orden escrita o dicha en la web. Devuelve las respuestas para el chat."""
     msg = Incoming(chat_id=WEB_CHAT, name=user.username, text=text[:2000], button=button[:64])
     started = time.perf_counter()
-    replies = assistant.handle(db, msg, trusted=True)
+    try:
+        replies = assistant.handle(db, msg, trusted=True)
+    except Exception as exc:  # noqa: BLE001 — mejor explicar el fallo que «no conecta»
+        log.exception("JARVIS falló con «%s»", (text or button)[:80])
+        replies = [
+            assistant.Reply(
+                "⚠️ Algo falló dentro de JARVIS. Mándale a Claude este detalle técnico:\n"
+                f"<i>{escape(type(exc).__name__)}: {escape(str(exc)[:300])}</i>"
+            )
+        ]
     seconds = round(time.perf_counter() - started, 1)
     log.info("JARVIS respondió en %.1f s: %s", seconds, (text or button)[:60])
     return {

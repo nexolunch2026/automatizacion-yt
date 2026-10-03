@@ -2,6 +2,15 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-03 — Versión 0.31: JARVIS no se queda sin responder
+
+- Si Gemini rechaza el «modo rápido», JARVIS repite la pregunta en modo normal.
+- Si la búsqueda de Google no está disponible, responde con lo que sabe Gemini y avisa
+  «Sin buscar en Google».
+- Si aun así algo falla, enseña el **detalle técnico** para que Claude lo arregle a la
+  primera, y la pantalla ya no dice «No puedo conectar con el estudio» cuando el fallo es
+  otro.
+
 ## 2026-10-03 — Versión 0.30: despertar a JARVIS con su nombre
 
 - En la pantalla JARVIS, mientras duerme, basta con decir **«Jarvis»** para despertarlo

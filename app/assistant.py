@@ -25,7 +25,7 @@ from app.media import project_dir
 from app.models import DURATIONS, STAGES, Channel, Job, Project, User
 from app.pipeline.monetization import project_review, summary_text
 from app.pipeline.render import run_ffmpeg
-from app.providers.ai import ProviderError
+from app.providers.ai import GroundedText, ProviderError
 from app.settings_store import get_setting, set_setting
 
 log = logging.getLogger(__name__)
@@ -947,7 +947,8 @@ def handle(db: Session, msg: Incoming, transcribe=None, trusted: bool = False) -
             return [Reply(f"🎧 Entendí: «{escape(text)}»"), *_text(db, text, msg.chat_id)]
         return _text(db, msg.text, msg.chat_id)
     except ProviderError as exc:
-        return [Reply(f"⚠️ {escape(str(exc))}")]
+        log.warning("JARVIS: %s | %s", exc, exc.detail)
+        return [error_reply("Algo falló", exc)]
 
 
 def _text(db: Session, text: str, chat_id: int = 0) -> list[Reply]:
@@ -959,12 +960,8 @@ def _text(db: Session, text: str, chat_id: int = 0) -> list[Reply]:
         try:
             intent = _ai_intent(db, text, chat_id)
         except ProviderError as exc:
-            return [
-                Reply(
-                    f"⚠️ No pude pensar la respuesta: {escape(str(exc))} "
-                    "Pregúntamelo otra vez en un momento."
-                )
-            ]
+            log.warning("JARVIS no pudo entender «%s»: %s | %s", text[:80], exc, exc.detail)
+            return [error_reply("No pude pensar la respuesta", exc)]
     replies = _act(db, intent, text)
     remember(chat_id, text, replies)
     return replies
@@ -1024,6 +1021,20 @@ def _act(db: Session, intent: Intent, text: str) -> list[Reply]:
 # ---------------------------------------------------------------- saber de todo
 
 
+def error_reply(what: str, exc: ProviderError) -> Reply:
+    """Un error explicado, con el detalle técnico para poder arreglarlo."""
+    text = f"⚠️ {what}: {escape(str(exc))}"
+    if exc.transient:
+        text += " Pregúntamelo otra vez en un momento."
+    if exc.detail:
+        text += f"\n<i>Detalle técnico (cópialo si pides ayuda): {escape(exc.detail[:300])}</i>"
+    return Reply(text)
+
+
+class PlainAnswer(BaseModel):
+    text: str = Field(description="La respuesta, en español")
+
+
 def memory(db: Session) -> list[str]:
     return _json_setting(db, MEMORY_KEY, [])
 
@@ -1061,7 +1072,16 @@ LO QUE SABES DE SIMÓN:
 {_context(db, chat_id)}
 
 PREGUNTA: {question}"""
-    result = ai.grounded_research(prompt)
+    try:
+        result = ai.grounded_research(prompt)
+    except ProviderError as exc:
+        if exc.transient:
+            raise
+        # Sin búsqueda de Google (p. ej. no disponible para esta cuenta): responde con lo
+        # que ya sabe Gemini y lo avisa.
+        log.warning("Búsqueda de Google no disponible: %s | %s", exc, exc.detail)
+        plain = getattr(ai, "quick_json", ai.generate_json)(prompt, PlainAnswer)
+        result = GroundedText(text=plain.text + " (Sin buscar en Google: puede no estar al día.)")
     jobs.remember_working_model(db, ai)
     answer = re.sub(r"\s*\[\d+\]", "", result.text or "").strip()
     if not answer:

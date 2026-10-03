@@ -270,8 +270,10 @@ class GeminiProvider:
         try:
             response = self._generate(prompt, config)
         except ProviderError as exc:
-            if "think" not in f"{exc} {exc.detail}".lower():
+            if exc.transient:  # límite por minuto o Google saturado: no cambia nada reintentar
                 raise
+            # Cualquier otro rechazo (p. ej. el modelo no admite apagar el razonamiento):
+            # se repite en modo normal, que es lo que funcionaba antes.
             return self.generate_json(prompt, schema)
         if isinstance(response.parsed, schema):
             return response.parsed

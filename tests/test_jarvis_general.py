@@ -63,3 +63,44 @@ def test_gemini_errors_are_explained(logged_in, ai, monkeypatch):  # noqa: F811
         replies = ask(db, "¿qué tiempo hace en Madrid?")
     assert len(replies) == 1
     assert "límite por minuto" in replies[0].text and "No te entendí" not in replies[0].text
+
+
+def test_search_unavailable_falls_back_to_plain_answer(logged_in, ai, monkeypatch):  # noqa: F811
+    def no_search(self, prompt):
+        raise ProviderError("Error de Gemini (400).", detail="400 INVALID_ARGUMENT: search")
+
+    monkeypatch.setattr(JarvisAI, "grounded_research", no_search)
+    monkeypatch.setattr(
+        JarvisAI,
+        "generate_json",
+        lambda self, p, s: (
+            s(text="París es la capital de Francia.")
+            if s is assistant.PlainAnswer
+            else Intent(action="question")
+        ),
+    )
+    with SessionLocal() as db:
+        reply = ask(db, "¿cuál es la capital de Francia?")[0]
+    assert "París" in reply.text and "Sin buscar en Google" in reply.text
+
+
+def test_errors_show_technical_detail_and_unexpected_crashes_are_explained(
+    logged_in,
+    ai,  # noqa: F811
+    monkeypatch,
+):
+    def broken(db, text, chat_id=0):
+        raise ProviderError("Error de Gemini (400).", detail="400 INVALID_ARGUMENT: algo raro")
+
+    monkeypatch.setattr(assistant, "_ai_intent", broken)
+    order = logged_in.post("/jarvis/orden", data={"text": "¿qué es un agujero negro?"}).json()
+    assert "Detalle técnico" in order["replies"][0]["html"]
+    assert "INVALID_ARGUMENT" in order["replies"][0]["html"]
+
+    def crash(db, msg, transcribe=None, trusted=False):
+        raise KeyError("campo")
+
+    monkeypatch.setattr(assistant, "handle", crash)
+    order = logged_in.post("/jarvis/orden", data={"text": "hola"}).json()
+    assert "Algo falló dentro de JARVIS" in order["replies"][0]["html"]
+    assert "KeyError" in order["replies"][0]["html"]
