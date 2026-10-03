@@ -59,8 +59,9 @@ def test_plan_with_a_ready_video_and_shorts(logged_in, ai):  # noqa: F811
         _final_video(db, 1, shorts=["El error de Kodak", "La cámara escondida", "1975"])
         plan = coach.weekly_plan(db, MONDAY)
         assert plan["long"].startswith("Sube «") and "el jueves a las 18:00" in plan["long"]
+        assert "mejora lo que marca el Control de calidad" in plan["long"]  # nota baja
         assert plan["shorts"] == [
-            ("lunes", "El error de Kodak"),
+            ("lunes (hoy)", "El error de Kodak"),
             ("miércoles", "La cámara escondida"),
             ("sábado", "1975"),
         ]

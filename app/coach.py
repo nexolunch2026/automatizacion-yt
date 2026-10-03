@@ -318,8 +318,8 @@ def weekly_plan(db: Session, now: datetime | None = None) -> dict:
     if ready:
         qc = project_review(db, ready[0])
         long_text = f"Sube «{ready[0].title}» {when} (nota {qc['score']}/100)."
-        if qc["counts"]["fail"]:
-            long_text += " Antes, arregla lo marcado en Control de calidad."
+        if qc["counts"]["fail"] or qc["score"] < 85:
+            long_text += " Antes, mejora lo que marca el Control de calidad."
     else:
         steps = [(p, s) for p, s in next_steps(db) if s["stage"]]
         if steps:
@@ -335,7 +335,9 @@ def weekly_plan(db: Session, now: datetime | None = None) -> dict:
         "publish_day": day,
         "publish_hour": hour,
         "long": long_text,
-        "shorts": [(WEEKDAYS[d], title) for d, title in schedule],
+        "shorts": [
+            (WEEKDAYS[d] + (" (hoy)" if d == now.weekday() else ""), title) for d, title in schedule
+        ],
         "learning": LEARNING[now.weekday()],
         "today_publish": now.weekday() == day and bool(ready),
         "today_short": next((t for d, t in schedule if d == now.weekday()), None),
