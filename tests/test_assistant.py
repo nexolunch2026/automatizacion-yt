@@ -197,6 +197,7 @@ def test_video_notice_sends_a_short_preview(studio, ai):
     run_all()
     replies = tick()
     assert "versión final lista" in replies[0].text
+    assert "Nota de monetización" in replies[1].text  # el control de calidad, antes de subir
     with SessionLocal() as db:  # la versión final no rehace los textos
         assert [j.stage for j in db.query(Job).all()].count("publish") == 1
 

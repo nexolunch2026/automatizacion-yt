@@ -15,9 +15,10 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import jobs
+from app import coach, jobs
 from app.config import DATA_DIR
 from app.models import Job, Project
+from app.pipeline.monetization import project_review
 from app.settings_store import get_setting, set_setting
 
 log = logging.getLogger(__name__)
@@ -109,6 +110,9 @@ def delete_task(db: Session, task_id: int) -> None:
 # ---------------------------------------------------------------- tareas del estudio
 
 
+QC_READY = 85  # nota del control de calidad a partir de la cual se puede subir
+
+
 def studio_tasks(db: Session) -> list[dict]:
     """Lo que el estudio necesita de ti ahora mismo."""
     found = []
@@ -135,11 +139,21 @@ def studio_tasks(db: Session) -> list[dict]:
             text = f"Elegir la miniatura de «{project.title}»"
             found.append({"text": text, "kind": "thumb", "link": f"{link}/miniatura"})
         elif "final" in renders:
-            text = f"Subir «{project.title}» a YouTube"
-            found.append({"text": text, "kind": "upload", "link": f"{link}/publicacion"})
+            qc = project_review(db, project)
+            if qc["counts"]["fail"] or qc["score"] < QC_READY:
+                text = f"Revisar «{project.title}» antes de subir (nota {qc['score']}/100)"
+                found.append({"text": text, "kind": "review", "link": f"{link}/control"})
+            else:
+                text = f"Subir «{project.title}» a YouTube"
+                found.append({"text": text, "kind": "upload", "link": f"{link}/publicacion"})
         elif "preview" in renders:
             text = f"Revisar el borrador de «{project.title}»"
             found.append({"text": text, "kind": "review", "link": f"{link}/video"})
+        elif latest:  # ya empezado pero parado a medias (modo manual o asistido)
+            step = coach.project_step(db, project)
+            if step and step["stage"] in coach.STEP_LABELS:
+                text = f"Seguir con «{project.title}»: {step['text']}"
+                found.append({"text": text, "kind": "next", "link": link})
     return found
 
 

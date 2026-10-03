@@ -443,7 +443,7 @@
   // ------------------------------------------------------------ datos en pantalla
 
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const KIND_ICON = { error: "⚠️", choice: "🧭", review: "🎥", upload: "🚀", thumb: "🎨" };
+  const KIND_ICON = { error: "⚠️", choice: "🧭", review: "🎥", upload: "🚀", thumb: "🎨", next: "👉" };
 
   function renderData(d) {
     const prod = d.production || [];

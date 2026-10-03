@@ -62,7 +62,9 @@ def test_flagged_words():
 
 
 def test_video_seconds_prefers_the_real_video():
-    assert video_seconds({"edit": {"seconds": 600}, "voice": {"seconds": 500}}) == 600
+    edit = {"renders": {"preview": {"seconds": 590}, "final": {"seconds": 600}}, "last": "final"}
+    assert video_seconds({"edit": edit, "voice": {"seconds": 500}}) == 600
+    assert video_seconds({"voice": {"seconds": 500}}) == 500
     assert video_seconds({"script": script("uno dos tres cuatro cinco")}) == 2.0
     assert video_seconds({}) is None
 
@@ -109,7 +111,7 @@ def test_everything_done_scores_high():
             }
         },
         "voice": {"provider": "piper", "seconds": 700},
-        "edit": {"seconds": 720, "music": ""},
+        "edit": {"renders": {"preview": {"seconds": 720, "music": ""}}, "last": "preview"},
         "publish": {"titles": ["La caída de Kodak"], "chapters": [1], "chapters_exact": True},
         "thumbnail": {"selected": 0},
         "shorts": {"shorts": [{}]},
@@ -119,6 +121,12 @@ def test_everything_done_scores_high():
     assert status(qc, "synthetic") == WARN  # recordar marcar el contenido sintético
     assert qc["counts"]["fail"] == 0 and qc["counts"]["pending"] == 0
     assert qc["score"] >= 85 and qc["verdict"] == "Listo para subir y monetizar."
+
+
+def test_music_from_the_last_render_is_flagged():
+    edit = {"renders": {"preview": {"seconds": 600, "music": "epica.mp3"}}, "last": "preview"}
+    qc = review(project(), {"script": script(TEXT), "edit": edit}, [])
+    assert status(qc, "music") == WARN and status(qc, "midroll") == OK
 
 
 def test_elevenlabs_and_cards_warn():

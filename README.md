@@ -66,6 +66,10 @@ pantalla completa:
   *«noticias»*, *«dólar»*, *«clima»*, *«dato curioso»*, *«estadísticas»*.
 - Recordatorios y temporizadores: *«recuérdame a las 5 llamar a Juan»*,
   *«temporizador de 10 minutos»* (suena en la pantalla y llega por Telegram).
+- Tu entrenador del canal: *«¿qué hago ahora?»* (el siguiente paso de cada vídeo, con un
+  botón para hacerlo), *«¿cuánto me falta para monetizar?»* (suscriptores, horas vistas,
+  fecha estimada y consejos) y *«revisa el vídeo de Nokia»* (la nota del control de calidad).
+  Al terminar la versión final te dice si ya se puede subir.
 - Abre cosas: *«abre YouTube Studio»*, *«busca la historia de Kodak»*, *«pon música lofi»*,
   *«abre el proyecto de Nokia»*. Y recuerda la conversación para seguir el hilo.
 

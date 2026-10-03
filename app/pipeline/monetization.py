@@ -92,8 +92,17 @@ def flagged_words(text: str) -> tuple[list[str], list[str]]:
     return sorted(words & PROFANITY), sorted(words & SENSITIVE)
 
 
+def last_render(results: dict) -> dict:
+    """El último montaje del vídeo (borrador o final): {file, seconds, music…}."""
+    edit = results.get("edit") or {}
+    renders = edit.get("renders", {})
+    return renders.get(edit.get("last", "")) or renders.get("final") or renders.get("preview") or {}
+
+
 def video_seconds(results: dict) -> float | None:
-    for stage, key in (("edit", "seconds"), ("voice", "seconds"), ("storyboard", "total_seconds")):
+    if last_render(results).get("seconds"):
+        return float(last_render(results)["seconds"])
+    for stage, key in (("voice", "seconds"), ("storyboard", "total_seconds")):
         value = (results.get(stage) or {}).get(key)
         if value:
             return float(value)
@@ -296,7 +305,7 @@ def _rights_checks(results: dict) -> list[dict]:
     elif voice:
         checks.append(_check("voice", "rights", OK, "Voz libre de uso", "Voz Piper sin coste."))
 
-    music = (results.get("edit") or {}).get("music")
+    music = last_render(results).get("music")
     if music:
         checks.append(
             _check(

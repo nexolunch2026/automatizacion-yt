@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import agenda, jobs, skills
+from app import agenda, coach, jobs, skills
 from app.media import project_dir
 from app.models import DURATIONS, STAGES, Channel, Job, Project, User
 from app.pipeline.monetization import project_review, summary_text
@@ -190,6 +190,9 @@ class Intent(BaseModel):
         "stats",
         "performance",
         "analyze",
+        "next_step",
+        "monetize",
+        "review",
     ]
     topic: str = Field(default="", description="Tema del vídeo, si pide uno")
     topics: list[str] = Field(default_factory=list, description="Temas para la cola")
@@ -242,6 +245,47 @@ TASK_DONE = re.compile(
     r"^(?:ya (?:hice|termine|complete)|termine|complete|completa(?:r)?|marca(?:r)? como hecha|"
     r"tache|tacha|borra (?:la )?tarea|quita (?:la )?tarea|lista la tarea|hecha la tarea)"
     r"\s*:?\s*(?:la tarea\s+|la\s+)?"
+)
+
+
+NEXT_STEP_WORDS = (
+    "que hago",
+    "que hago ahora",
+    "que sigue",
+    "que me toca",
+    "y ahora que",
+    "siguiente paso",
+    "proximo paso",
+    "que falta",
+    "/siguiente",
+)
+MONETIZE_WORDS = (
+    "cuanto falta para monetizar",
+    "cuanto me falta para monetizar",
+    "cuanto me falta",
+    "cuando monetizo",
+    "cuando voy a monetizar",
+    "como voy para monetizar",
+    "como va la monetizacion",
+    "monetizacion",
+    "meta de monetizacion",
+    "camino a monetizar",
+    "/monetizar",
+)
+REVIEW_WORDS = (
+    "se puede monetizar",
+    "se podra monetizar",
+    "es monetizable",
+    "revisa el video",
+    "revisalo",
+    "control de calidad",
+    "esta listo para subir",
+    "puedo subirlo",
+    "/revisar",
+)
+REVIEW_PROJECT = re.compile(
+    r"^(?:(?:revisa|revisar|/revisar)(?: el| del)? video|control de calidad)"
+    r"(?: de la| de| del| sobre)?\s+(.+)"
 )
 
 
@@ -308,6 +352,15 @@ def quick_intent(text: str) -> Intent | None:
         return Intent(action="status")
     if bare in ("ideas", "/ideas", "dame ideas", "sugerencias"):
         return Intent(action="ideas")
+    if bare in NEXT_STEP_WORDS:
+        return Intent(action="next_step")
+    if bare in MONETIZE_WORDS:
+        return Intent(action="monetize")
+    if bare in REVIEW_WORDS:
+        return Intent(action="review")
+    match = REVIEW_PROJECT.match(bare)
+    if match:
+        return Intent(action="review", topic=match.group(1))
     if bare in ("cola", "/cola", "ver cola", "la cola"):
         return Intent(action="queue_show")
     if bare.startswith(("/piloto", "piloto")):
@@ -391,6 +444,10 @@ documentales sin rostro sobre marcas: «Anatomía De Una Marca»). Clasifica el 
 - fact: pide un dato curioso. stats: pide estadísticas de lo producido.
 - performance: pregunta cómo van sus vídeos publicados (visitas, resultados).
 - analyze: pide que analices el canal o qué aprendiste de los resultados.
+- next_step: pregunta qué hacer ahora, qué falta o cuál es el siguiente paso.
+- monetize: pregunta cuánto le falta para monetizar o para el Programa de Socios.
+- review: pregunta si un vídeo se puede monetizar o pide revisarlo antes de subirlo
+  (topic = de qué vídeo, si lo dice).
 - open: quiere abrir una página, app o proyecto, buscar algo o poner música
   (target = qué; «google:…» para buscar, «youtube:…» para música o vídeos).
 - help: pregunta qué puedes hacer.
@@ -420,6 +477,10 @@ def help_replies() -> list[Reply]:
             "cuando elijas, hago todo: guion, voz, imágenes, montaje y textos.\n"
             "💡 <b>«ideas»</b> — te propongo temas para el canal.\n"
             "📊 <b>«estado»</b> — cómo va todo.\n"
+            "👉 <b>«¿qué hago ahora?»</b> — el siguiente paso de cada vídeo, con un botón.\n"
+            "💰 <b>«¿cuánto me falta para monetizar?»</b> — suscriptores, horas y consejos.\n"
+            "🔎 <b>«¿se puede monetizar?»</b> o <b>«revisa el vídeo de Nokia»</b> — la nota "
+            "del control de calidad.\n"
             "🛫 <b>«cola: Nokia, Blockbuster, Kodak»</b> — los dejo en fila y el piloto "
             "automático hace uno al día.\n"
             "📝 <b>«anota: comprar micrófono»</b>, <b>«tareas»</b>, <b>«ya hice lo del "
@@ -434,6 +495,7 @@ def help_replies() -> list[Reply]:
             "🎙️ También puedes <b>mandarme notas de voz</b>.",
             buttons=[
                 [("📊 Estado", "status"), ("💡 Ideas", "ideas")],
+                [("👉 ¿Qué hago ahora?", "next"), ("💰 Monetización", "money")],
                 [("🛫 Piloto automático", "autopilot")],
             ],
         )
@@ -532,9 +594,97 @@ def _new_video(db: Session, topic: str, duration_hint: str) -> list[Reply]:
     ]
 
 
+# ---------------------------------------------------------------- entrenador del canal
+
+GO_LABELS = {
+    "choose": "🧭 Ver enfoques",
+    "pick_thumb": "🎨 Ver miniaturas",
+    "review": "🔎 Ver qué falta",
+    "upload": "🔎 Revisión final",
+}
+
+
+def _step_button(project: Project, step: dict, n: int) -> tuple[str, str] | None:
+    stage = step["stage"]
+    if stage is None:
+        return None
+    if stage in GO_LABELS:
+        data = {"choose": "concepts", "pick_thumb": "thumbs"}.get(stage, "qc")
+        return (f"{n}. {GO_LABELS[stage]}", f"{data}:{project.id}")
+    return (f"{n}. ▶️ {coach.STEP_LABELS[stage]}", f"go:{project.id}:{stage}")
+
+
+def next_step_replies(db: Session) -> list[Reply]:
+    steps = coach.next_steps(db)
+    if not steps:
+        return [
+            Reply(
+                "😌 No tienes vídeos a medias. ¿Empezamos uno? Di «ideas» o "
+                "«hazme un vídeo sobre…».",
+                buttons=[[("💡 Ideas", "ideas")]],
+            )
+        ]
+    lines, buttons = ["👉 <b>Qué hacer ahora</b>"], []
+    for n, (project, step) in enumerate(steps, 1):
+        lines.append(f"{n}. <b>{escape(project.title)}</b> — {escape(step['text'])}")
+        button = _step_button(project, step, n)
+        if button:
+            buttons.append([button])
+    return [Reply("\n".join(lines), buttons=buttons or None)]
+
+
+def monetization_text(path: dict) -> str:
+    from app.skills import number
+
+    if path["done"]:
+        return (
+            "🏆 <b>¡Ya cumples los requisitos!</b> Solicita el Programa de Socios en YouTube "
+            "Studio → Ganar dinero."
+        )
+    lines = ["💰 <b>Camino a la monetización</b>"]
+    if path["subs"] is not None:
+        line = f"👥 {number(path['subs'])} de 1.000 suscriptores ({path['subs_pct']} %)"
+        if path["growth"]:
+            line += f", +{path['growth']:g} al día".replace(".", ",")
+        if path["eta"]:
+            line += f". A este ritmo llegas hacia el {agenda.spoken_date(path['eta'])}"
+        lines.append(line + ".")
+    else:
+        lines.append("👥 No pude leer los suscriptores del canal ahora mismo.")
+    hours = path["hours"]
+    lines.append(
+        f"⏱️ Unas {number(round(hours['hours']))} de 4.000 horas vistas en el último año "
+        f"({hours['pct']} %), estimadas con {hours['videos']} vídeo(s)."
+    )
+    lines.append("📱 Otra vía: 10 millones de visitas en Shorts en 90 días.")
+    lines += [f"💡 {escape(tip)}" for tip in path["tips"]]
+    return "\n".join(lines)
+
+
+def monetization_reply(db: Session) -> Reply:
+    return Reply(
+        monetization_text(coach.monetization_path(db)),
+        buttons=[[("👉 ¿Qué hago ahora?", "next"), ("📈 Rendimiento", "perf")]],
+    )
+
+
+def _review(db: Session, topic: str = "") -> list[Reply]:
+    project = coach.find_project(db, topic)
+    if project is None:
+        return [
+            Reply(
+                f"No encontré ningún vídeo sobre «{escape(topic)}»."
+                if topic
+                else "Todavía no hay ningún vídeo con guion para revisar."
+            )
+        ]
+    return [Reply("🔎 " + escape(coach.review_project(db, project)))]
+
+
 class Idea(BaseModel):
     topic: str = Field(description="Tema concreto del vídeo (marca o empresa y el ángulo)")
     hook: str = Field(description="Por qué engancha, en una frase")
+    format: str = Field(default="", description="Formato del vídeo, distinto en cada idea")
 
 
 class IdeaList(BaseModel):
@@ -561,6 +711,9 @@ def _ideas(db: Session) -> list[Reply]:
 (temática: {niche}), en {language}.
 Busca historias con conflicto real y verificable: auges, caídas, errores, rivalidades,
 resurgimientos. Mezcla marcas muy conocidas con alguna sorpresa. Nada de temas inventados.
+Usa un FORMATO distinto en cada idea (por ejemplo: ascenso y caída, «los 5 errores»,
+rivalidad entre dos marcas, el juicio o escándalo, «qué habría pasado si», la resurrección)
+para que el canal no parezca hecho en serie: YouTube no monetiza el contenido repetitivo.
 {_performance_hint(db)}
 No repitas estos temas ya hechos: {"; ".join(done) or "ninguno"}"""
     ideas = ai.generate_json(prompt, IdeaList).ideas[:5]
@@ -568,7 +721,12 @@ No repitas estos temas ya hechos: {"; ".join(done) or "ninguno"}"""
     if not ideas:
         return [Reply("No se me ocurrió nada bueno ahora. Prueba otra vez en un rato.")]
     _save_json(db, "telegram_ideas", [i.topic for i in ideas])
-    lines = [f"{n}. <b>{escape(i.topic)}</b>\n   {escape(i.hook)}" for n, i in enumerate(ideas, 1)]
+    lines = [
+        f"{n}. <b>{escape(i.topic)}</b>"
+        + (f" <i>({escape(i.format)})</i>" if i.format.strip() else "")
+        + f"\n   {escape(i.hook)}"
+        for n, i in enumerate(ideas, 1)
+    ]
     buttons = [[(f"🎬 {n}", f"idea:{n - 1}") for n in range(1, len(ideas) + 1)]]
     buttons.append([("🛫 Todas a la cola", "idea:all")])
     return [Reply("💡 <b>Ideas para el canal</b>\n\n" + "\n\n".join(lines), buttons=buttons)]
@@ -700,6 +858,12 @@ def _act(db: Session, intent: Intent, text: str) -> list[Reply]:
             state["on"] = intent.on
             save_autopilot(db, state)
         return [Reply(_queue_text(state), buttons=_autopilot_buttons(state))]
+    if intent.action == "next_step":
+        return next_step_replies(db)
+    if intent.action == "monetize":
+        return [monetization_reply(db)]
+    if intent.action == "review":
+        return _review(db, intent.topic)
     if intent.action in skills.SKILL_ACTIONS:
         return skills.act(db, intent)
     if intent.action.startswith("task_") or intent.action in ("briefing", "time", "sleep"):
@@ -757,6 +921,12 @@ def _button(db: Session, data: str) -> list[Reply]:
         return [Reply(tasks_text(db))]
     if kind == "analyze":
         return skills.act(db, Intent(action="analyze"))
+    if kind == "next":
+        return next_step_replies(db)
+    if kind == "money":
+        return [monetization_reply(db)]
+    if kind == "perf":
+        return skills.act(db, Intent(action="performance"))
     if kind == "radar":
         headlines = _json_setting(db, "jarvis_radar", [])
         if rest.isdigit() and int(rest) < len(headlines):
@@ -796,7 +966,23 @@ def _button(db: Session, data: str) -> list[Reply]:
             return [Reply("📝 Preparo los textos para YouTube. Te los mando enseguida.")]
         return publish_replies(project, seo)
     if kind == "qc":
-        return [Reply("🔎 " + escape(summary_text(project_review(db, project))))]
+        return [Reply("🔎 " + escape(coach.review_project(db, project)))]
+    if kind == "go" and arg in jobs.RUNNERS:
+        jobs.enqueue(db, project.id, arg)
+        return [
+            Reply(
+                f"🫡 En marcha: {coach.STEP_LABELS[arg].lower()} de «{escape(project.title)}». "
+                "Te aviso al terminar."
+            )
+        ]
+    if kind == "concepts":
+        strategy = jobs.get_result(db, project.id, "strategy") or {}
+        if strategy.get("concepts"):
+            return [_concepts_reply(project, strategy)]
+        return [Reply("Todavía no hay enfoques para ese proyecto.")]
+    if kind == "thumbs":
+        replies = thumbnail_replies(project, jobs.get_result(db, project.id, "thumbnail") or {})
+        return replies or [Reply("Todavía no hay miniaturas para ese proyecto.")]
     if kind == "retry" and arg in jobs.RUNNERS:
         last = jobs.latest_jobs(db, project.id).get(arg)
         jobs.enqueue(db, project.id, arg, last.params if last else None)
@@ -963,7 +1149,7 @@ def _done_replies(db: Session, job: Job, project: Project) -> list[Reply]:
             return [Reply(f"🧭 {name}: elegí el enfoque «{angle}».{_next_up(db, project)}")]
         return [_concepts_reply(project, data)] if data.get("concepts") else []
     if job.stage == "edit":
-        return _video_replies(project, data)
+        return _video_replies(db, project, data)
     if job.stage == "publish":
         return publish_replies(project, data)
     if job.stage == "thumbnail":
@@ -987,7 +1173,7 @@ def _done_replies(db: Session, job: Job, project: Project) -> list[Reply]:
     return [Reply(detail() + _next_up(db, project))]
 
 
-def _video_replies(project: Project, data: dict) -> list[Reply]:
+def _video_replies(db: Session, project: Project, data: dict) -> list[Reply]:
     quality = data.get("last", "preview")
     render = data.get("renders", {}).get(quality)
     if not render:
@@ -999,7 +1185,11 @@ def _video_replies(project: Project, data: dict) -> list[Reply]:
             Reply(
                 f"🏁 <b>{name}</b>: ¡versión final lista! Está en tu ordenador, en la página "
                 f"Vídeo del proyecto (y en la carpeta datos/proyectos/{project.id}/video)."
-            )
+            ),
+            Reply(
+                "🔎 Antes de subirlo:\n" + escape(summary_text(project_review(db, project))),
+                buttons=[[("👉 ¿Qué hago ahora?", "next")]],
+            ),
         ]
     buttons = [[("🎬 Hacer versión final", f"final:{project.id}")]]
     caption = (
@@ -1062,12 +1252,17 @@ def briefing(db: Session, now: datetime | None = None) -> list[Reply]:
         for job in db.scalars(select(Job).where(Job.stage == "edit", Job.status == "done"))
         if job.finished_at and (now - job.finished_at).days < 7
     )
+    step = coach.first_step_text(db)
     return [
         Reply(
             "☀️ <b>Buenos días.</b> Resumen del estudio:\n\n"
             f"{status_text(db)}\n\n{tasks_text(db)}\n\n"
-            f"🎞️ Vídeos montados en los últimos 7 días: {week}",
-            buttons=[[("💡 Ideas para hoy", "ideas"), ("🛫 Piloto", "autopilot")]],
+            f"🎞️ Vídeos montados en los últimos 7 días: {week}"
+            + (f"\n{escape(step)}" if step else ""),
+            buttons=[
+                [("👉 ¿Qué hago ahora?", "next"), ("💡 Ideas para hoy", "ideas")],
+                [("💰 Monetización", "money"), ("🛫 Piloto", "autopilot")],
+            ],
         )
     ]
 

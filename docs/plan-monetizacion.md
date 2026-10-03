@@ -29,6 +29,16 @@ automatización sirve para ahorrar horas, no para sustituir tu criterio.
   usar lenguaje apto para anunciantes.
 - **JARVIS**: al mandarte los textos para YouTube añade el botón «🔎 ¿Se puede monetizar?».
 
+## JARVIS entrenador — hecho en la versión 0.20.0
+
+- **«¿Qué hago ahora?»**: el siguiente paso de cada vídeo a medias, con un botón que lo hace.
+- **«¿Cuánto me falta para monetizar?»**: suscriptores y ritmo diario, fecha estimada para
+  llegar a 1.000, horas vistas estimadas (visitas × duración × % visto) y 3 consejos.
+- **«Revisa el vídeo de…»**: la nota del control de calidad por Telegram o por voz.
+- La versión final del vídeo llega con la nota de monetización; el resumen de la mañana y
+  la pantalla JARVIS dicen el siguiente paso, y piden revisar antes de subir si hace falta.
+- Las ideas llegan con formatos distintos para que el canal no parezca hecho en serie.
+
 ## Fase 2 — siguiente (más impacto)
 
 1. **Variedad automática**: rotar estructuras de guion (cronológica, «5 errores», juicio,
