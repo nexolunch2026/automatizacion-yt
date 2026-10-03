@@ -74,6 +74,13 @@ def no_real_internet(monkeypatch):
 
     monkeypatch.setitem(render.QUALITIES, "preview", render.QUALITIES["test"])
     monkeypatch.setitem(render.QUALITIES, "final", render.QUALITIES["test"])
+    from app import jarvis_voice
+    from app.providers.ai import ProviderError
+
+    def no_microsoft(text, voice, out):
+        raise ProviderError("Sin voz de Microsoft en los tests")
+
+    monkeypatch.setattr(jarvis_voice, "microsoft_tts", no_microsoft)
     return voice
 
 

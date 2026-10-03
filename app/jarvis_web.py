@@ -214,3 +214,59 @@ def save_preferences(
     set_setting(db, "jarvis_city", city.strip()[:80])
     set_setting(db, "jarvis_name", call_me.strip()[:40])
     return _redirect("/jarvis?guardado=preferencias#preferencias")
+
+
+# ---------------------------------------------------------------- voz de JARVIS
+
+
+@router.post("/voz")
+def jarvis_speech(db: DB, user: CurrentUser, text: Annotated[str, Form()]):
+    """MP3 con la frase dicha por JARVIS. Si falla, la pantalla usa la voz del navegador."""
+    from fastapi.responses import FileResponse, JSONResponse
+
+    from app import jarvis_voice
+
+    try:
+        path = jarvis_voice.voice_for(db, text)
+    except ProviderError as exc:
+        return JSONResponse({"error": str(exc), "detail": exc.detail}, status_code=503)
+    return FileResponse(path, media_type="audio/mpeg")
+
+
+@router.get("/voz/opciones")
+def voice_options(db: DB, user: CurrentUser) -> dict:
+    from app import jarvis_voice, jobs
+
+    eleven, eleven_error = jobs.eleven_voices(db)
+    return {
+        "prefs": jarvis_voice.preferences(db),
+        "microsoft": [{"id": k, "label": v} for k, v in jarvis_voice.MICROSOFT_VOICES.items()],
+        "eleven": eleven,
+        "eleven_error": eleven_error,
+    }
+
+
+@router.post("/voz/preferencias")
+def save_voice(
+    db: DB,
+    user: CurrentUser,
+    engine: Annotated[str, Form()] = "microsoft",
+    voice: Annotated[str, Form()] = "",
+    effect: Annotated[str, Form()] = "jarvis",
+    telegram_voice: Annotated[str, Form()] = "1",
+) -> dict:
+    from app import jarvis_voice
+
+    prefs = jarvis_voice.preferences(db)
+    if engine in ("microsoft", "eleven", "browser"):
+        prefs["engine"] = engine
+    if engine == "microsoft":
+        prefs["voice"] = (
+            voice if voice in jarvis_voice.MICROSOFT_VOICES else jarvis_voice.DEFAULT_VOICE
+        )
+    elif engine == "eleven" and voice.startswith("eleven:"):
+        prefs["voice"] = voice
+    prefs["effect"] = effect if effect in jarvis_voice.EFFECTS else "jarvis"
+    prefs["telegram"] = telegram_voice == "1"
+    jarvis_voice.save_preferences(db, prefs)
+    return prefs

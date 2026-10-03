@@ -147,6 +147,20 @@ def main() -> None:
         if "token" not in str(exc):
             failures.append(f"Telegram no respondió como se esperaba: {exc} {exc.detail}")
 
+    print("7) Voz de JARVIS (voz neuronal de Microsoft + efecto)")
+    from app import jarvis_voice
+
+    with tempfile.TemporaryDirectory() as tmp:
+        jarvis_voice.CACHE_DIR = Path(tmp)
+        for voice in ("es-ES-AlvaroNeural", "es-CO-GonzaloNeural"):
+            try:
+                path = jarvis_voice.speak(
+                    "Buenos días, señor. Todos los sistemas funcionan.", voice=voice
+                )
+                print(f"   {voice}: {path.stat().st_size} bytes")
+            except ProviderError as exc:
+                failures.append(f"La voz de JARVIS falló con {voice}: {exc} {exc.detail}")
+
     if failures:
         print("\nFALLOS:\n- " + "\n- ".join(failures))
         sys.exit(1)

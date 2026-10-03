@@ -139,14 +139,7 @@
     voices = ("speechSynthesis" in window ? speechSynthesis.getVoices() : []).filter((v) => v.lang.toLowerCase().startsWith("es"));
     const score = (v) => (/natural|online|neural/i.test(v.name) ? 0 : 10) + (/male|jorge|alvaro|gonzalo|raul|pablo|dario|jorge|tomas|andres/i.test(v.name) ? 0 : 1);
     voices.sort((a, b) => score(a) - score(b));
-    const select = $("set-voice");
-    select.innerHTML = voices.map((v) => `<option value="${v.name}">${v.name} (${v.lang})</option>`).join("")
-      || "<option value=''>Sin voces en español en este navegador</option>";
-    if (settings.voice) select.value = settings.voice;
-  }
-  if ("speechSynthesis" in window) {
-    loadVoices();
-    speechSynthesis.onvoiceschanged = loadVoices;
+    if (voicePrefs.engine === "browser") fillVoiceSelect();
   }
 
   function plain(html) {
@@ -171,10 +164,90 @@
     return out;
   }
 
-  function speak(text) {
+  // ---- Voz neuronal (la genera el programa) con el «efecto JARVIS»
+
+  let voicePrefs = { engine: "microsoft", voice: "", effect: "jarvis", telegram: true };
+  let voiceOptions = { microsoft: [], eleven: [] };
+  let player = null; // un único <audio> conectado al analizador (para que el reactor «hable»)
+  let voiceAnalyser = null;
+  let voiceSamples = null;
+  let stopSpeaking = () => {};
+
+  function ensurePlayer() {
+    if (player) return;
+    player = new Audio();
+    if (audioCtx) {
+      const src = audioCtx.createMediaElementSource(player);
+      voiceAnalyser = audioCtx.createAnalyser();
+      voiceAnalyser.fftSize = 512;
+      voiceSamples = new Float32Array(voiceAnalyser.fftSize);
+      src.connect(voiceAnalyser);
+      voiceAnalyser.connect(audioCtx.destination);
+    }
+  }
+
+  function voiceLevel() {
+    if (!voiceAnalyser || !player || player.paused) return 0;
+    voiceAnalyser.getFloatTimeDomainData(voiceSamples);
+    let sum = 0;
+    for (const v of voiceSamples) sum += v * v;
+    return Math.min(1, Math.sqrt(sum / voiceSamples.length) * 5);
+  }
+
+  async function fetchVoice(text) {
+    const r = await fetch("/jarvis/voz", { method: "POST", body: new URLSearchParams({ text }) });
+    if (!r.ok) {
+      let info = {};
+      try { info = await r.json(); } catch (e) {}
+      throw new Error(info.error || "Sin voz");
+    }
+    return URL.createObjectURL(await r.blob());
+  }
+
+  function playUrl(url) {
+    return new Promise((resolve) => {
+      player.onended = player.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+      player.src = url;
+      player.play().catch(() => resolve());
+    });
+  }
+
+  // La primera frase sola (empieza a hablar antes) y el resto junto.
+  function voiceParts(text) {
+    const parts = chunks(text);
+    if (parts.length <= 1) return parts;
+    return [parts[0], parts.slice(1).join(" ")];
+  }
+
+  async function speak(text) {
+    text = plain(text);
+    if (!text) return;
+    if (voicePrefs.engine === "browser") return speakBrowser(text);
+    stopListening();
+    setState("speaking");
+    ensurePlayer();
+    let cancelled = false;
+    stopSpeaking = () => { cancelled = true; player.pause(); player.onended && player.onended(); };
+    const parts = voiceParts(text);
+    try {
+      let next = fetchVoice(parts[0]);
+      for (let i = 0; i < parts.length && !cancelled; i++) {
+        const url = await next;
+        if (i + 1 < parts.length) next = fetchVoice(parts[i + 1]); // prepara la siguiente
+        await playUrl(url);
+      }
+    } catch (e) {
+      $("voice-note").textContent = "No se pudo usar la voz neuronal (" + e.message + "). Uso la del navegador.";
+      if (!cancelled) await speakBrowser(text);
+    }
+    quietUntil = performance.now() + 700;
+  }
+
+  function speakBrowser(text) {
     return new Promise((resolve) => {
       text = plain(text);
       if (!text || !("speechSynthesis" in window)) return resolve();
+      stopSpeaking = () => speechSynthesis.cancel();
       stopListening();
       setState("speaking");
       speechSynthesis.cancel();
@@ -496,6 +569,8 @@
     const asleep = state === "asleep" || state === "off";
     const alpha = asleep ? 0.45 : 1;
     const speed = asleep ? 0.25 : state === "thinking" ? 3 : 1;
+    const voice = voiceLevel();
+    if (voice) speakingPulse = Math.max(speakingPulse, voice);
     const target = state === "speaking" ? 0.35 + speakingPulse * 0.6 : state === "listening" ? Math.min(1, micLevel * 3) : asleep ? 0.05 : 0.25;
     energy += (target - energy) * 0.15;
     speakingPulse *= 0.9;
@@ -637,7 +712,7 @@
   })();
   reactor.addEventListener("click", () => {
     if (state === "asleep") wake();
-    else if (state === "speaking") { speechSynthesis.cancel(); }
+    else if (state === "speaking") stopSpeaking();
     else if (state === "listening") chimeListen();
   });
   document.addEventListener("keydown", (e) => {
@@ -645,7 +720,7 @@
     if (e.code === "Space") {
       e.preventDefault();
       if (state === "asleep") wake();
-      else if (state === "speaking") speechSynthesis.cancel();
+      else if (state === "speaking") stopSpeaking();
     }
     if (e.key === "Escape") $("settings").hidden = true;
   });
@@ -663,7 +738,57 @@
     $("settings").hidden = false;
   });
   $("settings-close").addEventListener("click", () => ($("settings").hidden = true));
-  $("set-voice").addEventListener("change", (e) => { settings.voice = e.target.value; saveSettings(); });
+  function fillVoiceSelect() {
+    const select = $("set-voice");
+    let options = [];
+    if (voicePrefs.engine === "microsoft") options = voiceOptions.microsoft.map((v) => [v.id, v.label]);
+    if (voicePrefs.engine === "eleven") options = voiceOptions.eleven.map((v) => [v.id, v.label]);
+    if (voicePrefs.engine === "browser") options = voices.map((v) => [v.name, `${v.name} (${v.lang})`]);
+    select.innerHTML = options.map(([id, label]) => `<option value="${esc(id)}">${esc(label)}</option>`).join("")
+      || `<option value="">${voicePrefs.engine === "eleven" ? "Conecta ElevenLabs en Configuración" : "Sin voces"}</option>`;
+    select.value = voicePrefs.engine === "browser" ? settings.voice : voicePrefs.voice;
+    if (!select.value && options.length) select.value = options[0][0];
+    $("set-effect").disabled = voicePrefs.engine === "browser";
+  }
+
+  async function loadVoiceOptions() {
+    try {
+      const r = await fetch("/jarvis/voz/opciones");
+      const data = await r.json();
+      voicePrefs = data.prefs;
+      voiceOptions = data;
+      $("set-engine").value = voicePrefs.engine;
+      $("set-effect").value = voicePrefs.effect;
+      $("set-telegram").checked = voicePrefs.telegram;
+      $("voice-note").textContent = data.eleven_error ? "ElevenLabs: " + data.eleven_error : "";
+      fillVoiceSelect();
+    } catch (e) {}
+  }
+
+  async function saveVoicePrefs() {
+    const voice = $("set-voice").value;
+    if (voicePrefs.engine === "browser") { settings.voice = voice; saveSettings(); }
+    const body = new URLSearchParams({
+      engine: voicePrefs.engine,
+      voice: voicePrefs.engine === "browser" ? "" : voice,
+      effect: $("set-effect").value,
+      telegram_voice: $("set-telegram").checked ? "1" : "0",
+    });
+    try {
+      const r = await fetch("/jarvis/voz/preferencias", { method: "POST", body });
+      voicePrefs = await r.json();
+    } catch (e) {}
+  }
+
+  $("set-engine").addEventListener("change", (e) => { voicePrefs.engine = e.target.value; fillVoiceSelect(); saveVoicePrefs(); });
+  $("set-voice").addEventListener("change", saveVoicePrefs);
+  $("set-effect").addEventListener("change", saveVoicePrefs);
+  $("set-telegram").addEventListener("change", saveVoicePrefs);
+  loadVoiceOptions();
+  if ("speechSynthesis" in window) {
+    loadVoices();
+    speechSynthesis.onvoiceschanged = loadVoices;
+  }
   $("set-lang").addEventListener("change", (e) => { settings.lang = e.target.value; saveSettings(); });
   $("set-sens").addEventListener("input", (e) => { settings.sens = parseInt(e.target.value, 10); saveSettings(); });
   $("set-claps").addEventListener("change", (e) => { settings.claps = e.target.checked; saveSettings(); setState(state); });

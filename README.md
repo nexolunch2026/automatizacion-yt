@@ -57,7 +57,10 @@ pantalla completa:
   *«el dos»* (para elegir enfoque), *«gracias Jarvis»* (vuelve a dormir).
 - La primera vez entra con tu usuario y **permite el micrófono**.
 - Para que se encienda solo al prender el ordenador: doble clic en **`JARVIS al encender`**.
-- Consejo: usa **Microsoft Edge** (viene con Windows): sus voces «Natural» suenan casi humanas.
+- **Voz:** habla con una voz neuronal de Microsoft (gratis) con «efecto JARVIS»: más
+  grave, con un toque metálico y eco suave. En ⚙ puedes elegir la voz (Álvaro, Jorge,
+  Gonzalo…), quitar el efecto o usar una voz de tu cuenta de ElevenLabs.
+- Si le mandas una **nota de voz por Telegram**, te contesta también con una nota de voz.
 
 ### Para apagarlo
 Cierra la **ventana negra**.

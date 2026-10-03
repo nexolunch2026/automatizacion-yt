@@ -103,6 +103,10 @@ class TelegramAPI:
             link_preview_options={"is_disabled": True},
         )
 
+    def send_voice(self, chat_id: int, path) -> None:
+        with path.open("rb") as f:
+            self._call("sendVoice", files={"voice": (path.name, f, "audio/ogg")}, chat_id=chat_id)
+
     def answer_button(self, callback_id: str) -> None:
         self._call("answerCallbackQuery", callback_query_id=callback_id)
 
@@ -179,8 +183,27 @@ def process_update(db: Session, api: TelegramAPI, update: dict) -> None:
         except ProviderError as exc:
             api.send(msg.chat_id, Reply(f"⚠️ {exc}"))
             return
-    for reply in assistant.handle(db, msg, transcribe=transcribe):
+    replies = assistant.handle(db, msg, transcribe=transcribe)
+    for reply in replies:
         api.send(reply.chat_id or msg.chat_id, reply)
+    if msg.audio is not None and replies:  # si le hablas, te contesta también hablando
+        reply_with_voice(db, api, msg.chat_id, replies)
+
+
+def reply_with_voice(db: Session, api: TelegramAPI, chat_id: int, replies: list[Reply]) -> None:
+    from app import jarvis_voice
+
+    if not jarvis_voice.preferences(db)["telegram"]:
+        return
+    # La primera línea es «🎧 Entendí: …»; se dice el resto.
+    texts = [jarvis_voice.spoken_text(r.text) for r in replies if not r.text.startswith("🎧")]
+    text = " ".join(t for t in texts if t)[:600]
+    if not text:
+        return
+    try:
+        api.send_voice(chat_id, jarvis_voice.to_voice_note(jarvis_voice.voice_for(db, text)))
+    except (ProviderError, RuntimeError, OSError) as exc:
+        log.warning("No se pudo enviar la nota de voz: %s", exc)
 
 
 def broadcast(db: Session, api: TelegramAPI, replies: list[Reply]) -> None:

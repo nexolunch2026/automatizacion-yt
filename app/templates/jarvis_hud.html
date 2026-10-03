@@ -85,7 +85,22 @@
   <div id="settings" hidden>
     <div class="settings-box panel">
       <div class="panel-title"><span>AJUSTES DE JARVIS</span><button id="settings-close">✕</button></div>
+      <label>Motor de voz
+        <select id="set-engine">
+          <option value="microsoft">Voz neuronal de Microsoft (gratis, la mejor)</option>
+          <option value="eleven">ElevenLabs (gasta créditos)</option>
+          <option value="browser">Voz del navegador (sin internet)</option>
+        </select>
+      </label>
       <label>Voz de JARVIS <select id="set-voice"></select></label>
+      <label>Sonido
+        <select id="set-effect">
+          <option value="jarvis">Efecto JARVIS (más grave, metálico y con eco suave)</option>
+          <option value="none">Natural, sin efecto</option>
+        </select>
+      </label>
+      <label class="check"><input id="set-telegram" type="checkbox"> Si le mando una nota de voz por Telegram, que me conteste hablando</label>
+      <p id="voice-note" class="muted small"></p>
       <label>Acento al escucharte
         <select id="set-lang">
           <option value="es-CO">Español (Colombia)</option>
