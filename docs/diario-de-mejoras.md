@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-03 — Versión 0.29: JARVIS sabe de todo
+
+- **Pregúntale lo que sea** (cultura, noticias, deportes, precios, cómo hacer algo…):
+  JARVIS lo busca en Google y te contesta, diciendo dónde lo buscó.
+- **Memoria**: «recuerda que…» y lo tiene en cuenta siempre; «¿qué sabes de mí?» lo
+  enseña.
+- Si Gemini falla (por ejemplo, por el límite gratis por minuto), JARVIS te dice qué
+  pasó en vez de «No te entendí bien».
+- «Aprender de un vídeo» gasta unas 4 veces menos del límite gratis de Gemini, para que
+  JARVIS no se quede sin respuesta mientras analizas un vídeo.
+
 ## 2026-10-03 — Versión 0.28: JARVIS más rápido
 
 - Para entender lo que le dices, JARVIS ya no le pide a Gemini que «piense» antes de

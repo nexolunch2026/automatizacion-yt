@@ -197,6 +197,9 @@ class Intent(BaseModel):
         "week_plan",
         "publish_day",
         "learn_video",
+        "question",
+        "remember",
+        "memory",
     ]
     topic: str = Field(default="", description="Tema del vídeo, si pide uno")
     topics: list[str] = Field(default_factory=list, description="Temas para la cola")
@@ -252,6 +255,10 @@ TASK_DONE = re.compile(
 )
 
 
+REMEMBER = re.compile(r"^(?:recuerda|acuerdate de|no olvides|ten en cuenta)\s+que\s+")
+MEMORY_WORDS = ("que sabes de mi", "que recuerdas", "que recuerdas de mi", "tu memoria")
+MEMORY_KEY = "jarvis_memory"
+MAX_MEMORY = 40
 WEEK_PLAN_WORDS = (
     "plan de la semana",
     "plan semanal",
@@ -385,6 +392,11 @@ def quick_intent(text: str) -> Intent | None:
         return Intent(action="status")
     if bare in ("ideas", "/ideas", "dame ideas", "sugerencias"):
         return Intent(action="ideas")
+    match = REMEMBER.match(norm)
+    if match and text[match.end() :].strip():
+        return Intent(action="remember", task=text[match.end() :].strip(" .,:;"))
+    if bare in MEMORY_WORDS:
+        return Intent(action="memory")
     if bare in WEEK_PLAN_WORDS:
         return Intent(action="week_plan")
     match = PUBLISH_DAY.match(bare)
@@ -445,6 +457,9 @@ def _context(db: Session, chat_id: int) -> str:
     headlines = [n["title"] for n in (info_cache_news(db))[:5]]
     if headlines:
         lines.append("Titulares de negocios de hoy: " + " | ".join(headlines))
+    facts = _json_setting(db, MEMORY_KEY, [])
+    if facts:
+        lines.append("Lo que sabes del creador: " + " | ".join(facts))
     talk = "\n".join(f"Creador: {a}\nJARVIS: {b}" for a, b in _memory.get(chat_id, []))
     if talk:
         lines.append("CONVERSACIÓN RECIENTE:\n" + talk)
@@ -496,10 +511,13 @@ documentales sin rostro sobre marcas: «Anatomía De Una Marca»). Clasifica el 
 - open: quiere abrir una página, app o proyecto, buscar algo o poner música
   (target = qué; «google:…» para buscar, «youtube:…» para música o vídeos).
 - help: pregunta qué puedes hacer.
-- chat: cualquier otra cosa (preguntas de cultura general, de marcas, consejos para el
-  canal, conversación). Responde en «reply» en 1–4 frases, en español, con el tono de
-  JARVIS: educado, preciso, con un toque de humor británico; trátalo de «usted» y de vez
-  en cuando llámalo «señor». Si no sabes algo con seguridad, dilo. No inventes datos.
+- question: CUALQUIER pregunta que necesite datos o saber algo, de cualquier tema
+  (cultura, actualidad, deportes, precios, salud, cocina, cómo se hace algo, marcas,
+  YouTube…). No respondas tú: la contestará JARVIS buscando en Google.
+- remember: quiere que recuerdes algo de él para siempre (task = el dato).
+- chat: solo charla, saludos, opiniones o ánimo que no necesitan datos. Responde en
+  «reply» en 1–4 frases, en español, con el tono de JARVIS: educado, preciso, con un toque
+  de humor británico; trátalo de «usted» y de vez en cuando llámalo «señor».
 
 ESTADO ACTUAL DEL ESTUDIO:
 {status_text(db, html=False)}
@@ -543,7 +561,11 @@ def help_replies() -> list[Reply]:
             "🖥️ <b>«abre YouTube Studio»</b>, <b>«busca…»</b>, <b>«pon música lofi»</b>.\n"
             "🎓 <b>Mándame un enlace de YouTube</b> y lo veo: te digo lo bueno y cómo "
             "aplicarlo a tu canal.\n"
-            "💬 Y pregúntame lo que quieras: recuerdo la conversación.\n"
+            "❓ <b>Pregúntame lo que sea</b> (cultura, noticias, deportes, cómo hacer algo…): "
+            "lo busco en Google.\n"
+            "🧠 <b>«recuerda que…»</b> y lo tendré siempre en cuenta; <b>«¿qué sabes de "
+            "mí?»</b>.\n"
+            "💬 Recuerdo la conversación.\n"
             "🎙️ También puedes <b>mandarme notas de voz</b>.",
             buttons=[
                 [("📊 Estado", "status"), ("💡 Ideas", "ideas")],
@@ -936,10 +958,12 @@ def _text(db: Session, text: str, chat_id: int = 0) -> list[Reply]:
     if intent is None:
         try:
             intent = _ai_intent(db, text, chat_id)
-        except ProviderError:
+        except ProviderError as exc:
             return [
-                Reply("No te entendí bien. Prueba con «hazme un vídeo sobre…» o «estado»."),
-                *help_replies(),
+                Reply(
+                    f"⚠️ No pude pensar la respuesta: {escape(str(exc))} "
+                    "Pregúntamelo otra vez en un momento."
+                )
             ]
     replies = _act(db, intent, text)
     remember(chat_id, text, replies)
@@ -986,9 +1010,70 @@ def _act(db: Session, intent: Intent, text: str) -> list[Reply]:
         return skills.act(db, intent)
     if intent.action.startswith("task_") or intent.action in ("briefing", "time", "sleep"):
         return _agenda_act(db, intent)
+    if intent.action == "remember" and intent.task.strip():
+        return [remember_fact(db, intent.task.strip())]
+    if intent.action == "memory":
+        return [memory_reply(db)]
     if intent.action == "chat" and intent.reply.strip():
         return [Reply(escape(intent.reply.strip()))]
+    if intent.action in ("question", "chat") and text.strip():
+        return answer_question(db, text)  # cualquier pregunta: busca en Google
     return help_replies()
+
+
+# ---------------------------------------------------------------- saber de todo
+
+
+def memory(db: Session) -> list[str]:
+    return _json_setting(db, MEMORY_KEY, [])
+
+
+def remember_fact(db: Session, fact: str) -> Reply:
+    facts = [f for f in memory(db) if normalize(f) != normalize(fact)]
+    facts.append(fact[:200])
+    _save_json(db, MEMORY_KEY, facts[-MAX_MEMORY:])
+    return Reply(f"🧠 Anotado para siempre: «{escape(fact)}».")
+
+
+def memory_reply(db: Session) -> Reply:
+    facts = memory(db)
+    if not facts:
+        return Reply(
+            "🧠 Aún no me has pedido que recuerde nada. Dime, por ejemplo: «recuerda que "
+            "trabajo de 12 a 10 de la noche»."
+        )
+    return Reply("🧠 <b>Lo que sé de usted</b>\n" + "\n".join(f"• {escape(f)}" for f in facts))
+
+
+def answer_question(db: Session, question: str, chat_id: int = 0) -> list[Reply]:
+    """Contesta cualquier pregunta buscando en Google (datos actuales y comprobables)."""
+    ai = jobs.get_ai_provider(db)
+    facts = "\n".join(f"- {f}" for f in memory(db)) or "(nada todavía)"
+    prompt = f"""Eres JARVIS, el asistente personal de Simón (como el de Iron Man): sabes de
+todo. Responde a su pregunta en español sencillo y útil: 2–6 frases, o pasos numerados si
+pregunta cómo hacer algo. Busca en Google lo que necesites para dar datos actuales y
+correctos; si no estás seguro, dilo. Tono: educado y preciso, con un toque de humor
+británico; trátalo de «usted».
+
+LO QUE SABES DE SIMÓN:
+{facts}
+
+{_context(db, chat_id)}
+
+PREGUNTA: {question}"""
+    result = ai.grounded_research(prompt)
+    jobs.remember_working_model(db, ai)
+    answer = re.sub(r"\s*\[\d+\]", "", result.text or "").strip()
+    if not answer:
+        return [Reply("No encontré una respuesta clara. ¿Me lo preguntas de otra forma?")]
+    replies = [Reply(escape(answer))]
+    names = []
+    for source in result.sources:
+        if source.title and source.title not in names:
+            names.append(source.title)
+    if names:
+        replies[0].text += "\n<i>🔎 Buscado en: " + escape(", ".join(names[:2])) + "</i>"
+    return replies
 
 
 def tasks_text(db: Session) -> str:

@@ -76,6 +76,15 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   se parece demasiado al anterior.
 - [x] **Preparado para «Probar y comparar»** (0.26.0): en Publicación, 3 títulos y las 3
   miniaturas listos para el A/B de YouTube, con cuál probar y por qué.
+- [ ] **JARVIS conversación continua**: tras responder, sigue escuchando unos segundos
+  para seguir la charla sin volver a llamarle ni dar palmadas; y que se le pueda
+  interrumpir hablando.
+- [ ] **JARVIS se despierta con su nombre**: además de las palmadas, decir «Jarvis»
+  (reconocimiento en el navegador, sin gastar Gemini).
+- [ ] **JARVIS útil en el día a día**: conversiones y cálculos, traducir frases, recetas
+  y cantidades (Simón trabaja en cocina), listas de la compra y notas largas por voz.
+- [ ] **JARVIS con más habilidades en el PC**: abrir carpetas y programas de Windows,
+  subir/bajar volumen, poner y parar música, y avisos en pantalla.
 - [ ] **Guion más humano**: control de calidad de frases demasiado largas, repeticiones y
   palabras de relleno, con botón para reescribir solo esas frases.
 - [ ] **Shorts que llevan al vídeo largo**: gancho propio en los primeros 2 s, texto en

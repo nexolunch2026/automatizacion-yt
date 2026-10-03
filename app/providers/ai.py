@@ -292,6 +292,9 @@ class GeminiProvider:
             response_mime_type="application/json",
             response_schema=schema,
             temperature=0.3,
+            # Resolución baja: gasta unas 4 veces menos del límite gratis (y tarda menos).
+            # Para sacar consejos de un vídeo basta con oírlo y ver lo principal.
+            media_resolution=types.MediaResolution.MEDIA_RESOLUTION_LOW,
         )
         response = self._generate(contents, config)
         if isinstance(response.parsed, schema):
