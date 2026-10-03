@@ -568,6 +568,40 @@ def shorts_page(request: Request, db: DB, user: CurrentUser, project_id: int):
     return _stage_page(request, db, _project(db, project_id), "shorts")
 
 
+@router.post("/shorts/{number}/portada")
+def short_cover(
+    db: DB, user: CurrentUser, project_id: int, number: int, text: Annotated[str, Form()]
+):
+    """Rehace la portada de un Short con otro texto (al momento, sin volver a montarlo)."""
+    from app.pipeline.shorts import make_cover
+
+    _project(db, project_id)
+    row = _result_row(db, project_id, "shorts")
+    shorts = (row.data if row else {}).get("shorts", [])
+    if not 1 <= number <= len(shorts) or not text.strip():
+        raise HTTPException(404, "Ese Short no existe")
+    data = copy.deepcopy(row.data)
+    short = data["shorts"][number - 1]
+    folder = project_dir(project_id)
+    visuals = jobs.get_result(db, project_id, "visuals") or {"items": {}}
+    text = " ".join(text.split())[:40]
+    cover = f"shorts/short-{number}/portada.jpg"
+    ids = short.get("paragraph_ids")
+    if not ids:  # Shorts hechos antes de que existieran las portadas
+        from app.pipeline.shorts import paragraph_table
+
+        script = jobs.get_result(db, project_id, "script") or {}
+        voice = jobs.get_result(db, project_id, "voice") or {"takes": []}
+        rows = paragraph_table(script, {t["paragraph_id"]: t["seconds"] for t in voice["takes"]})
+        start, end = short.get("paragraphs", [1, 1])
+        ids = [r["id"] for r in rows[start - 1 : end]]
+    make_cover(jobs.media_map(folder, visuals), ids, text, folder / cover)
+    short.update(cover=cover, hook=text)
+    row.data = data
+    db.commit()
+    return _redirect(f"/proyectos/{project_id}/shorts")
+
+
 @router.post("/miniatura/elegir")
 def choose_thumbnail(db: DB, user: CurrentUser, project_id: int, index: Annotated[int, Form()]):
     _project(db, project_id)

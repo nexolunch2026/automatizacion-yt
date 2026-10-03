@@ -261,7 +261,9 @@ def compose(
             _draw_words(draw, line, margin, y, fnt, fsize, marked, box=False)
             y += int(fsize * 0.92)
     else:  # center
-        fnt, fsize = _fit(draw, lines, int(w * 0.86), int(h * 0.6), int(h * 0.32))
+        fnt, fsize = _fit(
+            draw, lines, int(w * 0.8), int(h * 0.6), int(h * 0.32)
+        )  # sitio para la caja roja
         block = int(fsize * 0.92) * len(lines)
         y = (h - block) // 2
         for line in lines:

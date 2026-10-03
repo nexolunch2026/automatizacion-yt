@@ -153,6 +153,36 @@ def how_many(total_seconds: float) -> int:
     return 3
 
 
+def highlight_word(text: str) -> str:
+    """La palabra que irá en rojo: una cifra si la hay; si no, la más larga."""
+    words = text.split()
+    if not words:
+        return ""
+    with_digits = [w for w in words if re.search(r"\d", w)]
+    return (with_digits or sorted(words, key=len, reverse=True))[0]
+
+
+def make_cover(media: dict, paragraph_ids: list[str], text: str, out: Path) -> Path:
+    """Portada vertical del Short (1080×1920) con la imagen más llamativa de sus escenas."""
+    from app.pipeline import thumbnail
+
+    images = [
+        media[pid]["path"]
+        for pid in paragraph_ids
+        if pid in media and media[pid]["kind"] == "image" and Path(media[pid]["path"]).exists()
+    ]
+    scored = []
+    for path in images:
+        try:
+            scored.append((thumbnail._score(Path(path)), Path(path)))
+        except OSError:
+            continue
+    background = max(scored)[1] if scored else None
+    return thumbnail.compose(
+        background, text, highlight_word(text), "center", thumbnail.PORTRAIT, out
+    )
+
+
 def run_shorts(
     project: Project,
     script: dict,
@@ -193,6 +223,8 @@ def run_shorts(
         if not scenes:
             continue
         scenes[0]["on_screen_text"] = pick.hook.upper()  # el gancho, arriba, al empezar
+        scenes[0]["text_from_start"] = True
+        scenes[0].pop("chart", None)  # el primer plano es el gancho, no un gráfico
         folder = out_root / f"short-{i}"
         folder.mkdir(parents=True, exist_ok=True)
         narration = folder / "narracion.wav"
@@ -214,14 +246,18 @@ def run_shorts(
             music=music,
         )
         narration.unlink(missing_ok=True)
+        step(99, "creando la portada")
+        make_cover(media, ids, pick.hook, folder / "portada.jpg")
         tags = " ".join((hashtags or [])[:2] + ["#shorts"])
         shorts.append(
             {
                 "file": f"shorts/short-{i}/{result['file'].removeprefix('video/')}",
+                "cover": f"shorts/short-{i}/portada.jpg",
                 "title": pick.title[:100],
                 "hook": pick.hook,
                 "seconds": result["seconds"],
                 "paragraphs": [pick.start, pick.end],
+                "paragraph_ids": ids,
                 "description": f"{pick.title}\n\nEl documental completo, en el canal. {tags}",
             }
         )

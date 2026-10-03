@@ -40,7 +40,24 @@
 <div class="shorts">
   {% for s in data.shorts %}
   <div class="card short-card">
-    <video class="short-player" src="/proyectos/{{ project.id }}/archivos/{{ s.file }}?v={{ job.id if job else 0 }}" controls preload="metadata"></video>
+    <div class="short-media">
+      <video class="short-player" src="/proyectos/{{ project.id }}/archivos/{{ s.file }}?v={{ job.id if job else 0 }}" controls preload="metadata"></video>
+      {% if s.cover %}
+      <div class="short-cover">
+        <img src="/proyectos/{{ project.id }}/archivos/{{ s.cover }}?t={{ s.hook|length }}{{ loop.index }}" alt="Portada del Short {{ loop.index }}">
+        <a class="btn small" href="/proyectos/{{ project.id }}/archivos/{{ s.cover }}" download="portada-short-{{ project.id }}-{{ loop.index }}.jpg">Descargar portada</a>
+        <form method="post" action="/proyectos/{{ project.id }}/shorts/{{ loop.index }}/portada" class="cover-form">
+          <input name="text" value="{{ s.hook }}" maxlength="40" title="Texto de la portada">
+          <button class="btn small secondary">Rehacer</button>
+        </form>
+      </div>
+      {% else %}
+      <form method="post" action="/proyectos/{{ project.id }}/shorts/{{ loop.index }}/portada" class="cover-form">
+        <input name="text" value="{{ s.hook }}" maxlength="40" title="Texto de la portada">
+        <button class="btn small">Crear portada</button>
+      </form>
+      {% endif %}
+    </div>
     <div class="copy-row">
       <span class="copy-text" id="short-title-{{ loop.index }}"><strong>{{ s.title }}</strong></span>
       <button class="btn small secondary" data-copy="short-title-{{ loop.index }}">Copiar</button>
@@ -59,6 +76,9 @@
   <ol class="steps">
     <li>En el móvil, abre YouTube → <strong>+</strong> → <strong>Subir un vídeo</strong> y elige el Short (o súbelo desde YouTube Studio en el ordenador).</li>
     <li>Pega el título y la descripción.</li>
+    <li><strong>Portada:</strong> en la app de YouTube, antes de publicar, toca el lápiz de la portada
+      («Editar portada» o «Miniatura»). Si te deja <strong>subir una imagen</strong>, elige la portada descargada;
+      si solo deja elegir un fotograma del vídeo, escoge el del principio, donde sale el gancho.</li>
     <li>Consejo: súbelos <strong>en días distintos</strong> (uno cada 1–2 días después del vídeo largo).</li>
   </ol>
 </div>

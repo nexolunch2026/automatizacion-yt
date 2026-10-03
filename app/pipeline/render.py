@@ -223,9 +223,9 @@ def scene_clip(
             scene["on_screen_text"], size, workdir / f"texto-{scene['number']}.png"
         )
         inputs += ["-loop", "1", "-i", str(overlay)]
-        chain += (
-            ";[1:v]format=rgba,fade=t=in:st=0.3:d=0.4:alpha=1[o];[v0][o]overlay=0:0:shortest=1[v1]"
-        )
+        # En los Shorts el gancho sale desde el primer fotograma (sirve de portada).
+        fade = "st=0:d=0.04" if scene.get("text_from_start") else "st=0.3:d=0.4"
+        chain += f";[1:v]format=rgba,fade=t=in:{fade}:alpha=1[o];[v0][o]overlay=0:0:shortest=1[v1]"
         last = "[v1]"
     run_ffmpeg(
         [

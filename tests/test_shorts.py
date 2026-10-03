@@ -32,6 +32,11 @@ def test_choose_segments_without_ai_prefers_numbers_and_questions():
     assert not spans[0] & spans[1]
 
 
+def test_highlight_word():
+    assert shorts.highlight_word("Perdió 63.000 millones") == "63.000"
+    assert shorts.highlight_word("Nadie lo vio venir") == "Nadie"
+
+
 def test_how_many():
     assert shorts.how_many(60) == 1 and shorts.how_many(180) == 2 and shorts.how_many(700) == 3
 
@@ -49,8 +54,20 @@ def test_pipeline_makes_vertical_shorts(logged_in, monkeypatch):
     width, height = meta["size"]
     assert height > width  # vertical
 
+    cover = project_dir(1) / short["cover"]
+    from PIL import Image
+
+    assert Image.open(cover).size == (1080, 1920)
+
     page = logged_in.get("/proyectos/1/shorts").text
-    assert "Así cayó Enron" in page and "Alta calidad" in page
+    assert "Así cayó Enron" in page and "Alta calidad" in page and "Descargar portada" in page
+
+    before = cover.stat().st_mtime_ns
+    logged_in.post("/proyectos/1/shorts/1/portada", data={"text": "  El fin   de Enron "})
+    with SessionLocal() as db:
+        assert jobs.get_result(db, 1, "shorts")["shorts"][0]["hook"] == "El fin de Enron"
+    assert cover.stat().st_mtime_ns != before
+    assert logged_in.post("/proyectos/1/shorts/9/portada", data={"text": "x"}).status_code == 404
 
     logged_in.post("/proyectos/1/etapas/shorts", data={"quality": "final"})
     with SessionLocal() as db:
@@ -65,6 +82,8 @@ def test_shorts_reach_telegram(logged_in, monkeypatch):
         replies = assistant.tick(db)
     notice = next(r for r in replies if "Shorts listos" in r.text)
     assert notice.video.name == "video-preview.mp4" and notice.video.exists()
+    covers = next(r for r in replies if "portadas" in r.text)
+    assert covers.photos and covers.photos[0].name == "portada.jpg"
 
 
 def test_short_projects_do_not_make_shorts(logged_in, monkeypatch):
@@ -81,3 +100,23 @@ def test_short_projects_do_not_make_shorts(logged_in, monkeypatch):
             raise AssertionError("debería fallar")
         except ProviderError as exc:
             assert "ya es un Short" in str(exc)
+
+
+def test_old_shorts_get_a_cover_on_request(logged_in, monkeypatch):
+    import copy
+
+    from app.models import StageResult
+
+    make_video_project(logged_in, monkeypatch)
+    with SessionLocal() as db:  # como si se hubiera hecho con una versión anterior
+        row = db.query(StageResult).filter_by(project_id=1, stage="shorts").one()
+        data = copy.deepcopy(row.data)
+        for short in data["shorts"]:
+            short.pop("cover"), short.pop("paragraph_ids")
+        row.data = data
+        db.commit()
+    assert "Crear portada" in logged_in.get("/proyectos/1/shorts").text
+    logged_in.post("/proyectos/1/shorts/1/portada", data={"text": "Nadie lo vio"})
+    with SessionLocal() as db:
+        cover = jobs.get_result(db, 1, "shorts")["shorts"][0]["cover"]
+    assert (project_dir(1) / cover).exists()

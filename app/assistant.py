@@ -885,7 +885,12 @@ def shorts_replies(project: Project, data: dict) -> list[Reply]:
             f"📱 <b>{escape(project.title)}</b>: {len(shorts)} Shorts listos. Aquí va el primero; "
             f"todos están en la pestaña Shorts del proyecto.\n{titles}",
             video=folder / shorts[0]["file"],
-        )
+        ),
+        *(
+            [Reply("🖼️ Y sus portadas, por si las quieres usar:", photos=covers)]
+            if (covers := [folder / s["cover"] for s in shorts if s.get("cover")])
+            else []
+        ),
     ]
 
 

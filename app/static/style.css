@@ -328,3 +328,8 @@ table.perf th { color: var(--muted); font-weight: 600; font-size: .8rem; }
 .perf-form input { width: 64px; padding: 4px 6px; }
 .perf-form select { max-width: 150px; padding: 4px; }
 .grow { flex: 1; margin-right: 12px; }
+.short-media { display: grid; grid-template-columns: 1fr 120px; gap: 10px; align-items: start; }
+.short-cover { display: grid; gap: 6px; }
+.short-cover img { width: 100%; border-radius: 6px; }
+.cover-form { display: grid; gap: 4px; }
+.cover-form input { padding: 4px 6px; font-size: .8rem; }
