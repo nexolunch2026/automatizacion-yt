@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>🎓 Aprender de un vídeo</h1>
+    <p class="muted">Pega el enlace de un vídeo de YouTube. Gemini lo ve entero y te dice lo bueno, cómo
+      aplicarlo a tu canal y lo que no conviene.</p>
+  </div>
+</div>
+
+<div class="card form-card">
+  {% if not has_gemini %}
+  <p class="alert info">Para esto necesitas conectar Gemini (gratis) en <a href="/configuracion">Configuración</a>.</p>
+  {% endif %}
+  {% if error %}<p class="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="/aprender" class="stack" onsubmit="this.querySelector('button').textContent='Viendo el vídeo… (puede tardar 1 o 2 minutos)'">
+    <label>Enlace del vídeo de YouTube
+      <input name="url" value="{{ url or '' }}" placeholder="https://youtu.be/…" required>
+    </label>
+    <button class="btn" {% if not has_gemini %}disabled{% endif %}>Ver y sacar lo bueno</button>
+  </form>
+  <p class="muted small">También puedes mandarle el enlace a JARVIS por Telegram. Funciona con vídeos públicos.
+    Gemini gratis permite varias horas de vídeo al día.</p>
+</div>
+
+{% for l in lessons %}
+<div class="card lesson" id="l-{{ l.id }}">
+  <div class="row">
+    <div>
+      <h2>{{ l.title }}</h2>
+      <p class="muted small">{{ l.channel }}{% if l.channel %} · {% endif %}{{ l.date }} ·
+        <a href="{{ l.url }}" target="_blank" rel="noopener">Abrir en YouTube</a></p>
+    </div>
+    {% if l.apply_in_scripts %}<span class="badge ok">📌 En tus guiones</span>{% endif %}
+  </div>
+  <p>{{ l.summary }}</p>
+  {% if l.good %}<h3>✅ Lo bueno</h3><ul>{% for x in l.good %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+  {% if l.apply %}<h3>👉 Para tu canal</h3><ul>{% for x in l.apply %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+  {% if l.careful %}<h3>⚠️ Lo que no conviene</h3><ul>{% for x in l.careful %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+  {% if l.ideas %}<h3>💡 Ideas de vídeo</h3><ul>{% for x in l.ideas %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+  <div class="row-actions">
+    <form method="post" action="/aprender/{{ l.id }}/aplicar">
+      <button class="btn small {{ 'secondary' if l.apply_in_scripts }}">
+        {% if l.apply_in_scripts %}Dejar de aplicar en mis guiones{% else %}📌 Aplicar en mis guiones{% endif %}
+      </button>
+    </form>
+    <form method="post" action="/aprender/{{ l.id }}/borrar" onsubmit="return confirm('¿Borrar esta lección?')">
+      <button class="btn-link small">Borrar</button>
+    </form>
+  </div>
+  {% if l.apply_in_scripts %}
+  <p class="muted small">Los guiones nuevos tendrán en cuenta los puntos de «Para tu canal».</p>
+  {% endif %}
+</div>
+{% else %}
+<p class="muted">Aún no has analizado ningún vídeo.</p>
+{% endfor %}
+{% endblock %}

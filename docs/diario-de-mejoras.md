@@ -2,6 +2,15 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-03 — Versión 0.27: aprender de un vídeo
+
+- Menú nuevo **🎓 Aprender**: pegas el enlace de un vídeo de YouTube y Gemini lo **ve
+  entero** desde tu ordenador (gratis, varias horas de vídeo al día).
+- Te devuelve **lo bueno**, **cómo aplicarlo a tu canal**, **lo que no conviene** (normas
+  de YouTube) e **ideas de vídeo**. Todo queda guardado.
+- Botón **📌 Aplicar en mis guiones**: los guiones nuevos tienen en cuenta esa lección.
+- También por Telegram: mándale a JARVIS el enlace y te responde con el resumen.
+
 ## 2026-10-03 — Versión 0.26: listo para «Probar y comparar»
 
 - En **Publicación** hay una tarjeta nueva, **🧪 Probar y comparar**, con 3 títulos

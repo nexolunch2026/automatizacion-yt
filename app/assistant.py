@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import agenda, coach, ideas_bank, jobs, skills
+from app import agenda, coach, ideas_bank, jobs, learning, skills
 from app.media import project_dir
 from app.models import DURATIONS, STAGES, Channel, Job, Project, User
 from app.pipeline.monetization import project_review, summary_text
@@ -196,6 +196,7 @@ class Intent(BaseModel):
         "idea_bank",
         "week_plan",
         "publish_day",
+        "learn_video",
     ]
     topic: str = Field(default="", description="Tema del vídeo, si pide uno")
     topics: list[str] = Field(default_factory=list, description="Temas para la cola")
@@ -327,6 +328,9 @@ def quick_intent(text: str) -> Intent | None:
             return Intent(action="briefing")
     norm = normalize(text).strip()
     bare = norm.strip(" .!?¡¿")
+    link = learning.find_link(text)
+    if link:
+        return Intent(action="learn_video", target=link)
     skill = skills.quick(text, norm)
     if skill:
         return skill
@@ -536,6 +540,8 @@ def help_replies() -> list[Reply]:
             "📡 <b>«radar»</b> — marcas en apuros esta semana (ideas de vídeo); "
             "<b>«noticias»</b>, <b>«dólar»</b>, <b>«clima»</b>, <b>«dato curioso»</b>.\n"
             "🖥️ <b>«abre YouTube Studio»</b>, <b>«busca…»</b>, <b>«pon música lofi»</b>.\n"
+            "🎓 <b>Mándame un enlace de YouTube</b> y lo veo: te digo lo bueno y cómo "
+            "aplicarlo a tu canal.\n"
             "💬 Y pregúntame lo que quieras: recuerdo la conversación.\n"
             "🎙️ También puedes <b>mandarme notas de voz</b>.",
             buttons=[
@@ -676,6 +682,18 @@ def next_step_replies(db: Session) -> list[Reply]:
         if button:
             buttons.append([button])
     return [Reply("\n".join(lines), buttons=buttons or None)]
+
+
+def learn_video_replies(db: Session, url: str) -> list[Reply]:
+    ai = jobs.get_ai_provider(db)
+    item = learning.learn(db, url, ai)
+    jobs.remember_working_model(db, ai)
+    return [
+        Reply(
+            "🎓 " + escape(learning.lesson_text(item)),
+            buttons=[[("📌 Aplicar en mis guiones", f"lesson:{item['id']}")]],
+        )
+    ]
 
 
 def week_plan_reply(db: Session) -> Reply:
@@ -945,6 +963,8 @@ def _act(db: Session, intent: Intent, text: str) -> list[Reply]:
     if intent.action == "idea_bank":
         region = intent.topic if intent.topic in ("España", "Latinoamérica") else ""
         return bank_replies(db, region)
+    if intent.action == "learn_video" and learning.find_link(intent.target):
+        return learn_video_replies(db, learning.find_link(intent.target))
     if intent.action == "week_plan":
         return [week_plan_reply(db)]
     if intent.action == "publish_day":
@@ -1020,6 +1040,17 @@ def _button(db: Session, data: str) -> list[Reply]:
         return skills.act(db, Intent(action="analyze"))
     if kind == "next":
         return next_step_replies(db)
+    if kind == "lesson":
+        on = learning.toggle_apply(db, rest)
+        if on is None:
+            return [Reply("Esa lección ya no existe.")]
+        return [
+            Reply(
+                "📌 Hecho: los guiones nuevos tendrán en cuenta esa lección."
+                if on
+                else "Quitada: los guiones ya no la usarán."
+            )
+        ]
     if kind == "money":
         return [monetization_reply(db)]
     if kind == "perf":

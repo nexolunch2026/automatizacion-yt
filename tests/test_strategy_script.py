@@ -66,6 +66,7 @@ def test_write_script_with_tone(logged_in, ai):
         "drama": "Alto",
         "technical": "Bajo",
         "structure": "cronologia",  # automática: la primera que nunca se ha usado
+        "lessons": [],  # nada marcado en «Aprender»
     }
     # 5–10 min: gancho, promesa, intro, 3 de desarrollo, clímax, conclusión y llamada.
     assert [s["kind"] for s in data["sections"]] == [

@@ -96,6 +96,16 @@ def _style(params: dict) -> str:
     )
 
 
+def _lessons(params: dict) -> str:
+    """Lo que el creador aprendió de otros vídeos y quiere aplicar (página «Aprender»)."""
+    rules = [r for r in params.get("lessons") or [] if r.strip()]
+    if not rules:
+        return ""
+    return "\nLo que el creador quiere aplicar (aprendido de otros vídeos):\n" + "\n".join(
+        f"- {r}" for r in rules
+    )
+
+
 def _structure(params: dict) -> str:
     key = params.get("structure")
     if key not in STRUCTURES:
@@ -158,7 +168,7 @@ Enfoque: {concept["angle"]} — {concept["summary"]}
 Promesa al espectador: {concept["promise"]}
 Gancho sugerido: {concept["hook"]}
 Audiencia: {concept["audience"]}
-{_style(params)}{_structure(params)}"""
+{_style(params)}{_structure(params)}{_lessons(params)}"""
 
 
 RULES = """Reglas:

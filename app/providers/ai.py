@@ -242,6 +242,27 @@ class GeminiProvider:
                 "La IA devolvió un formato inesperado. Se volverá a intentar.", transient=True
             ) from exc
 
+    def watch_video(self, url: str, prompt: str, schema: type[T]) -> T:
+        """Gemini «ve» un vídeo público de YouTube (imagen y sonido) a partir del enlace y
+        responde en JSON. El nivel gratuito permite varias horas de vídeo al día."""
+        from google.genai import types
+
+        contents = [types.Part(file_data=types.FileData(file_uri=url)), prompt]
+        config = types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=schema,
+            temperature=0.3,
+        )
+        response = self._generate(contents, config)
+        if isinstance(response.parsed, schema):
+            return response.parsed
+        try:
+            return schema.model_validate_json(response.text or "")
+        except ValidationError as exc:
+            raise ProviderError(
+                "Gemini no pudo resumir el vídeo. Prueba otra vez en un rato.", transient=True
+            ) from exc
+
     def transcribe(self, audio: bytes, mime_type: str) -> str:
         """Pasa a texto una nota de voz (por ejemplo, las que llegan por Telegram)."""
         from google.genai import types
