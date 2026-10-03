@@ -19,8 +19,9 @@
       </label>
       <label>Duración
         <select name="duration">
-          {% for d in durations %}<option {% if form.duration == d or (not form.duration and d == '5–10 min') %}selected{% endif %}>{{ d }}</option>{% endfor %}
+          {% for d in durations %}<option {% if form.duration == d or (not form.duration and d == '10–15 min') %}selected{% endif %}>{{ d }}</option>{% endfor %}
         </select>
+        <span class="muted small">Recomendado: 10–15 min (desde 8 min se pueden poner anuncios a mitad del vídeo).</span>
       </label>
     </div>
     <div class="row-fields">

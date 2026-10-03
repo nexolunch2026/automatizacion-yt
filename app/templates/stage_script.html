@@ -25,6 +25,10 @@
     <p class="alert info">Has cambiado de enfoque o de título desde que se escribió este guion.
       Vuelve a escribirlo si quieres que lo refleje.</p>
     {% endif %}
+    {% if script and script.params and script.params.structure in structures %}
+    <p class="muted small">Estructura de este guion: <strong>{{ structures[script.params.structure][0] }}</strong>
+      — {{ structures[script.params.structure][1] }}</p>
+    {% endif %}
     <form method="post" action="/proyectos/{{ project.id }}/etapas/script" class="tone-form">
       <label>Tono
         <select name="tone">{% for t in tones %}<option {% if params.tone == t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
@@ -34,6 +38,12 @@
       </label>
       <label>Nivel técnico
         <select name="technical">{% for l in levels %}<option {% if params.technical == l %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+      </label>
+      <label>Estructura
+        <select name="structure">
+          <option value="auto">Automática (distinta a tus últimos vídeos)</option>
+          {% for key, item in structures.items() %}<option value="{{ key }}">{{ item[0] }}</option>{% endfor %}
+        </select>
       </label>
       <button class="btn {{ 'secondary' if script }}" {% if not has_gemini %}disabled{% endif %}
         {% if script %}onclick="return confirm('Se escribirá un guion nuevo y se perderán los cambios hechos a mano. ¿Seguir?')"{% endif %}>

@@ -24,6 +24,7 @@ log = logging.getLogger(__name__)
 
 GOAL_SUBS = 1000
 GOAL_HOURS = 4000
+ELEVEN_WARN_PCT = 70  # % de suscriptores a partir del que avisa de pagar ElevenLabs
 DEFAULT_RETENTION = 35  # % medio visto si no lo has copiado de YouTube Studio
 RECENT_PROJECTS = 12
 MAX_STEPS = 3
@@ -198,6 +199,12 @@ def monetization_path(db: Session, now: datetime | None = None) -> dict:
             "Copia el «% visto» de YouTube Studio en Rendimiento para que el cálculo de horas "
             "sea exacto."
         )
+    if subs_pct is not None and subs_pct >= ELEVEN_WARN_PCT and _uses_free_eleven(db):
+        tips.insert(
+            0,
+            "Ya estás cerca: antes de solicitar la monetización pasa ElevenLabs al plan de "
+            "pago (el gratis no lo permite).",
+        )
     tips.append("Publica con regularidad (mismo día y hora cada semana): el algoritmo lo premia.")
     return {
         "subs": subs,
@@ -208,6 +215,15 @@ def monetization_path(db: Session, now: datetime | None = None) -> dict:
         "done": subs is not None and subs >= GOAL_SUBS and hours["hours"] >= GOAL_HOURS,
         "tips": tips[:3],
     }
+
+
+def _uses_free_eleven(db: Session) -> bool:
+    """¿El último vídeo con voz se grabó con ElevenLabs en el plan gratis?"""
+    for project in db.scalars(select(Project).order_by(Project.id.desc()).limit(10)):
+        voice = jobs.get_result(db, project.id, "voice")
+        if voice:
+            return voice.get("provider") == "elevenlabs" and voice.get("eleven_tier") == "free"
+    return False
 
 
 # ---------------------------------------------------------------- revisión

@@ -15,7 +15,14 @@ from app.media import MUSIC_DIR, MUSIC_EXTENSIONS, music_library, project_dir, s
 from app.models import LEVELS, SCRIPT_TONES, STAGES, Project, StageResult
 from app.pipeline.monetization import AREAS, project_review
 from app.pipeline.render import MUSIC_VOLUMES
-from app.pipeline.script import SECTION_LABELS, default_params, rewrite_paragraph, with_stats
+from app.pipeline.script import (
+    AUTO,
+    SECTION_LABELS,
+    STRUCTURES,
+    default_params,
+    rewrite_paragraph,
+    with_stats,
+)
 from app.pipeline.storyboard import paragraphs_of, stale_scenes
 from app.pipeline.voice import pending_characters, take_key
 from app.providers.ai import ProviderError
@@ -105,6 +112,7 @@ def script_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         levels=LEVELS,
         labels=SECTION_LABELS,
         params=(script or {}).get("params") or default_params(),
+        structures=STRUCTURES,
     )
 
 
@@ -169,6 +177,19 @@ def _valid_voice(voice: str) -> bool:
     return voice in VOICE_IDS or bool(ELEVEN_ID.match(voice))
 
 
+def eleven_plan(credits: dict | None, characters: int) -> dict | None:
+    """Cuántos vídeos como este caben en los créditos que quedan este mes."""
+    if not credits or not characters:
+        return None
+    half = (characters + 1) // 2  # modo Ahorro: la mitad de créditos
+    return {
+        "free": credits.get("tier") == "free",
+        "videos": credits["left"] // characters,
+        "videos_saving": credits["left"] // half,
+        "month_saving": credits["limit"] // half,
+    }
+
+
 def _voice_context(db: DB, project: Project) -> dict:
     script = jobs.get_result(db, project.id, "script") or {}
     voice = jobs.get_result(db, project.id, "voice")
@@ -185,7 +206,9 @@ def _voice_context(db: DB, project: Project) -> dict:
     if eleven:
         credits = ElevenLabsVoices(get_api_key(db, "elevenlabs")).credits()
     sample = project_dir(project.id) / "voz" / "muestra.wav"
+    characters = sum(len(p["text"]) for p in paragraphs)
     return {
+        "eleven_plan": eleven_plan(credits, characters),
         "voices": VOICES,
         "eleven_voices": eleven,
         "eleven_error": eleven_error,
@@ -663,6 +686,7 @@ def run_stage(
     tone: Annotated[str | None, Form()] = None,
     drama: Annotated[str | None, Form()] = None,
     technical: Annotated[str | None, Form()] = None,
+    structure: Annotated[str | None, Form()] = None,
     voice: Annotated[str | None, Form()] = None,
     speed: Annotated[str | None, Form()] = None,
     quality: Annotated[str | None, Form()] = None,
@@ -683,6 +707,7 @@ def run_stage(
             "tone": tone if tone in SCRIPT_TONES else defaults["tone"],
             "drama": drama if drama in LEVELS else defaults["drama"],
             "technical": technical if technical in LEVELS else defaults["technical"],
+            "structure": structure if structure in STRUCTURES else AUTO,
         }
     elif stage == "edit":
         params = {
@@ -788,6 +813,7 @@ def edit_paragraph(
                 levels=LEVELS,
                 labels=SECTION_LABELS,
                 params=script.get("params") or default_params(),
+                structures=STRUCTURES,
                 error=f"No se pudo cambiar el párrafo: {exc}",
             )
     row.data = script

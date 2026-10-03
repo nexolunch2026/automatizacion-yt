@@ -60,6 +60,17 @@
     gastaría unos <strong>{{ pending_characters }}</strong> créditos (la mitad en modo Ahorro).
     {% if credits %}Te quedan <strong>{{ credits.left }}</strong> de {{ credits.limit }} este mes.{% endif %}
   </p>
+  {% if eleven_plan %}
+  <p class="muted small eleven-only">Con lo que te queda este mes te alcanza para
+    <strong>{{ eleven_plan.videos }}</strong> vídeo(s) como este, o <strong>{{ eleven_plan.videos_saving }}</strong>
+    en modo Ahorro. Si quieres más vídeos al mes, haz algunos con una voz Piper (gratis y sin límite).</p>
+  {% if eleven_plan.free %}
+  <p class="alert info eleven-only">Plan gratis de ElevenLabs: perfecto para probar mientras el canal crece.
+    Usa el modo <strong>Ahorro</strong> (te da para unos {{ eleven_plan.month_saving }} vídeos así al mes).
+    Este plan pide citar a ElevenLabs (lo añadimos solo a la descripción) y no permite monetizar:
+    paga el plan más barato justo antes de solicitar la monetización. El control de calidad te lo recordará.</p>
+  {% endif %}
+  {% endif %}
   {% elif eleven_error %}
   <p class="alert">ElevenLabs: {{ eleven_error }}</p>
   {% else %}

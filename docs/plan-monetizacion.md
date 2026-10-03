@@ -39,23 +39,31 @@ automatización sirve para ahorrar horas, no para sustituir tu criterio.
   la pantalla JARVIS dicen el siguiente paso, y piden revisar antes de subir si hace falta.
 - Las ideas llegan con formatos distintos para que el canal no parezca hecho en serie.
 
+## Variedad, vídeos largos y ElevenLabs gratis — hecho en la versión 0.21.0
+
+- **Estructuras que se turnan**: cronológica, ascenso y caída, los errores clave, rivalidad
+  e investigación. En «Automática» cada guion usa la que hace más tiempo que no se usa en
+  el canal; el control de calidad avisa si repites la del último vídeo.
+- **10–15 min por defecto** en los proyectos nuevos (anuncios a mitad del vídeo).
+- **ElevenLabs con el plan gratis**: la página Voz dice cuántos vídeos te alcanzan este mes
+  (normal y Ahorro); la descripción cita a ElevenLabs como pide ese plan; el control de
+  calidad y JARVIS (al acercarte a 1.000 suscriptores) te recuerdan pagar el plan más
+  barato justo antes de solicitar la monetización.
+
 ## Fase 2 — siguiente (más impacto)
 
-1. **Variedad automática**: rotar estructuras de guion (cronológica, «5 errores», juicio,
-   comparación), estilos visuales y voces entre vídeos, para que el canal no parezca hecho
-   en serie.
-2. **Duración «8–12 min»** como opción por defecto: el punto ideal entre ingresos y retención.
-3. **Retención real**: leer la curva de retención de YouTube Analytics y señalar en qué
+1. **Más variedad**: turnar también estilos visuales y música entre vídeos.
+2. **Retención real**: leer la curva de retención de YouTube Analytics y señalar en qué
    segundo se va la gente, para que el próximo guion lo evite.
-4. **Subir a YouTube como borrador privado** (con capítulos, etiquetas y la casilla de
+3. **Subir a YouTube como borrador privado** (con capítulos, etiquetas y la casilla de
    contenido sintético ya puestos). Siempre privado: tú lo revisas y lo publicas.
 
 ## Fase 3 — después
 
-5. **Pruebas A/B de miniaturas y títulos** con la función «Probar y comparar» de YouTube.
-6. **Biblioteca de música** con su licencia guardada, para que el control de calidad la dé
+4. **Pruebas A/B de miniaturas y títulos** con la función «Probar y comparar» de YouTube.
+5. **Biblioteca de música** con su licencia guardada, para que el control de calidad la dé
    por buena.
-7. **Calendario**: publicar a la misma hora cada semana y programar los Shorts para que
+6. **Calendario**: publicar a la misma hora cada semana y programar los Shorts para que
    lleven gente al vídeo largo.
-8. **Ideas con demanda real**: cruzar el radar de marcas con lo que más se busca y con lo
+7. **Ideas con demanda real**: cruzar el radar de marcas con lo que más se busca y con lo
    que mejor te ha funcionado en Rendimiento.

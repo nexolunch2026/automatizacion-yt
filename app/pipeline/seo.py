@@ -88,6 +88,7 @@ def build_description(
     credits: str,
     hashtags: list[str],
     has_ai_images: bool,
+    voice_credit: str = "",
 ) -> str:
     parts = [intro.strip()]
     if chapters:
@@ -101,10 +102,20 @@ def build_description(
         parts.append("🖼️ " + credits)
     if has_ai_images:
         parts.append("Algunas imágenes de este vídeo son ilustraciones generadas con IA.")
+    if voice_credit:
+        parts.append(voice_credit)
     if hashtags:
         parts.append(" ".join(hashtags))
     text = "\n\n".join(p for p in parts if p)
     return text[: DESCRIPTION_LIMIT - 1] if len(text) >= DESCRIPTION_LIMIT else text
+
+
+def voice_credit(voice: dict | None) -> str:
+    """El plan gratis de ElevenLabs pide citarlos. Si no se sabe el plan, se cita igual."""
+    voice = voice or {}
+    if voice.get("provider") == "elevenlabs" and voice.get("eleven_tier", "free") in ("free", ""):
+        return "🎙️ Voz creada con ElevenLabs (elevenlabs.io)."
+    return ""
 
 
 def clean_tags(tags: list[str]) -> list[str]:
@@ -174,7 +185,13 @@ def run_seo(
     return {
         "titles": [t[:100] for t in titles[:4]],
         "description": build_description(
-            draft.description_intro, chapters, research, credits, hashtags, has_ai_images
+            draft.description_intro,
+            chapters,
+            research,
+            credits,
+            hashtags,
+            has_ai_images,
+            voice_credit(voice),
         ),
         "chapters": [{"time": format_time(t), "title": name} for t, name in chapters],
         "chapters_exact": bool(voice),

@@ -61,7 +61,12 @@ def test_write_script_with_tone(logged_in, ai):
 
     data = script_data()
     assert data["title"] == "Título 1-2"
-    assert data["params"] == {"tone": "Misterioso", "drama": "Alto", "technical": "Bajo"}
+    assert data["params"] == {
+        "tone": "Misterioso",
+        "drama": "Alto",
+        "technical": "Bajo",
+        "structure": "cronologia",  # automática: la primera que nunca se ha usado
+    }
     # 5–10 min: gancho, promesa, intro, 3 de desarrollo, clímax, conclusión y llamada.
     assert [s["kind"] for s in data["sections"]] == [
         "hook",

@@ -195,7 +195,7 @@ def _ads_checks(project: Project, results: dict, title: str) -> list[dict]:
     return checks
 
 
-def _original_checks(results: dict, others: list[str]) -> list[dict]:
+def _original_checks(results: dict, others: list[str], structures: list[str]) -> list[dict]:
     script = results.get("script")
     if not script:
         return [_check("original", "original", PENDING, "Originalidad", "Falta el guion.")]
@@ -220,6 +220,26 @@ def _original_checks(results: dict, others: list[str]) -> list[dict]:
             "guion",
         )
     )
+
+    from app.pipeline.script import STRUCTURES
+
+    structure = (script.get("params") or {}).get("structure")
+    if structure in STRUCTURES:
+        name = STRUCTURES[structure][0]
+        repeated = bool(structures) and structures[0] == structure
+        checks.append(
+            _check(
+                "structure",
+                "original",
+                WARN if repeated else OK,
+                f"Misma estructura que el último vídeo ({name})"
+                if repeated
+                else f"Estructura «{name}», distinta a la del último vídeo",
+                "Cambiar la forma de contar cada historia demuestra que no es una plantilla.",
+                "Vuelve a escribir el guion con Estructura «Automática»." if repeated else "",
+                "guion",
+            )
+        )
 
     paragraphs = [p for s in script["sections"] for p in s["paragraphs"]]
     facts = [
@@ -290,15 +310,22 @@ def _rights_checks(results: dict) -> list[dict]:
             )
 
     voice = results.get("voice") or {}
-    if voice.get("provider") == "elevenlabs":
+    tier = voice.get("eleven_tier") or ""
+    if voice.get("provider") == "elevenlabs" and tier and tier != "free":
+        checks.append(
+            _check("voice", "rights", OK, "ElevenLabs con plan de pago", "Permite monetizar.")
+        )
+    elif voice.get("provider") == "elevenlabs":
         checks.append(
             _check(
                 "voice",
                 "rights",
                 WARN,
-                "Voz de ElevenLabs",
-                "El plan gratis de ElevenLabs no permite uso comercial (canal monetizado).",
-                "Usa un plan de pago de ElevenLabs o una voz Piper.",
+                "ElevenLabs con plan gratis" if tier == "free" else "Voz de ElevenLabs",
+                "Sirve mientras creces, pero el plan gratis no permite monetizar y pide citar a"
+                " ElevenLabs (ya va en la descripción).",
+                "Paga el plan más barato (Starter) justo antes de solicitar la monetización,"
+                " o regraba con una voz Piper.",
                 "voz",
             )
         )
@@ -451,12 +478,18 @@ def chosen_title(results: dict, project: Project) -> str:
     return (results.get("script") or {}).get("title") or project.title
 
 
-def review(project: Project, results: dict, other_scripts: list[str]) -> dict:
-    """Revisa el proyecto. `other_scripts` son los guiones de los demás vídeos del canal."""
+def review(
+    project: Project,
+    results: dict,
+    other_scripts: list[str],
+    recent_structures: list[str] | None = None,
+) -> dict:
+    """Revisa el proyecto. `other_scripts` son los guiones de los demás vídeos del canal y
+    `recent_structures` sus estructuras, del vídeo más nuevo al más viejo."""
     title = chosen_title(results, project)
     checks = (
         _ads_checks(project, results, title)
-        + _original_checks(results, other_scripts)
+        + _original_checks(results, other_scripts, recent_structures or [])
         + _rights_checks(results)
         + _audience_checks(results)
         + _publish_checks(project, results, title)
@@ -495,8 +528,10 @@ def project_review(db: Session, project: Project) -> dict:
             Project.channel_id == project.channel_id,
             Project.id != project.id,
         )
-    )
-    return review(project, results, [script_text(r.data) for r in others])
+        .order_by(Project.id.desc())
+    ).all()
+    structures = [s for r in others if (s := (r.data.get("params") or {}).get("structure"))]
+    return review(project, results, [script_text(r.data) for r in others], structures)
 
 
 def summary_text(qc: dict) -> str:

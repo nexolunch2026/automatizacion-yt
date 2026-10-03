@@ -18,7 +18,7 @@ from app.media import music_library, music_path, project_dir
 from app.models import STATUSES, Job, Project, StageResult
 from app.pipeline.render import DEFAULT_STYLE, MUSIC_VOLUMES, QUALITIES, render_video
 from app.pipeline.research import run_research
-from app.pipeline.script import default_params, run_script
+from app.pipeline.script import STRUCTURES, default_params, pick_structure, run_script
 from app.pipeline.seo import run_seo
 from app.pipeline.storyboard import run_storyboard
 from app.pipeline.strategy import run_strategy
@@ -215,10 +215,28 @@ def _run_script(db: Session, project: Project, progress, params: dict) -> dict:
     strategy = _require(db, project, "strategy", "Primero hay que crear la estrategia.")
     if not strategy.get("selected"):
         raise ProviderError("Primero elige uno de los enfoques en la página de Estrategia.")
+    params = {**default_params(), **(params or {})}
+    if params["structure"] not in STRUCTURES:  # automática: la que hace más que no se usa
+        params["structure"] = pick_structure(recent_structures(db, project))
     ai = get_ai_provider(db)
-    data = run_script(project, research, strategy, ai, params or default_params(), progress)
+    data = run_script(project, research, strategy, ai, params, progress)
     remember_working_model(db, ai)
     return data
+
+
+def recent_structures(db: Session, project: Project) -> list[str]:
+    """Estructuras de los otros guiones del canal, del vídeo más nuevo al más viejo."""
+    rows = db.scalars(
+        select(StageResult)
+        .join(Project, Project.id == StageResult.project_id)
+        .where(
+            StageResult.stage == "script",
+            Project.channel_id == project.channel_id,
+            Project.id != project.id,
+        )
+        .order_by(Project.id.desc())
+    )
+    return [s for r in rows if (s := (r.data.get("params") or {}).get("structure"))]
 
 
 def _run_storyboard(db: Session, project: Project, progress, params: dict) -> dict:
@@ -253,20 +271,23 @@ def _run_voice(db: Session, project: Project, progress, params: dict) -> dict:
     chosen = voice_params(db, project, params)
     tts = get_voice_provider(db, chosen["voice"], chosen["model"])
     previous = get_result(db, project.id, "voice")
+    credits = None
     if is_eleven(chosen["voice"]):
-        _check_eleven_credits(tts, pending_characters(script, previous, chosen))
+        credits = _check_eleven_credits(tts, pending_characters(script, previous, chosen))
     elif hasattr(tts, "is_downloaded") and not tts.is_downloaded(chosen["voice"]):
         progress(3, "Descargando la voz (solo la primera vez, unos 60 MB)")
         tts.ensure_downloaded(chosen["voice"])
     folder = project_dir(project.id) / "voz"
     data = run_voice(project, script, previous, tts, chosen, folder, progress)
+    if credits:  # «free» = plan gratis: no permite monetizar y pide citar a ElevenLabs
+        data["eleven_tier"] = credits.get("tier", "")
     set_setting(db, "voice_default", chosen["voice"])
     if is_eleven(chosen["voice"]):
         set_setting(db, "eleven_model", chosen["model"])
     return data
 
 
-def _check_eleven_credits(tts, characters: int) -> None:
+def _check_eleven_credits(tts, characters: int) -> dict | None:
     """Antes de gastar nada, comprueba que hay créditos suficientes en ElevenLabs."""
     credits = tts.credits() if hasattr(tts, "credits") else None
     needed = tts.cost(characters) if hasattr(tts, "cost") else characters
@@ -276,6 +297,7 @@ def _check_eleven_credits(tts, characters: int) -> None:
             f"quedan {credits['left']} este mes. Usa el modo «Ahorro», una voz de Piper "
             "(gratis) o amplía tu plan."
         )
+    return credits
 
 
 def _run_publish(db: Session, project: Project, progress, params: dict) -> dict:

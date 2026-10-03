@@ -42,8 +42,50 @@ class Rewrite(BaseModel):
     sources: list[int]
 
 
+# Estructuras narrativas. Se turnan entre vídeos del canal para que no parezcan hechos
+# con la misma plantilla (YouTube no monetiza el «contenido no auténtico»).
+AUTO = "auto"
+STRUCTURES = {
+    "cronologia": (
+        "Cronológica",
+        "Cuenta la historia en orden, del origen al final, deteniéndote en el momento que "
+        "lo cambió todo.",
+    ),
+    "auge_caida": (
+        "Ascenso y caída",
+        "Primera mitad: por qué triunfó. Segunda mitad: las grietas, la decisión clave y el "
+        "derrumbe (o el rescate).",
+    ),
+    "errores": (
+        "Los errores clave",
+        "Cada sección de desarrollo es uno de los errores (o aciertos) decisivos, de menor a "
+        "mayor impacto, y el clímax es el más grave.",
+    ),
+    "rivalidad": (
+        "Rivalidad",
+        "Cuéntalo como un duelo: la marca frente a su gran rival o frente al cambio del "
+        "mercado, alternando las decisiones de cada lado.",
+    ),
+    "investigacion": (
+        "Investigación",
+        "Empieza por el final (el resultado sorprendente) y reconstruye, como un detective, "
+        "cómo se llegó hasta ahí.",
+    ),
+}
+
+
 def default_params() -> dict:
-    return {"tone": "Documental", "drama": "Medio", "technical": "Bajo"}
+    return {"tone": "Documental", "drama": "Medio", "technical": "Bajo", "structure": AUTO}
+
+
+def pick_structure(recent: list[str]) -> str:
+    """La estructura que hace más tiempo que no se usa (`recent`: de la más nueva a la más
+    vieja). Las que nunca se han usado van primero."""
+
+    def last_used(key: str) -> int:
+        return recent.index(key) if key in recent else len(recent) + 1
+
+    return max(STRUCTURES, key=last_used)
 
 
 def _style(params: dict) -> str:
@@ -52,6 +94,14 @@ def _style(params: dict) -> str:
         f"Nivel de dramatismo: {params.get('drama', 'Medio')}. "
         f"Nivel técnico: {params.get('technical', 'Bajo')}."
     )
+
+
+def _structure(params: dict) -> str:
+    key = params.get("structure")
+    if key not in STRUCTURES:
+        return ""
+    name, guide = STRUCTURES[key]
+    return f"\nEstructura narrativa: {name}. {guide}"
 
 
 class OutlineSection(BaseModel):
@@ -108,7 +158,7 @@ Enfoque: {concept["angle"]} — {concept["summary"]}
 Promesa al espectador: {concept["promise"]}
 Gancho sugerido: {concept["hook"]}
 Audiencia: {concept["audience"]}
-{_style(params)}"""
+{_style(params)}{_structure(params)}"""
 
 
 RULES = """Reglas:
