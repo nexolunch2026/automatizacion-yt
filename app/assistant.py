@@ -255,6 +255,20 @@ TASK_DONE = re.compile(
 )
 
 
+# Preguntas claras de cualquier tema (lo demás lo clasifica la IA). Van al final de
+# quick_intent: las órdenes del estudio («¿cómo va el canal?», «¿qué hago ahora?») ganan.
+QUESTION = re.compile(
+    r"^[¿\s]*(?:y\s+)?(?:que|cual|cuales|donde|cuando|como|quien|quienes|cuanto|cuanta|cuantos|"
+    r"cuantas|por que|para que|recomiendame|recomienda|sabes|hay|dime|explicame|"
+    r"busca(?:me)?|en que|a que hora|de que)\b"
+)
+# Temas que ya tienen su propia habilidad (más rápida que buscar en Google): esas
+# preguntas las clasifica la IA.
+STUDIO_WORDS = re.compile(
+    r"\b(?:clima|tiempo|llueve|lluvia|temperatura|dolar|noticias?|radar|canal|videos?|"
+    r"shorts?|tareas?|recordatorios?|temporizador|proyectos?|suscriptores|visitas|estado|"
+    r"monetiz\w*|plan|ideas?|cola|piloto|guion|miniaturas?)\b"
+)
 REMEMBER = re.compile(r"^(?:recuerda|acuerdate de|no olvides|ten en cuenta)\s+que\s+")
 MEMORY_WORDS = ("que sabes de mi", "que recuerdas", "que recuerdas de mi", "tu memoria")
 MEMORY_KEY = "jarvis_memory"
@@ -431,6 +445,8 @@ def quick_intent(text: str) -> Intent | None:
         topic = _clean_topic(text[match.end() :])
         if topic:
             return Intent(action="new_video", topic=topic, duration=text[: match.end()])
+    if QUESTION.match(norm) and len(bare.split()) >= 3 and not STUDIO_WORDS.search(norm):
+        return Intent(action="question")  # se contesta buscando en Google, sin más pasos
     return None
 
 
@@ -450,8 +466,8 @@ def remember(chat_id: int, said: str, replies: list[Reply]) -> None:
 
 def _context(db: Session, chat_id: int) -> str:
     now = datetime.now()
-    lines = [f"Fecha y hora: {agenda.spoken_date(now)}, {agenda.spoken_time(now)}."]
-    channel = skills.channel_summary(db)
+    lines = [f"Fecha y hora: {agenda.spoken_date(now)} de {now.year}, {agenda.spoken_time(now)}."]
+    channel = cached_channel_summary(db)
     if channel:
         lines.append(f"Canal de YouTube: {channel}.")
     headlines = [n["title"] for n in (info_cache_news(db))[:5]]
@@ -464,6 +480,15 @@ def _context(db: Session, chat_id: int) -> str:
     if talk:
         lines.append("CONVERSACIÓN RECIENTE:\n" + talk)
     return "\n".join(lines)
+
+
+def cached_channel_summary(db: Session) -> str:
+    """Resumen del canal solo si ya está descargado (para no hacer esperar a JARVIS)."""
+    from app import info
+
+    if any(key.startswith("youtube:") and hit[1] for key, hit in info._cache.items()):
+        return skills.channel_summary(db)  # se sirve de la caché, sin ir a internet
+    return ""
 
 
 def info_cache_news(db: Session) -> list[dict]:
@@ -962,12 +987,12 @@ def _text(db: Session, text: str, chat_id: int = 0) -> list[Reply]:
         except ProviderError as exc:
             log.warning("JARVIS no pudo entender «%s»: %s | %s", text[:80], exc, exc.detail)
             return [error_reply("No pude pensar la respuesta", exc)]
-    replies = _act(db, intent, text)
+    replies = _act(db, intent, text, chat_id)
     remember(chat_id, text, replies)
     return replies
 
 
-def _act(db: Session, intent: Intent, text: str) -> list[Reply]:
+def _act(db: Session, intent: Intent, text: str, chat_id: int = 0) -> list[Reply]:
     if intent.action == "new_video" and intent.topic.strip():
         return _new_video(db, _clean_topic(intent.topic), intent.duration or text)
     if intent.action == "status":
@@ -1014,7 +1039,7 @@ def _act(db: Session, intent: Intent, text: str) -> list[Reply]:
     if intent.action == "chat" and intent.reply.strip():
         return [Reply(escape(intent.reply.strip()))]
     if intent.action in ("question", "chat") and text.strip():
-        return answer_question(db, text)  # cualquier pregunta: busca en Google
+        return answer_question(db, text, chat_id)  # cualquier pregunta: busca en Google
     return help_replies()
 
 
@@ -1060,11 +1085,17 @@ def answer_question(db: Session, question: str, chat_id: int = 0) -> list[Reply]
     """Contesta cualquier pregunta buscando en Google (datos actuales y comprobables)."""
     ai = jobs.get_ai_provider(db)
     facts = "\n".join(f"- {f}" for f in memory(db)) or "(nada todavía)"
+    city = (get_setting(db, "jarvis_city") or "").strip()
+    where = f"Simón vive en {city} (Colombia salvo que diga otra cosa)." if city else ""
     prompt = f"""Eres JARVIS, el asistente personal de Simón (como el de Iron Man): sabes de
 todo. Responde a su pregunta en español sencillo y útil: 2–6 frases, o pasos numerados si
 pregunta cómo hacer algo. Busca en Google lo que necesites para dar datos actuales y
 correctos; si no estás seguro, dilo. Tono: educado y preciso, con un toque de humor
-británico; trátalo de «usted».
+británico; trátalo de «usted». {where}
+Si pregunta por planes (cine, restaurantes, eventos, sitios), sé CONCRETO: busca en su
+ciudad opciones reales de hoy, con nombres, horarios, precios y dónde, y recomienda una
+diciendo por qué. Nada de «revise la cartelera»: búscala tú. Si de verdad no encuentras
+horarios de hoy, dilo y da el enlace o la web donde mirarlos.
 
 LO QUE SABES DE SIMÓN:
 {facts}
@@ -1073,7 +1104,7 @@ LO QUE SABES DE SIMÓN:
 
 PREGUNTA: {question}"""
     try:
-        result = ai.grounded_research(prompt)
+        result = getattr(ai, "quick_research", ai.grounded_research)(prompt)
     except ProviderError as exc:
         if exc.transient:
             raise

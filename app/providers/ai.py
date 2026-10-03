@@ -211,12 +211,23 @@ class GeminiProvider:
         )
         return results
 
-    def grounded_research(self, prompt: str) -> GroundedText:
+    def quick_research(self, prompt: str) -> GroundedText:
+        """Como `grounded_research` pero sin «pensar»: para las preguntas de JARVIS, que
+        deben contestarse en pocos segundos. Si el modelo no lo admite, modo normal."""
+        try:
+            return self.grounded_research(prompt, think=False)
+        except ProviderError as exc:
+            if exc.transient:
+                raise
+            return self.grounded_research(prompt)
+
+    def grounded_research(self, prompt: str, think: bool = True) -> GroundedText:
         from google.genai import types
 
         config = types.GenerateContentConfig(
             tools=[types.Tool(google_search=types.GoogleSearch())],
             temperature=0.2,
+            thinking_config=None if think else types.ThinkingConfig(thinking_budget=0),
         )
         response = self._generate(prompt, config)
         if not response.candidates:

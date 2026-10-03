@@ -272,9 +272,9 @@ def test_conversation_memory_goes_to_the_ai(logged_in, ai, monkeypatch):
         return original(prompt, schema)
 
     monkeypatch.setattr(ai, "generate_json", spy)
-    say("¿quién fundó Nokia?")
-    say("¿y en qué año?")
-    assert "Creador: ¿quién fundó Nokia?" in prompts[-1]
+    say("háblame de Nokia")
+    say("y de su fundador")
+    assert "Creador: háblame de Nokia" in prompts[-1]
     assert "JARVIS: A sus órdenes, señor." in prompts[-1]
 
 

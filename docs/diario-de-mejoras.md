@@ -2,6 +2,16 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-03 — Versión 0.32: JARVIS más rápido y concreto con las preguntas
+
+- Las preguntas claras («¿qué película me recomiendas…?», «¿dónde puedo comer…?») van
+  directas a buscar en Google: un viaje menos a Gemini.
+- Busca sin «pensar» (contesta antes); si no se puede, en modo normal.
+- Ya no consulta tu canal de YouTube en cada pregunta.
+- Para planes (cine, restaurantes, eventos) busca en **tu ciudad** opciones de hoy con
+  horarios y precios y te recomienda una, en vez de decirte «revise la cartelera».
+- Arreglado: en las preguntas no recordaba la conversación («¿y a qué hora es?»).
+
 ## 2026-10-03 — Versión 0.31: JARVIS no se queda sin responder
 
 - Si Gemini rechaza el «modo rápido», JARVIS repite la pregunta en modo normal.

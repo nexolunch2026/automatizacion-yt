@@ -93,7 +93,7 @@ def test_errors_show_technical_detail_and_unexpected_crashes_are_explained(
         raise ProviderError("Error de Gemini (400).", detail="400 INVALID_ARGUMENT: algo raro")
 
     monkeypatch.setattr(assistant, "_ai_intent", broken)
-    order = logged_in.post("/jarvis/orden", data={"text": "¿qué es un agujero negro?"}).json()
+    order = logged_in.post("/jarvis/orden", data={"text": "cuéntame algo"}).json()
     assert "Detalle técnico" in order["replies"][0]["html"]
     assert "INVALID_ARGUMENT" in order["replies"][0]["html"]
 
@@ -104,3 +104,37 @@ def test_errors_show_technical_detail_and_unexpected_crashes_are_explained(
     order = logged_in.post("/jarvis/orden", data={"text": "hola"}).json()
     assert "Algo falló dentro de JARVIS" in order["replies"][0]["html"]
     assert "KeyError" in order["replies"][0]["html"]
+
+
+@pytest.mark.parametrize(
+    ("text", "action"),
+    [
+        ("¿Qué película me recomiendas en el cine de Rionegro?", "question"),
+        ("¿Dónde puedo comer sushi barato?", "question"),
+        ("Recomiéndame una serie de misterio", "question"),
+        ("¿Qué tal el clima?", None),  # tiene su habilidad: la IA la elige
+        ("¿Cuánto está el dólar hoy?", None),
+        ("¿Qué?", None),  # demasiado corta
+    ],
+)
+def test_clear_questions_skip_the_classifier(text, action):
+    intent = quick_intent(text)
+    assert (intent.action if intent else None) == action
+
+
+def test_questions_are_concrete_local_and_remember_the_talk(logged_in, ai, monkeypatch):  # noqa: F811
+    from app.settings_store import set_setting
+
+    prompts = []
+
+    def research(self, prompt, think=True):
+        prompts.append(prompt)
+        return GroundedText(text="En Cinépolis San Nicolás hay función a las 19:30.")
+
+    monkeypatch.setattr(JarvisAI, "grounded_research", research)
+    with SessionLocal() as db:
+        set_setting(db, "jarvis_city", "Rionegro")
+        ask(db, "¿Qué película me recomiendas en el cine?")
+        ask(db, "¿Y a qué hora es la siguiente función?")
+    assert "Simón vive en Rionegro" in prompts[0] and "Nada de «revise la cartelera»" in prompts[0]
+    assert "Creador: ¿Qué película me recomiendas en el cine?" in prompts[1]
