@@ -333,3 +333,17 @@ table.perf th { color: var(--muted); font-weight: 600; font-size: .8rem; }
 .short-cover img { width: 100%; border-radius: 6px; }
 .cover-form { display: grid; gap: 4px; }
 .cover-form input { padding: 4px 6px; font-size: .8rem; }
+
+/* Control de calidad (monetización) */
+.qc-score { font-size: 2.4rem; font-weight: 800; line-height: 1; white-space: nowrap; }
+.qc-score small { font-size: .9rem; color: var(--muted); font-weight: 400; }
+.qc-score.qc-ok { color: var(--ok); }
+.qc-score.qc-warn { color: #ffc857; }
+.qc-score.qc-fail { color: var(--accent); }
+.qc-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.qc-item { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); }
+.qc-item p { margin: 4px 0 0; }
+.qc-item a { color: #b9d0ff; }
+.qc-item.qc-fail { border-color: rgba(255, 77, 79, .5); }
+.qc-item.qc-warn { border-color: rgba(255, 200, 87, .4); }
+.qc-icon { font-size: 1.2rem; }

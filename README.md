@@ -69,6 +69,13 @@ pantalla completa:
 - Abre cosas: *«abre YouTube Studio»*, *«busca la historia de Kodak»*, *«pon música lofi»*,
   *«abre el proyecto de Nokia»*. Y recuerda la conversación para seguir el hilo.
 
+### Control de calidad (antes de subir)
+En cada proyecto, la pestaña **Control de calidad** te da una nota de 0 a 100 y te dice si
+el vídeo podrá llevar anuncios: duración, palabras que quitan anuncios, si se parece
+demasiado a otro vídeo tuyo, licencias, aviso de imágenes de IA, gancho, ritmo, miniatura y
+Shorts. Cada aviso trae el botón para ir a arreglarlo. JARVIS también te lo dice si pulsas
+**🔎 ¿Se puede monetizar?**. El plan de próximas mejoras está en `docs/plan-monetizacion.md`.
+
 ### Rendimiento (cuando ya publicas)
 En **📈 Rendimiento** ves las visitas, «me gusta» y comentarios de cada vídeo, cómo
 crecen día a día y cuál va mejor. Las cifras se guardan solas cada 3 horas, JARVIS te

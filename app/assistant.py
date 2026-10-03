@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from app import agenda, jobs, skills
 from app.media import project_dir
 from app.models import DURATIONS, STAGES, Channel, Job, Project, User
+from app.pipeline.monetization import project_review, summary_text
 from app.pipeline.render import run_ffmpeg
 from app.providers.ai import ProviderError
 from app.settings_store import get_setting, set_setting
@@ -794,6 +795,8 @@ def _button(db: Session, data: str) -> list[Reply]:
             jobs.enqueue(db, project.id, "publish")
             return [Reply("📝 Preparo los textos para YouTube. Te los mando enseguida.")]
         return publish_replies(project, seo)
+    if kind == "qc":
+        return [Reply("🔎 " + escape(summary_text(project_review(db, project))))]
     if kind == "retry" and arg in jobs.RUNNERS:
         last = jobs.latest_jobs(db, project.id).get(arg)
         jobs.enqueue(db, project.id, arg, last.params if last else None)
@@ -853,6 +856,7 @@ def publish_replies(project: Project, seo: dict) -> list[Reply]:
         extra.append("<b>Comentario fijado:</b>\n" + escape(seo["pinned_comment"]))
     if extra:
         replies.append(Reply("\n\n".join(extra)))
+    replies[-1].buttons = [[("🔎 ¿Se puede monetizar?", f"qc:{project.id}")]]
     return replies
 
 

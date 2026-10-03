@@ -117,7 +117,14 @@ RULES = """Reglas:
 - Usa SOLO datos de la investigación y pon en «sources» los números entre corchetes de
   los datos que uses. Lo controvertido, preséntalo como discutido. Lo no verificado, no
   lo afirmes.
-- Nada de relleno ni de repetir lo ya contado."""
+- Nada de relleno ni de repetir lo ya contado.
+- Aporta análisis propio, no solo hechos: por qué pasó, qué decisión fue clave y qué
+  lección deja. YouTube no paga vídeos que solo resumen información.
+- El gancho entra directo con lo más intrigante: sin saludar ni decir «en este vídeo».
+- Al final de cada sección de desarrollo deja una pregunta o un adelanto que invite a
+  seguir viendo, sin desvelar todavía la respuesta.
+- Lenguaje apto para anunciantes: sin palabrotas ni detalles gráficos de violencia;
+  los temas delicados, con tono informativo."""
 
 
 def _outline_prompt(brief: str, plan: list[dict], research: dict) -> str:

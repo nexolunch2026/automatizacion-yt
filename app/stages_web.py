@@ -13,6 +13,7 @@ from app import jobs
 from app.auth import DB, CurrentUser
 from app.media import MUSIC_DIR, MUSIC_EXTENSIONS, music_library, project_dir, safe_path
 from app.models import LEVELS, SCRIPT_TONES, STAGES, Project, StageResult
+from app.pipeline.monetization import AREAS, project_review
 from app.pipeline.render import MUSIC_VOLUMES
 from app.pipeline.script import SECTION_LABELS, default_params, rewrite_paragraph, with_stats
 from app.pipeline.storyboard import paragraphs_of, stale_scenes
@@ -36,6 +37,7 @@ SLUGS = {
     "publish": "publicacion",
     "thumbnail": "miniatura",
     "shorts": "shorts",
+    "qc": "control",
 }
 STAGE_BY_SLUG = {slug: stage for stage, slug in SLUGS.items()}
 
@@ -568,6 +570,12 @@ def shorts_page(request: Request, db: DB, user: CurrentUser, project_id: int):
     return _stage_page(request, db, _project(db, project_id), "shorts")
 
 
+@router.get("/control")
+def qc_page(request: Request, db: DB, user: CurrentUser, project_id: int):
+    project = _project(db, project_id)
+    return _stage_page(request, db, project, "qc", qc=project_review(db, project), areas=AREAS)
+
+
 @router.post("/shorts/{number}/portada")
 def short_cover(
     db: DB, user: CurrentUser, project_id: int, number: int, text: Annotated[str, Form()]
@@ -757,8 +765,10 @@ def edit_paragraph(
     section, paragraph = found
 
     if action == "save":
-        if text.strip():
+        if text.strip() and text.strip() != paragraph["text"]:
             paragraph["text"] = text.strip()
+            # Cuántos párrafos ha retocado a mano (lo mira el control de calidad).
+            script["edited"] = script.get("edited", 0) + 1
         script = with_stats(script)
     elif action == "delete":
         section["paragraphs"].remove(paragraph)

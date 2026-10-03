@@ -18,6 +18,7 @@ from app.models import (
     Project,
     StageResult,
 )
+from app.pipeline.monetization import project_review
 from app.settings_store import api_key_hint
 from app.stages_web import SLUGS
 from app.templating import render
@@ -191,6 +192,7 @@ def project_detail(request: Request, db: DB, user: CurrentUser, project_id: int)
         runnable=set(jobs.RUNNERS),
         slugs=SLUGS,
         has_gemini=api_key_hint(db, "gemini") is not None,
+        qc=project_review(db, project) if "script" in results else None,
     )
 
 

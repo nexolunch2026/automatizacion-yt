@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% import "_project.html" as ui %}
+{% block content %}
+{{ ui.header(project) }}
+{{ ui.tabs(project, stage, slugs, stages, results, jobs) }}
+{% set icons = {'ok': '✅', 'warn': '⚠️', 'fail': '⛔', 'pending': '⏳'} %}
+
+<div class="card qc-summary">
+  <div class="row">
+    <div>
+      <h2>Control de calidad: ¿se puede monetizar?</h2>
+      <p class="muted small">Revisa lo que YouTube mira para pagar por un vídeo: duración, originalidad,
+        derechos, retención y lo que hace falta para subirlo. No gasta nada: se calcula al momento.</p>
+    </div>
+    <span class="qc-score qc-{{ 'ok' if qc.score >= 85 else ('warn' if qc.score >= 60 else 'fail') }}">{{ qc.score }}<small>/100</small></span>
+  </div>
+  <p class="alert {{ 'ok' if qc.counts.fail == 0 and qc.counts.pending == 0 and qc.score >= 85 else ('info' if qc.counts.fail == 0 else '') }}">{{ qc.verdict }}</p>
+  <p class="muted small">✅ {{ qc.counts.ok }} bien · ⚠️ {{ qc.counts.warn }} mejorable · ⛔ {{ qc.counts.fail }} a corregir · ⏳ {{ qc.counts.pending }} pendiente</p>
+</div>
+
+{% for area, label in areas.items() %}
+{% set items = qc.checks|selectattr('area', 'equalto', area)|list %}
+{% if items %}
+<div class="card">
+  <h3>{{ label }}</h3>
+  <ul class="qc-list">
+    {% for c in items %}
+    <li class="qc-item qc-{{ c.status }}" id="qc-{{ c.key }}">
+      <span class="qc-icon">{{ icons[c.status] }}</span>
+      <div>
+        <strong>{{ c.title }}</strong>
+        <p class="muted small">{{ c.detail }}</p>
+        {% if c.fix and c.status != 'ok' %}
+        <p class="small">👉 {{ c.fix }}
+          {% if c.link %}<a href="/proyectos/{{ project.id }}/{{ c.link }}">Ir</a>{% endif %}</p>
+        {% elif c.link and c.status == 'pending' %}
+        <p class="small"><a href="/proyectos/{{ project.id }}/{{ c.link }}">Ir a esa etapa</a></p>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endfor %}
+
+<div class="card">
+  <h3>Recuerda (YouTube no deja comprobarlo desde aquí)</h3>
+  <ol class="steps">
+    <li>Para entrar al Programa de Socios necesitas <strong>1.000 suscriptores</strong> y
+      <strong>4.000 horas de visualización</strong> en un año (o 10 millones de visitas en Shorts en 90 días).</li>
+    <li>Varía el formato entre vídeos: el mismo esquema, voz e imágenes en todos los vídeos es lo que
+      YouTube llama «contenido no auténtico».</li>
+    <li>Nada se publica sin que tú lo veas entero antes.</li>
+  </ol>
+</div>
+{% endblock %}

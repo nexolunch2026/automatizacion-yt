@@ -52,8 +52,9 @@
     <p>Saca 2–3 Shorts verticales con los mejores momentos del vídeo.</p>
     <a class="btn" href="/proyectos/{{ project.id }}/shorts">Ir a los Shorts</a>
   {% else %}
-    <p>Todo listo para subir a YouTube.</p>
-    <a class="btn" href="/proyectos/{{ project.id }}/publicacion">Ver textos de publicación</a>
+    <p>Todo listo. Antes de subirlo a YouTube, mira el control de calidad
+      (nota actual: <strong>{{ qc.score }}/100</strong>): te dice si el vídeo podrá llevar anuncios.</p>
+    <a class="btn" href="/proyectos/{{ project.id }}/control">Revisar antes de subir</a>
   {% endif %}
   {{ ui.no_gemini(has_gemini) }}
 </div>
@@ -78,6 +79,8 @@
         {% if key in slugs %}<a href="/proyectos/{{ project.id }}/{{ slugs[key] }}">{{ label }}</a>{% else %}<span>{{ label }}</span>{% endif %}
         {% if job and job.active %}
           <span class="small status-running">{{ job.message }} · {{ job.progress }}%</span>
+        {% elif key == 'qc' and qc %}
+          <span class="small {{ 'status-done' if qc.score >= 85 else 'status-running' }}">{{ qc.score }}/100</span>
         {% elif job and job.status == 'failed' and key not in results %}
           <span class="small status-failed">Falló</span>
         {% elif key in results %}
