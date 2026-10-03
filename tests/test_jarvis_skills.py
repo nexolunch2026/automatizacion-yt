@@ -300,3 +300,22 @@ def test_count_parser():
     assert info._count("3.456") == 3456
     assert info._count("1.5M") == 1_500_000
     assert info._count("12 K") == 12000
+
+
+def test_channel_page_prefers_its_own_id_and_survives_rss_errors(monkeypatch):
+    page = (
+        '"channelId":"UCotroCanalRecomendado00x"'
+        '<link rel="canonical" href="https://www.youtube.com/channel/UCelCanalDeVerdad0000000">'
+        '<meta property="og:title" content="Anatomía De Una Marca">'
+        '"subscriberCountText":{"simpleText":"312 suscriptores"}'
+    )
+    assert info.parse_channel_page(page)["id"] == "UCelCanalDeVerdad0000000"
+
+    def get(url, **params):
+        if "feeds" in url:
+            raise httpx.HTTPStatusError("404", request=None, response=None)
+        return Response(page)
+
+    monkeypatch.setattr(info, "_get", get)
+    data = info.fetch_youtube_public("@AnatomiaDeUnaMarca")
+    assert data["subscribers"] == 312 and data["latest"] == []

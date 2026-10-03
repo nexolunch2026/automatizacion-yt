@@ -128,8 +128,15 @@ ATOM = {
 
 def parse_channel_page(page: str) -> dict:
     """De la página pública del canal: identificador, nombre y suscriptores (aprox.)."""
-    channel_id = re.search(r'"(?:channelId|externalId)":"(UC[\w-]{22})"', page) or re.search(
-        r"channel/(UC[\w-]{22})", page
+    # El enlace «canonical» y «externalId» son del propio canal; «channelId» puede ser
+    # de otro (recomendados), así que va el último.
+    channel_id = (
+        re.search(
+            r'<link rel="canonical" href="https://www\.youtube\.com/channel/(UC[\w-]{22})"', page
+        )
+        or re.search(r'"externalId":"(UC[\w-]{22})"', page)
+        or re.search(r'<meta itemprop="identifier" content="(UC[\w-]{22})"', page)
+        or re.search(r'"channelId":"(UC[\w-]{22})"', page)
     )
     name = re.search(r'<meta property="og:title" content="([^"]+)"', page)
     subs = re.search(r'"subscriberCountText":\{[^}]*?"(?:simpleText|content)":"([^"]+)"', page)
@@ -165,8 +172,14 @@ def fetch_youtube_public(handle: str) -> dict:
     channel_id = page["id"] or (handle if handle.startswith("UC") else None)
     if not channel_id:
         raise ValueError("No se encontró el canal")
-    feed = _get("https://www.youtube.com/feeds/videos.xml", channel_id=channel_id).text
-    latest = parse_channel_feed(feed)
+    if not page["subscribers"] and not page["name"]:
+        raise ValueError("La página del canal no tiene datos")
+    try:  # el RSS de YouTube a veces falla: sin él seguimos con los suscriptores
+        feed = _get("https://www.youtube.com/feeds/videos.xml", channel_id=channel_id).text
+        latest = parse_channel_feed(feed)
+    except (httpx.HTTPError, ET.ParseError) as exc:
+        log.warning("RSS del canal no disponible: %s", exc)
+        latest = []
     return {
         "name": page["name"],
         "subscribers": page["subscribers"],

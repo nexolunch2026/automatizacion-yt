@@ -180,6 +180,8 @@ def main() -> None:
     except Exception as exc:  # noqa: BLE001
         print(f"   AVISO pronóstico: {exc}")
     try:
+        page = info._get("https://www.youtube.com/" + info.DEFAULT_CHANNEL, hl="es").text
+        print(f"   Página del canal: {info.parse_channel_page(page)}")
         channel = info.fetch_youtube_public(info.DEFAULT_CHANNEL)
         print(
             f"   Canal: {channel['name']} · {channel['subscribers']} suscriptores · "
