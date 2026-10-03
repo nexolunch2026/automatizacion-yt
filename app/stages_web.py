@@ -35,6 +35,7 @@ SLUGS = {
     "edit": "video",
     "publish": "publicacion",
     "thumbnail": "miniatura",
+    "shorts": "shorts",
 }
 STAGE_BY_SLUG = {slug: stage for stage, slug in SLUGS.items()}
 
@@ -517,6 +518,11 @@ def thumbnail_page(request: Request, db: DB, user: CurrentUser, project_id: int)
     return _stage_page(request, db, _project(db, project_id), "thumbnail")
 
 
+@router.get("/shorts")
+def shorts_page(request: Request, db: DB, user: CurrentUser, project_id: int):
+    return _stage_page(request, db, _project(db, project_id), "shorts")
+
+
 @router.post("/miniatura/elegir")
 def choose_thumbnail(db: DB, user: CurrentUser, project_id: int, index: Annotated[int, Form()]):
     _project(db, project_id)
@@ -599,6 +605,8 @@ def run_stage(
             "music": music if music in ("", *music_library()) else "",
             "music_volume": music_volume if music_volume in MUSIC_VOLUMES else "media",
         }
+    elif stage == "shorts":
+        params = {"quality": quality if quality in ("preview", "final") else "preview"}
     elif stage == "visuals" and mode in ("stock", "ai"):
         params = {"mode": mode}
     elif stage == "voice":

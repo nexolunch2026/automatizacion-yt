@@ -60,6 +60,7 @@ NEXT_STAGE = {
     "visuals": "edit",
     "edit": "publish",
     "publish": "thumbnail",
+    "thumbnail": "shorts",
 }
 
 
@@ -358,6 +359,51 @@ def render_style(db: Session, params: dict | None = None) -> dict:
     return style
 
 
+def media_map(folder: Path, visuals: dict) -> dict:
+    """paragraph_id → archivo visual de esa escena (para montar)."""
+    media = {}
+    for pid, entry in visuals["items"].items():
+        if entry.get("file") and (folder / "visuales" / entry["file"]).exists():
+            media[pid] = {"path": folder / "visuales" / entry["file"], "kind": entry["kind"]}
+    return media
+
+
+def _run_shorts(db: Session, project: Project, progress, params: dict) -> dict:
+    from app.pipeline.shorts import run_shorts
+
+    if is_portrait(project):
+        raise ProviderError("Este proyecto ya es un Short: no hace falta sacar Shorts de él.")
+    script = _require(db, project, "script", "Primero hay que escribir el guion.")
+    board = _require(db, project, "storyboard", "Primero hay que crear las escenas.")
+    voice = _require(db, project, "voice", "Primero hay que grabar la voz.")
+    visuals = get_result(db, project.id, "visuals") or {"items": {}}
+    try:
+        ai = get_ai_provider(db)
+    except ProviderError:
+        ai = None  # sin Gemini se eligen los momentos automáticamente
+    style = render_style(db)
+    folder = project_dir(project.id)
+    quality = params.get("quality") if params.get("quality") in ("preview", "final") else "preview"
+    seo = get_result(db, project.id, "publish") or {}
+    data = run_shorts(
+        project,
+        script,
+        board,
+        voice,
+        media_map(folder, visuals),
+        folder,
+        ai,
+        progress,
+        quality=quality,
+        style=style,
+        music=music_path(style["music"]),
+        hashtags=seo.get("hashtags"),
+    )
+    if ai is not None:
+        remember_working_model(db, ai)
+    return data
+
+
 def _run_edit(db: Session, project: Project, progress, params: dict) -> dict:
     board = _require(db, project, "storyboard", "Primero hay que crear las escenas.")
     voice = _require(db, project, "voice", "Primero hay que grabar la voz.")
@@ -370,10 +416,7 @@ def _run_edit(db: Session, project: Project, progress, params: dict) -> dict:
             "y luego «Grabar lo que falta» en la voz, y vuelve a montar el vídeo."
         )
     folder = project_dir(project.id)
-    media = {}
-    for pid, entry in visuals["items"].items():
-        if entry.get("file") and (folder / "visuales" / entry["file"]).exists():
-            media[pid] = {"path": folder / "visuales" / entry["file"], "kind": entry["kind"]}
+    media = media_map(folder, visuals)
     quality = params.get("quality") if params.get("quality") in QUALITIES else "preview"
     style = render_style(db, params)
     result = render_video(
@@ -411,6 +454,7 @@ RUNNERS: dict[str, Runner] = {
     "edit": _run_edit,
     "publish": _run_publish,
     "thumbnail": _run_thumbnail,
+    "shorts": _run_shorts,
 }
 
 
@@ -490,6 +534,8 @@ def _chain_next(db: Session, project: Project, stage: str, data: dict) -> None:
         return  # rehacer el vídeo (p. ej. la versión final) no rehace los textos
     if stage == "publish" and get_result(db, project.id, "thumbnail"):
         return  # ni las miniaturas ya elegidas
+    if stage == "thumbnail" and get_result(db, project.id, "shorts"):
+        return  # ni los Shorts ya hechos
     if project.automation_mode == "asistido" and stage != "research":
         return
     if next_stage == "script" and not data.get("selected"):

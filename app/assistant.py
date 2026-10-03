@@ -858,6 +858,21 @@ def thumbnail_replies(project: Project, data: dict) -> list[Reply]:
     ]
 
 
+def shorts_replies(project: Project, data: dict) -> list[Reply]:
+    shorts = data.get("shorts", [])
+    if not shorts:
+        return []
+    folder = project_dir(project.id)
+    titles = "\n".join(f"{n}. {escape(s['title'])}" for n, s in enumerate(shorts, 1))
+    return [
+        Reply(
+            f"📱 <b>{escape(project.title)}</b>: {len(shorts)} Shorts listos. Aquí va el primero; "
+            f"todos están en la pestaña Shorts del proyecto.\n{titles}",
+            video=folder / shorts[0]["file"],
+        )
+    ]
+
+
 def make_teaser(video: Path, out: Path, seconds: int = TEASER_SECONDS) -> Path:
     """Un trozo pequeño (≈1 min, 480p) del vídeo para verlo en el móvil."""
     run_ffmpeg(
@@ -928,6 +943,8 @@ def _done_replies(db: Session, job: Job, project: Project) -> list[Reply]:
         return publish_replies(project, data)
     if job.stage == "thumbnail":
         return thumbnail_replies(project, data)
+    if job.stage == "shorts":
+        return shorts_replies(project, data)
     detail = {
         "research": lambda: (
             f"🔎 {name}: investigación lista ({len(data.get('sources', []))} fuentes)."

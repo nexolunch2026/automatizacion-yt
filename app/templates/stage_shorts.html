@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% import "_project.html" as ui %}
+{% block content %}
+{% set data = result %}
+{{ ui.header(project) }}
+{{ ui.tabs(project, stage, slugs, stages, results, jobs) }}
+
+<div class="card">
+  <div class="row">
+    <div>
+      <h2>Shorts</h2>
+      <p class="muted small">Los mejores momentos del documental, montados en vertical con subtítulos grandes.
+        Cada Short lleva a la gente al vídeo largo: es la forma más rápida de conseguir suscriptores.</p>
+    </div>
+    {% if 'voice' in results and 'storyboard' in results and not (job and job.active) and project.duration != 'Short' %}
+    <div class="row-actions">
+      <form method="post" action="/proyectos/{{ project.id }}/etapas/shorts">
+        <input type="hidden" name="quality" value="preview">
+        <button class="btn {{ 'secondary' if data }}">{% if data %}Hacer otros{% else %}Crear Shorts{% endif %}</button>
+      </form>
+      {% if data %}
+      <form method="post" action="/proyectos/{{ project.id }}/etapas/shorts">
+        <input type="hidden" name="quality" value="final">
+        <button class="btn secondary" title="1080×1920, tarda más">Alta calidad</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+  {{ ui.job_status(job) }}
+  {% if project.duration == 'Short' %}
+  <p class="alert info">Este proyecto ya es un Short.</p>
+  {% elif 'voice' not in results %}
+  <p class="alert info">Primero hay que <a href="/proyectos/{{ project.id }}/voz">grabar la voz</a> (y mejor también los visuales).</p>
+  {% endif %}
+</div>
+
+{% if data and data.note %}<div class="card"><p class="alert info">{{ data.note }}</p></div>{% endif %}
+{% if data %}
+<div class="shorts">
+  {% for s in data.shorts %}
+  <div class="card short-card">
+    <video class="short-player" src="/proyectos/{{ project.id }}/archivos/{{ s.file }}?v={{ job.id if job else 0 }}" controls preload="metadata"></video>
+    <div class="copy-row">
+      <span class="copy-text" id="short-title-{{ loop.index }}"><strong>{{ s.title }}</strong></span>
+      <button class="btn small secondary" data-copy="short-title-{{ loop.index }}">Copiar</button>
+    </div>
+    <pre class="copy-text description" id="short-desc-{{ loop.index }}">{{ s.description }}</pre>
+    <div class="row-actions">
+      <button class="btn small secondary" data-copy="short-desc-{{ loop.index }}">Copiar descripción</button>
+      <a class="btn small" href="/proyectos/{{ project.id }}/archivos/{{ s.file }}" download="short-{{ project.id }}-{{ loop.index }}.mp4">Descargar</a>
+      <span class="muted small">{{ '%.0f'|format(s.seconds) }} s · párrafos {{ s.paragraphs[0] }}–{{ s.paragraphs[1] }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+<div class="card">
+  <h3>Cómo subirlos</h3>
+  <ol class="steps">
+    <li>En el móvil, abre YouTube → <strong>+</strong> → <strong>Subir un vídeo</strong> y elige el Short (o súbelo desde YouTube Studio en el ordenador).</li>
+    <li>Pega el título y la descripción.</li>
+    <li>Consejo: súbelos <strong>en días distintos</strong> (uno cada 1–2 días después del vídeo largo).</li>
+  </ol>
+</div>
+{% endif %}
+<script>
+  document.querySelectorAll("[data-copy]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const text = document.getElementById(btn.dataset.copy).innerText;
+      try { await navigator.clipboard.writeText(text); } catch (e) {}
+      const old = btn.textContent; btn.textContent = "¡Copiado!";
+      setTimeout(() => btn.textContent = old, 1500);
+    });
+  });
+</script>
+{{ ui.live_updates(project, jobs) }}
+{% endblock %}

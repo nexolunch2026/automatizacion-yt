@@ -5,7 +5,7 @@ Por ahora tiene: **cuentas para 2 personas, canales, proyectos de vídeo, invest
 automática con fuentes, propuestas de enfoques y títulos, guion editable, escenas y
 narración con voz (Piper o ElevenLabs), imágenes generadas con IA o de Pixabay, y
 montaje del vídeo MP4 con subtítulos, textos de publicación (título, descripción con
-capítulos, etiquetas) y 3 miniaturas con el estilo del canal para elegir**.
+capítulos, etiquetas) , 3 miniaturas con el estilo del canal para elegir y Shorts verticales con los mejores momentos**.
 La creación automática de los vídeos se irá añadiendo poco a poco.
 
 ---

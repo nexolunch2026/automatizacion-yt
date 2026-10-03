@@ -303,3 +303,7 @@ audio { width: 100%; max-width: 520px; height: 36px; }
 .thumb-small img { width: 168px; border-radius: 6px; }
 .thumbs.portrait .thumb-small img { width: 90px; }
 .publish-thumb { display: block; width: 240px; border-radius: 6px; margin-top: 6px; }
+
+/* Shorts */
+.shorts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.short-player { width: 100%; max-height: 520px; aspect-ratio: 9 / 16; background: #000; border-radius: 8px; margin-bottom: 8px; }

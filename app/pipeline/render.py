@@ -115,12 +115,17 @@ def text_overlay(text: str, size: tuple[int, int], path: Path) -> Path:
     w, h = size
     image = Image.new("RGBA", size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
-    fnt = font(max(int(h * 0.11), 10))
     label = text.upper()
+    size = max(int(min(h, w * 1.1) * 0.11), 10)  # en vertical manda el ancho
+    fnt = font(size)
     tw = draw.textlength(label, font=fnt)
-    pad = int(h * 0.022)
+    while tw > w * 0.84 and size > 10:  # que nunca se salga de la pantalla
+        size -= 2
+        fnt = font(size)
+        tw = draw.textlength(label, font=fnt)
+    pad = int(size * 0.2)
     x0, y0 = int(w * 0.06), int(h * 0.09)
-    box_h = int(h * 0.11) + pad * 2
+    box_h = size + pad * 2
     draw.rectangle([x0, y0, x0 + tw + pad * 2, y0 + box_h], fill=(10, 10, 14, 215))
     draw.rectangle(
         [x0, y0 + box_h, x0 + tw + pad * 2, y0 + box_h + max(h // 120, 2)], fill=RED + (255,)
@@ -296,13 +301,20 @@ def _ass_escape(text: str) -> str:
 
 
 def build_ass(
-    segments: list[tuple[str, float, float]], width: int, height: int, words_per_line: int = 5
+    segments: list[tuple[str, float, float]],
+    width: int,
+    height: int,
+    words_per_line: int | None = None,
 ) -> str:
     """Subtítulos animados: frases cortas en las que la palabra que se está diciendo se
-    resalta en el rojo de la marca."""
-    size = max(int(height * 0.064), 8)
-    outline = max(int(height * 0.004), 1)
-    margin = int(height * 0.08)
+    resalta en el rojo de la marca. En vertical (Shorts): letra según el ancho, 3 palabras
+    por línea y más arriba, para que no los tapen los botones de YouTube."""
+    portrait = height > width
+    words_per_line = words_per_line or (3 if portrait else 5)
+    size = max(int(width * 0.1 if portrait else height * 0.064), 8)  # Shorts: letra grande
+    outline = max(int(size * 0.07), 1)
+    margin = int(height * (0.22 if portrait else 0.08))
+    side = int(width * 0.05)
     style_fields = (
         "Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, "
         "BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, "
@@ -310,7 +322,7 @@ def build_ass(
     )
     style_values = (
         f"Marca,{CAPTION_FONT_NAME},{size},&H00F2EEEE,&H00F2EEEE,&H00121010,&H96000000,"
-        f"0,0,0,0,100,100,0,0,1,{outline},{outline},2,{margin},{margin},{margin},1"
+        f"0,0,0,0,100,100,0,0,1,{outline},{outline},2,{side},{side},{margin},1"
     )
     header = "\n".join(
         [
@@ -318,7 +330,7 @@ def build_ass(
             "ScriptType: v4.00+",
             f"PlayResX: {width}",
             f"PlayResY: {height}",
-            "WrapStyle: 2",
+            "WrapStyle: 0",
             "ScaledBorderAndShadow: yes",
             "",
             "[V4+ Styles]",

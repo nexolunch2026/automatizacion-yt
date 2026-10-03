@@ -127,6 +127,10 @@ class FakeAI:
                 pinned_comment="¿Crees que se pudo evitar?",
                 category="Educación",
             )
+        if schema.__name__ == "ShortPicks":
+            return schema(
+                shorts=[{"start": 1, "end": 3, "title": "Así cayó Enron", "hook": "Nadie lo vio"}]
+            )
         if schema.__name__ == "ThumbTexts":
             return schema(
                 texts=[

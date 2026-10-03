@@ -48,6 +48,9 @@
   {% elif 'thumbnail' not in results %}
     <p>Crea 3 miniaturas con el estilo del canal y elige la mejor.</p>
     <a class="btn" href="/proyectos/{{ project.id }}/miniatura">Ir a la miniatura</a>
+  {% elif 'shorts' not in results and project.duration != 'Short' %}
+    <p>Saca 2–3 Shorts verticales con los mejores momentos del vídeo.</p>
+    <a class="btn" href="/proyectos/{{ project.id }}/shorts">Ir a los Shorts</a>
   {% else %}
     <p>Todo listo para subir a YouTube.</p>
     <a class="btn" href="/proyectos/{{ project.id }}/publicacion">Ver textos de publicación</a>

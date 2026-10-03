@@ -31,6 +31,7 @@ STAGES = {
     "thumbnail": "Miniatura",
     "qc": "Control de calidad",
     "publish": "Publicación",
+    "shorts": "Shorts",
 }
 
 DURATIONS = ["Short", "3–5 min", "5–10 min", "10–15 min", "15–30 min"]
