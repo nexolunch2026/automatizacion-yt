@@ -49,6 +49,23 @@
   </dl>
 </div>
 
+{% set charted = board.scenes|selectattr('chart')|list %}
+<div class="card">
+  <div class="row">
+    <div>
+      <h3>📊 Gráficos animados</h3>
+      <p class="muted small">Las escenas con cifras claras muestran un gráfico animado con el estilo del canal.
+        Solo se usan cifras que aparecen en el guion o en la investigación.
+        {% if charted %}Ahora hay {{ charted|length }}.{% else %}Todavía no hay ninguno.{% endif %}</p>
+    </div>
+    {% if not (job and job.active) %}
+    <form method="post" action="/proyectos/{{ project.id }}/escenas/graficos">
+      <button class="btn secondary" {% if not has_gemini %}disabled{% endif %}>Buscar cifras para gráficos</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
 <p class="muted small">{{ board.scenes|length }} escenas · duración estimada {{ (board.total_seconds / 60)|round(1) }} min
   (se ajustará con la voz real).</p>
 <div class="scenes">
@@ -67,6 +84,15 @@
       {% if s.sfx %}<dt>Sonido</dt><dd>{{ s.sfx|join(', ') }}</dd>{% endif %}
       {% if s.music_mood %}<dt>Música</dt><dd>{{ s.music_mood }}</dd>{% endif %}
     </dl>
+    {% if s.chart %}
+    <div class="chart-box">
+      <img src="/proyectos/{{ project.id }}/escenas/graficos/{{ s.paragraph_id }}.png" alt="Gráfico: {{ s.chart.title }}" loading="lazy">
+      <form method="post" action="/proyectos/{{ project.id }}/escenas/graficos/{{ s.paragraph_id }}/quitar">
+        <span class="small">📊 {{ s.chart.title }}</span>
+        <button class="btn-link danger-link">Quitar gráfico</button>
+      </form>
+    </div>
+    {% endif %}
     {% if s.stock_query or s.image_prompt %}
     <details class="tech">
       <summary>Búsqueda y prompt de imagen</summary>

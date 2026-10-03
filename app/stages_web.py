@@ -115,6 +115,51 @@ def storyboard_page(request: Request, db: DB, user: CurrentUser, project_id: int
     return _stage_page(request, db, project, "storyboard", stale=stale, labels=SECTION_LABELS)
 
 
+@router.post("/escenas/graficos")
+def find_charts(db: DB, user: CurrentUser, project_id: int):
+    _project(db, project_id)
+    if _result_row(db, project_id, "storyboard") is None:
+        raise HTTPException(404, "Todavía no hay escenas")
+    jobs.enqueue(db, project_id, "storyboard", {"charts_only": True})
+    return _redirect(f"/proyectos/{project_id}/escenas")
+
+
+def _scene_with_chart(db: DB, project_id: int, paragraph_id: str) -> tuple:
+    row = _result_row(db, project_id, "storyboard")
+    scenes = (row.data if row else {}).get("scenes", [])
+    scene = next((s for s in scenes if s["paragraph_id"] == paragraph_id and s.get("chart")), None)
+    if scene is None:
+        raise HTTPException(404, "Esa escena no tiene gráfico")
+    return row, scene
+
+
+@router.get("/escenas/graficos/{paragraph_id}.png")
+def chart_preview(db: DB, user: CurrentUser, project_id: int, paragraph_id: str):
+    from app.pipeline.charts import preview
+
+    _, scene = _scene_with_chart(db, project_id, paragraph_id)
+    visuals = jobs.get_result(db, project_id, "visuals") or {"items": {}}
+    entry = visuals["items"].get(paragraph_id) or {}
+    folder = project_dir(project_id)
+    bg = folder / "visuales" / entry["file"] if entry.get("kind") == "image" else None
+    out = folder / "graficos" / f"{paragraph_id}.png"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    preview(scene["chart"], (640, 360), out, bg)
+    return FileResponse(out, headers={"Cache-Control": "no-store"})
+
+
+@router.post("/escenas/graficos/{paragraph_id}/quitar")
+def remove_chart(db: DB, user: CurrentUser, project_id: int, paragraph_id: str):
+    row, _ = _scene_with_chart(db, project_id, paragraph_id)
+    data = copy.deepcopy(row.data)
+    for scene in data["scenes"]:
+        if scene["paragraph_id"] == paragraph_id:
+            scene.pop("chart", None)
+    row.data = data
+    db.commit()
+    return _redirect(f"/proyectos/{project_id}/escenas")
+
+
 ELEVEN_ID = re.compile(r"^eleven:[A-Za-z0-9]{6,40}$")
 
 

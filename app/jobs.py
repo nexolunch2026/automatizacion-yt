@@ -224,9 +224,28 @@ def _run_script(db: Session, project: Project, progress, params: dict) -> dict:
 def _run_storyboard(db: Session, project: Project, progress, params: dict) -> dict:
     script = _require(db, project, "script", "Primero hay que escribir el guion.")
     ai = get_ai_provider(db)
-    data = run_storyboard(project, script, ai, progress)
+    if params.get("charts_only"):  # solo volver a buscar cifras para gráficos
+        data = _require(db, project, "storyboard", "Primero hay que crear las escenas.")
+        data = {**data, "scenes": [dict(s) for s in data["scenes"]]}
+    else:
+        data = run_storyboard(project, script, ai, progress)
+    progress(92, "Buscando cifras para gráficos animados")
+    add_charts(db, project, script, data, ai)
     remember_working_model(db, ai)
     return data
+
+
+def add_charts(db: Session, project: Project, script: dict, board: dict, ai) -> None:
+    """Pone en cada escena con cifras claras su gráfico animado (solo cifras reales)."""
+    from app.pipeline.charts import plan_charts
+
+    research = get_result(db, project.id, "research") or {}
+    words = sum(len(p["text"].split()) for s in script.get("sections", []) for p in s["paragraphs"])
+    charts = plan_charts(project, script, research, ai, total_seconds=words / 2.5)
+    for scene in board["scenes"]:
+        scene.pop("chart", None)
+        if scene["paragraph_id"] in charts:
+            scene["chart"] = charts[scene["paragraph_id"]]
 
 
 def _run_voice(db: Session, project: Project, progress, params: dict) -> dict:

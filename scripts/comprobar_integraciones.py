@@ -86,6 +86,12 @@ def main() -> None:
                 "motion": "",
                 "transition": "corte",
                 "on_screen_text": "63.000 MILLONES",
+                "chart": {  # gráfico animado (dibujado con PIL y codificado por tubería)
+                    "kind": "bars",
+                    "title": "Cuota de mercado",
+                    "unit": "%",
+                    "points": [{"label": "2007", "value": 49.4}, {"label": "2013", "value": 3}],
+                },
             },
         ]
         takes = {"a": wav_seconds(clips[0]), "b": wav_seconds(clips[1])}

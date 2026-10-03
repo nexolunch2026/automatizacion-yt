@@ -446,6 +446,15 @@ def render_video(
             scene = {**scene, "on_screen_text": ""}  # el texto ya va en la tarjeta
         else:
             path, kind = Path(visual["path"]), visual["kind"]
+        if scene.get("chart"):  # gráfico animado con las cifras de esta escena
+            from app.pipeline.charts import chart_clip
+
+            background = path if kind == "image" and visual and visual["kind"] != "card" else None
+            path = chart_clip(
+                scene["chart"], workdir / f"grafico-{i:03}.mp4", (w, h), fps, length, background
+            )
+            kind = "video"
+            scene = {**scene, "on_screen_text": ""}  # el gráfico ya lleva su título
         clip = workdir / f"escena-{i:03}.mp4"
         # Clips intermedios casi sin pérdida: se recodifican una vez más al final.
         scene_clip(
