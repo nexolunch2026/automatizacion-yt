@@ -68,12 +68,12 @@ def test_installs_in_one_place_and_tidies_old_copies(tmp_path):
 
     result = run(
         f"""
-$copies = Find-FsCopies '{home}' '{base}'
-$zips = Find-FsZips '{home}'
+$copies = @(Find-FsCopies '{home}' '{base}')
+$zips = @(Find-FsZips '{home}')
 $from = Import-FsLegacyData $copies '{data}'
 $version = Install-FsProgram '{zip_path}' '{program}'
 $items = @($copies | ForEach-Object {{ $_.Folder }}) + @($zips | ForEach-Object {{ $_.FullName }})
-$failed = Move-FsToOld $items '{old_dir}'
+$failed = @(Move-FsToOld $items '{old_dir}')
 $startup = Repair-FsStartup '{startup}' '{program}'
 @{{
   copies = @($copies | ForEach-Object {{ $_.Version.ToString() }})
@@ -115,7 +115,7 @@ def test_reinstall_keeps_python_and_existing_data(tmp_path):
 
     result = run(
         f"""
-$copies = Find-FsCopies '{home}' '{base}'
+$copies = @(Find-FsCopies '{home}' '{base}')
 $from = Import-FsLegacyData $copies '{data}'
 $version = Install-FsProgram '{zip_path}' '{program}'
 $out = @{{ copies = $copies.Count; from = $from; version = $version.ToString() }}
@@ -135,7 +135,7 @@ def test_moving_never_overwrites(tmp_path):
     (second / "x.txt").write_text("2")
     result = run(
         f"""
-$failed = Move-FsToOld @('{second}') '{old_dir}'
+$failed = @(Move-FsToOld @('{second}') '{old_dir}')
 @{{ failed = $failed.Count }} | ConvertTo-Json -Compress
 """
     )

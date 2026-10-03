@@ -185,8 +185,9 @@ function Invoke-FsInstall {
     Write-Host "  Buscando copias del programa (1 o 2 minutos)..."
     Write-Host ""
 
-    $copies = Find-FsCopies $userHome $base
-    $zips = Find-FsZips $userHome
+    # @(...) siempre: Windows PowerShell 5.1 no cuenta bien una lista de un solo elemento.
+    $copies = @(Find-FsCopies $userHome $base)
+    $zips = @(Find-FsZips $userHome)
     if ($copies) {
         Write-Host "  Copias del programa encontradas:"
         foreach ($c in $copies) { Write-Host ("    version {0,-8} {1}" -f $c.Version, $c.Folder) }
@@ -211,7 +212,7 @@ function Invoke-FsInstall {
     if (Test-Path -LiteralPath (Join-Path $dataDir "faceless.db")) {
         Write-Host "  OK: tus datos estan en $dataDir"
     }
-    foreach ($c in (Find-FsNewerData $copies $dataDir)) {
+    foreach ($c in @(Find-FsNewerData $copies $dataDir)) {
         Write-Host "  OJO: $($c.Folder) tiene datos mas nuevos que los del sitio fijo."
         Write-Host "       No se pierden: la copia se guarda entera en copias_viejas. Avisa a Claude."
     }
@@ -222,7 +223,7 @@ function Invoke-FsInstall {
 
     $items = @($copies | ForEach-Object { $_.Folder }) + @($zips | ForEach-Object { $_.FullName })
     if ($items) {
-        $failed = Move-FsToOld $items $oldDir
+        $failed = @(Move-FsToOld $items $oldDir)
         Write-Host ("  OK: {0} copias viejas guardadas en {1}" -f ($items.Count - $failed.Count), $oldDir)
         foreach ($f in $failed) {
             Write-Host "  No pude mover (quiza esta abierta o en OneDrive): $f"
