@@ -12,26 +12,35 @@ La creación automática de los vídeos se irá añadiendo poco a poco.
 
 ## Cómo instalarlo en Windows (paso a paso)
 
-### Paso 1 — Descargar el programa
-1. Abre este enlace (tienes que haber iniciado sesión en GitHub):
-   **https://github.com/nexolunch2026/automatizacion-yt/archive/refs/heads/claude/hola-5p4ttp.zip**
-2. Se descarga un archivo **.zip** (una carpeta comprimida) en tu carpeta **Descargas**.
+### Paso 1 — Instalar (un solo paso, y deja todo ordenado)
+1. Si el programa está abierto, cierra la **ventana negra**.
+2. Pulsa las teclas **Windows + R**. Se abre una cajita llamada «Ejecutar».
+3. Copia esto, pégalo en la cajita y pulsa **Enter**:
 
-### Paso 2 — Descomprimir
-1. Abre la carpeta **Descargas**.
-2. Haz **clic derecho** sobre el archivo `.zip` → **Extraer todo…** → **Extraer**.
-3. Se crea una carpeta normal. Puedes moverla donde quieras, por ejemplo al **Escritorio**.
+   ```
+   powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/nexolunch2026/automatizacion-yt/claude/hola-5p4ttp/scripts/instalar.ps1 | iex"
+   ```
+4. Se abre una ventana azul que busca tus copias del programa. Cuando te pregunte, escribe
+   **S** y pulsa **Enter**.
 
-### Paso 3 — Encender el programa
-1. Entra en la carpeta.
-2. Haz **doble clic** en el archivo **`Iniciar`** (o `Iniciar.bat`).
-3. Si aparece un aviso azul de Windows («Windows protegió su PC»):
-   pulsa **Más información** → **Ejecutar de todas formas**.
-4. Se abre una **ventana negra**. **No la cierres**: es el motor del programa.
-   - La **primera vez** tarda unos minutos porque descarga lo que necesita.
-   - Las siguientes veces arranca en segundos.
-5. Se abre solo tu **navegador** con el programa.
-   Si no se abre, escribe en el navegador: `127.0.0.1:8000`
+Qué hace (no borra nada):
+- Pone el programa en **un solo sitio**: `C:\Users\<tú>\FacelessStudio\programa`, al lado de
+  tus datos (`FacelessStudio\datos`).
+- **Mueve** las copias viejas y los `.zip` descargados a `FacelessStudio\copias_viejas`. Cuando
+  compruebes que todo está bien, puedes borrar esa carpeta.
+- Crea en el escritorio **Faceless Studio**, **JARVIS** y **Actualizar Faceless Studio**.
+  **Usa siempre esos accesos directos.**
+
+### Paso 2 — La primera vez
+- Si aparece un aviso azul de Windows («Windows protegió su PC»): pulsa **Más información** →
+  **Ejecutar de todas formas**.
+- Se abre una **ventana negra**. **No la cierres**: es el motor del programa. La primera vez
+  tarda unos minutos; las siguientes, segundos.
+- Se abre solo tu **navegador** con el programa. Si no se abre, escribe en el navegador:
+  `127.0.0.1:8000`
+
+### Paso 3 — Para tener la última versión
+Doble clic en **Actualizar Faceless Studio** (en el escritorio). Tus datos no se tocan.
 
 ### Paso 4 — Crear las cuentas
 1. Pulsa **Crea tu cuenta**, elige un usuario y una contraseña.

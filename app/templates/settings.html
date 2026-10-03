@@ -219,8 +219,37 @@
   <p>Copias de seguridad diarias (proyectos, guiones y claves; sin vídeos): <code>{{ backup_dir }}</code>
     {% if last_backup %}<span class="muted small">· última: {{ last_backup }}</span>{% endif %}</p>
   <p class="muted small">Dentro de cada copia hay un archivo «COMO RESTAURAR» con los pasos.</p>
+  {% if not program_in_place %}
+  <div class="alert info">
+    <p><strong>¿Se te pierden las carpetas o se abre una versión vieja?</strong> Deja el programa en un
+      solo sitio fijo, al lado de tus datos:</p>
+    <ol class="steps">
+      <li>Cierra la ventana negra de Faceless Studio.</li>
+      <li>Pulsa las teclas <strong>Windows + R</strong>, pega esto y pulsa <strong>Enter</strong>:
+        <code id="instalador">{{ installer_command }}</code>
+        <button class="btn small secondary" data-copy="instalador">Copiar</button></li>
+      <li>Escribe <strong>S</strong> cuando te lo pregunte. Moverá (sin borrar) las copias viejas a
+        <code>FacelessStudio\copias_viejas</code> y te dejará en el escritorio «Faceless Studio», «JARVIS» y
+        «Actualizar Faceless Studio».</li>
+    </ol>
+  </div>
+  {% endif %}
   {% if in_onedrive %}
   <p class="alert">⚠️ Tus datos están dentro de OneDrive. OneDrive puede llenarse con los vídeos (solo trae 5 GB gratis).</p>
   {% endif %}
 </div>
+<script>
+  document.querySelectorAll("[data-copy]").forEach(btn => {
+    btn.addEventListener("click", async (event) => {
+      event.preventDefault();
+      const text = document.getElementById(btn.dataset.copy).innerText;
+      try { await navigator.clipboard.writeText(text); } catch (e) {
+        const area = document.createElement("textarea"); area.value = text;
+        document.body.appendChild(area); area.select(); document.execCommand("copy"); area.remove();
+      }
+      const old = btn.textContent; btn.textContent = "¡Copiado!";
+      setTimeout(() => btn.textContent = old, 1500);
+    });
+  });
+</script>
 {% endblock %}

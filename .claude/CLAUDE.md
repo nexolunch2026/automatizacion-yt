@@ -43,6 +43,14 @@ recordatorios, noticias/radar de marcas, y **Rendimiento** (cifras de YouTube y 
 - Si «se perdió todo»: casi siempre abrió **otra copia** del programa. La buena tiene
   `JARVIS.bat`; la ventana negra y Configuración muestran la carpeta de datos.
 
+## Dónde está el programa (desde la v0.24)
+- Sitio fijo: **`%USERPROFILE%\FacelessStudio\programa`**, al lado de `datos`. Lo instala
+  `scripts/instalar.ps1` (una línea con Windows + R; está en el README y en Configuración),
+  que mueve, sin borrar, las copias viejas y los .zip a `FacelessStudio\copias_viejas` y crea
+  en el escritorio «Faceless Studio», «JARVIS» y «Actualizar Faceless Studio».
+- Si abre una versión vieja: casi siempre usa un acceso directo o una carpeta antigua, o la
+  rama `claude/hola-5p4ttp` no tiene aún lo último. Que use el instalador.
+
 ## Reglas de trabajo
 - Rama de desarrollo: `claude/hola-5p4ttp` (es la que descarga el actualizador).
 - Antes de subir: `uv run ruff check . && uv run ruff format --check . && uv run pytest -q`.
