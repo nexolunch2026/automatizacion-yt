@@ -70,6 +70,9 @@ pantalla completa:
   botón para hacerlo), *«¿cuánto me falta para monetizar?»* (suscriptores, horas vistas,
   fecha estimada y consejos) y *«revisa el vídeo de Nokia»* (la nota del control de calidad).
   Al terminar la versión final te dice si ya se puede subir.
+- *«Plan de la semana»*: qué vídeo subir y qué Shorts publicar cada día (lunes, miércoles y
+  sábado), y 30 minutos para aprender. Elige tu día con *«publico los jueves a las 18»*;
+  el resumen de la mañana te dice lo que toca publicar hoy.
 - Abre cosas: *«abre YouTube Studio»*, *«busca la historia de Kodak»*, *«pon música lofi»*,
   *«abre el proyecto de Nokia»*. Y recuerda la conversación para seguir el hilo.
 

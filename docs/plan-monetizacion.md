@@ -59,6 +59,12 @@ automatización sirve para ahorrar horas, no para sustituir tu criterio.
 - Banco de 36 historias reales en JARVIS (también de reserva si Gemini falla).
 - El aviso de IA del control de calidad solo pide marcar lo que parezca real.
 
+## Plan de la semana — hecho en la versión 0.23.0
+
+- JARVIS: «plan de la semana» (vídeo largo el día elegido, Shorts lunes, miércoles y
+  sábado, y una tarea de aprendizaje de 30 minutos); «publico los jueves a las 18» para
+  cambiar el día; el resumen de la mañana avisa de lo que toca publicar hoy.
+
 ## Fase 2 — siguiente (más impacto)
 
 1. **Más variedad**: turnar también estilos visuales y música entre vídeos.
@@ -72,7 +78,5 @@ automatización sirve para ahorrar horas, no para sustituir tu criterio.
 4. **Pruebas A/B de miniaturas y títulos** con la función «Probar y comparar» de YouTube.
 5. **Biblioteca de música** con su licencia guardada, para que el control de calidad la dé
    por buena.
-6. **Calendario**: publicar a la misma hora cada semana y programar los Shorts para que
-   lleven gente al vídeo largo.
-7. **Ideas con demanda real**: cruzar el radar de marcas con lo que más se busca y con lo
+6. **Ideas con demanda real**: cruzar el radar de marcas con lo que más se busca y con lo
    que mejor te ha funcionado en Rendimiento.

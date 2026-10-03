@@ -194,6 +194,8 @@ class Intent(BaseModel):
         "monetize",
         "review",
         "idea_bank",
+        "week_plan",
+        "publish_day",
     ]
     topic: str = Field(default="", description="Tema del vídeo, si pide uno")
     topics: list[str] = Field(default_factory=list, description="Temas para la cola")
@@ -249,6 +251,21 @@ TASK_DONE = re.compile(
 )
 
 
+WEEK_PLAN_WORDS = (
+    "plan de la semana",
+    "plan semanal",
+    "calendario",
+    "que publico",
+    "que publico esta semana",
+    "que subo esta semana",
+    "/semana",
+)
+DAY_NAMES = ("lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo")
+PUBLISH_DAY = re.compile(
+    r"^(?:publico|publicare|quiero publicar|publicar|dia de publicacion:?)\s+"
+    r"(?:los |el |cada )?(lunes|martes|miercoles|jueves|viernes|sabado|domingo)s?"
+    r"(?:\s+a las\s+(\d{1,2}))?"
+)
 IDEA_BANK_WORDS = {  # frase → región ("" = todas)
     "banco de ideas": "",
     "ideas clasicas": "",
@@ -364,6 +381,11 @@ def quick_intent(text: str) -> Intent | None:
         return Intent(action="status")
     if bare in ("ideas", "/ideas", "dame ideas", "sugerencias"):
         return Intent(action="ideas")
+    if bare in WEEK_PLAN_WORDS:
+        return Intent(action="week_plan")
+    match = PUBLISH_DAY.match(bare)
+    if match:
+        return Intent(action="publish_day", when=match.group(1), task=match.group(2) or "")
     if bare in IDEA_BANK_WORDS:
         return Intent(action="idea_bank", topic=IDEA_BANK_WORDS[bare])
     if bare in NEXT_STEP_WORDS:
@@ -460,6 +482,9 @@ documentales sin rostro sobre marcas: «Anatomía De Una Marca»). Clasifica el 
 - analyze: pide que analices el canal o qué aprendiste de los resultados.
 - idea_bank: pide ideas del banco de historias, o de España o Latinoamérica
   (topic = «España», «Latinoamérica» o vacío).
+- week_plan: pregunta qué publicar esta semana o por el plan o calendario.
+- publish_day: dice qué día (y hora) quiere publicar (when = el día en minúsculas sin
+  tilde, p. ej. «jueves»; task = la hora en número si la dice).
 - next_step: pregunta qué hacer ahora, qué falta o cuál es el siguiente paso.
 - monetize: pregunta cuánto le falta para monetizar o para el Programa de Socios.
 - review: pregunta si un vídeo se puede monetizar o pide revisarlo antes de subirlo
@@ -496,6 +521,8 @@ def help_replies() -> list[Reply]:
             "Latinoamérica»</b> — historias reales ya elegidas, con formatos variados.\n"
             "📊 <b>«estado»</b> — cómo va todo.\n"
             "👉 <b>«¿qué hago ahora?»</b> — el siguiente paso de cada vídeo, con un botón.\n"
+            "🗓️ <b>«plan de la semana»</b> — qué vídeo y qué Shorts publicar cada día; "
+            "<b>«publico los jueves a las 18»</b> para elegir tu día.\n"
             "💰 <b>«¿cuánto me falta para monetizar?»</b> — suscriptores, horas y consejos.\n"
             "🔎 <b>«¿se puede monetizar?»</b> o <b>«revisa el vídeo de Nokia»</b> — la nota "
             "del control de calidad.\n"
@@ -649,6 +676,23 @@ def next_step_replies(db: Session) -> list[Reply]:
         if button:
             buttons.append([button])
     return [Reply("\n".join(lines), buttons=buttons or None)]
+
+
+def week_plan_reply(db: Session) -> Reply:
+    plan = coach.weekly_plan(db)
+    lines = ["🗓️ <b>Plan de la semana</b>", f"🎬 {escape(plan['long'])}"]
+    if plan["shorts"]:
+        shorts = ", ".join(f"{day}: «{escape(title)}»" for day, title in plan["shorts"])
+        lines.append(f"📱 Shorts — {shorts}.")
+    else:
+        lines.append("📱 No hay Shorts preparados: sácalos de tu último vídeo (pestaña Shorts).")
+    lines.append(f"📚 Hoy, 30 minutos para aprender: {escape(plan['learning'])}.")
+    day = agenda.WEEKDAYS[plan["publish_day"]]
+    lines.append(
+        f"<i>Publicas los {day} a las {plan['publish_hour']}:00. Para cambiarlo di, por "
+        "ejemplo: «publico los martes a las 19».</i>"
+    )
+    return Reply("\n".join(lines), buttons=[[("👉 ¿Qué hago ahora?", "next")]])
 
 
 def monetization_text(path: dict) -> str:
@@ -901,6 +945,16 @@ def _act(db: Session, intent: Intent, text: str) -> list[Reply]:
     if intent.action == "idea_bank":
         region = intent.topic if intent.topic in ("España", "Latinoamérica") else ""
         return bank_replies(db, region)
+    if intent.action == "week_plan":
+        return [week_plan_reply(db)]
+    if intent.action == "publish_day":
+        day = normalize(intent.when).strip()
+        day = day if day in DAY_NAMES else day[:-1]  # «sábados» → «sabado»
+        if day in DAY_NAMES:
+            hour = int(intent.task) if intent.task.strip().isdigit() else None
+            coach.set_publish_slot(db, DAY_NAMES.index(day), hour)
+            return [week_plan_reply(db)]
+        return [Reply("¿Qué día quieres publicar? Por ejemplo: «publico los jueves a las 18».")]
     if intent.action == "next_step":
         return next_step_replies(db)
     if intent.action == "monetize":
@@ -1295,7 +1349,7 @@ def briefing(db: Session, now: datetime | None = None) -> list[Reply]:
         for job in db.scalars(select(Job).where(Job.stage == "edit", Job.status == "done"))
         if job.finished_at and (now - job.finished_at).days < 7
     )
-    step = coach.first_step_text(db)
+    step = "\n".join(x for x in (coach.today_text(db, now), coach.first_step_text(db)) if x)
     return [
         Reply(
             "☀️ <b>Buenos días.</b> Resumen del estudio:\n\n"

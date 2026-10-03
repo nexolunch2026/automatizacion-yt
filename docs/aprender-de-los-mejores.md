@@ -96,7 +96,7 @@ aún no había llegado…»). Así nadie se va a mitad.
   solo hacen uno de los dos. Los Shorts traen suscriptores nuevos y los vídeos largos
   traen las horas.
 - Ritmo realista: **1 vídeo largo por semana + 3–4 Shorts por semana**, siempre el mismo
-  día y a la misma hora.
+  día y a la misma hora. Pregúntale a JARVIS **«plan de la semana»**.
 
 Fuentes: [Los primeros 30 segundos — Prepublish](https://prepublish.ai/guides/first-30-seconds),
 [Ganchos que retienen — Voclify](https://voclify.io/blog/youtube-video-hook-writing-hold-viewers-past-30-seconds),

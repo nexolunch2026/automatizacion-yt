@@ -249,3 +249,107 @@ def find_project(db: Session, words: str) -> Project | None:
 
 def review_project(db: Session, project: Project) -> str:
     return f"«{project.title}»\n" + summary_text(project_review(db, project))
+
+
+# ---------------------------------------------------------------- plan de la semana
+
+DEFAULT_PUBLISH_DAY = 3  # jueves
+DEFAULT_PUBLISH_HOUR = 18
+SHORTS_DAYS = (0, 2, 5)  # lunes, miércoles y sábado: 3 Shorts por semana
+# 30 minutos al día para aprender (ver docs/aprender-de-los-mejores.md).
+LEARNING = {
+    0: "una lección del curso gratis de storytelling de Edutin",
+    1: "estudiar un canal de referencia (MagnatesMedia o Company Man): su primer minuto",
+    2: "leer el boletín de Paddy Galloway o de Creator Hooks",
+    3: "revisar en Rendimiento tu último vídeo y pulsar «Analizar ahora»",
+    4: "retocar a mano 2–3 párrafos del guion de la semana",
+    5: "mirar las miniaturas de los vídeos más vistos de un canal de referencia",
+    6: "descansar: el canal también necesita que tú estés bien",
+}
+
+
+def publish_slot(db: Session) -> tuple[int, int]:
+    """Día de la semana (0 = lunes) y hora a la que se publica el vídeo largo."""
+    try:
+        day = int(get_setting(db, "publish_day") or DEFAULT_PUBLISH_DAY)
+        hour = int(get_setting(db, "publish_hour") or DEFAULT_PUBLISH_HOUR)
+    except ValueError:
+        return DEFAULT_PUBLISH_DAY, DEFAULT_PUBLISH_HOUR
+    return day % 7, min(max(hour, 0), 23)
+
+
+def set_publish_slot(db: Session, day: int, hour: int | None = None) -> None:
+    from app.settings_store import set_setting
+
+    set_setting(db, "publish_day", str(day % 7))
+    if hour is not None:
+        set_setting(db, "publish_hour", str(min(max(hour, 0), 23)))
+
+
+def ready_to_upload(db: Session) -> list[Project]:
+    """Vídeos con la versión final montada que aún no están publicados."""
+    published = _published_ids(db)
+    ready = []
+    for project in db.scalars(select(Project).order_by(Project.id).limit(200)):
+        if project.id in published or project.status == "Publicado":
+            continue
+        edit = jobs.get_result(db, project.id, "edit") or {}
+        if "final" in edit.get("renders", {}):
+            ready.append(project)
+    return ready
+
+
+def _shorts_queue(db: Session) -> list[str]:
+    """Títulos de los Shorts preparados, empezando por los del vídeo más reciente."""
+    titles = []
+    for project in db.scalars(select(Project).order_by(Project.id.desc()).limit(10)):
+        for short in (jobs.get_result(db, project.id, "shorts") or {}).get("shorts", []):
+            titles.append(short.get("title") or project.title)
+    return titles
+
+
+def weekly_plan(db: Session, now: datetime | None = None) -> dict:
+    from app.agenda import WEEKDAYS
+
+    now = now or datetime.now()
+    day, hour = publish_slot(db)
+    when = f"el {WEEKDAYS[day]} a las {hour}:00"
+    ready = ready_to_upload(db)
+    if ready:
+        qc = project_review(db, ready[0])
+        long_text = f"Sube «{ready[0].title}» {when} (nota {qc['score']}/100)."
+        if qc["counts"]["fail"]:
+            long_text += " Antes, arregla lo marcado en Control de calidad."
+    else:
+        steps = [(p, s) for p, s in next_steps(db) if s["stage"]]
+        if steps:
+            project, step = steps[0]
+            long_text = f"Termina «{project.title}» antes del {WEEKDAYS[day]}: {step['text']}."
+        else:
+            long_text = "No hay ningún vídeo en marcha: empieza uno hoy («banco de ideas»)."
+    shorts = _shorts_queue(db)
+    upcoming = [(now.weekday() + i) % 7 for i in range(7)]
+    short_days = [d for d in upcoming if d in SHORTS_DAYS]
+    schedule = list(zip(short_days, shorts, strict=False))
+    return {
+        "publish_day": day,
+        "publish_hour": hour,
+        "long": long_text,
+        "shorts": [(WEEKDAYS[d], title) for d, title in schedule],
+        "learning": LEARNING[now.weekday()],
+        "today_publish": now.weekday() == day and bool(ready),
+        "today_short": next((t for d, t in schedule if d == now.weekday()), None),
+        "ready": ready[0].title if ready else None,
+    }
+
+
+def today_text(db: Session, now: datetime | None = None) -> str:
+    """Lo que toca publicar hoy (para el resumen de la mañana)."""
+    now = now or datetime.now()
+    plan = weekly_plan(db, now)
+    lines = []
+    if plan["today_publish"]:
+        lines.append(f"🚀 Hoy toca publicar «{plan['ready']}» a las {plan['publish_hour']}:00.")
+    if plan["today_short"]:
+        lines.append(f"📱 Hoy toca un Short: «{plan['today_short']}».")
+    return "\n".join(lines)
