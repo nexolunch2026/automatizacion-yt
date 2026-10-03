@@ -79,6 +79,11 @@ def main() -> None:
         sys.exit(1)
 
     print(f"\n  Faceless Studio version {VERSION} esta encendido en {url}")
+    print(f"  Carpeta del programa (aqui estan tus proyectos): {ROOT}")
+    if "onedrive" in str(ROOT).lower():
+        print("  AVISO: la carpeta esta dentro de OneDrive. OneDrive puede llenarse con los")
+        print("  videos y estropear la base de datos al sincronizarla. Mejor muevela fuera")
+        print("  de OneDrive (por ejemplo a C:\\Usuarios\\tu-usuario\\FacelessStudio).")
     print("  Para apagarlo, cierra esta ventana.\n")
     if jarvis:
         threading.Timer(2.0, open_jarvis, args=[f"{url}/jarvis/hud"]).start()

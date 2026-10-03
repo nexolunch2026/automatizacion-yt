@@ -211,4 +211,15 @@
     <button class="btn">Guardar token</button>
   </form>
 </div>
+<div class="card form-card" id="carpeta">
+  <h2>📁 Carpeta del programa</h2>
+  <p>Tus proyectos, vídeos y claves están en: <code>{{ root_dir }}</code> (carpeta <code>datos</code>).</p>
+  <p class="muted small">Usa siempre el <strong>Iniciar</strong> de esta carpeta. Si abres otra copia del programa,
+    verás otros datos (o ninguno).</p>
+  {% if in_onedrive %}
+  <p class="alert">⚠️ Esta carpeta está dentro de <strong>OneDrive</strong>. OneDrive puede llenarse con los vídeos
+    (solo trae 5 GB gratis) y estropear la base de datos al sincronizarla mientras el programa la usa.
+    Te recomendamos moverla fuera de OneDrive.</p>
+  {% endif %}
+</div>
 {% endblock %}
