@@ -65,6 +65,42 @@
   </div>
 </div>
 
+<div class="card" id="ab">
+  <h3>🧪 Probar y comparar (A/B de títulos y miniaturas)</h3>
+  <p class="muted small">YouTube enseña cada opción a una parte del público durante hasta 14 días y se queda
+    con la que consigue <strong>más tiempo visto</strong>, no solo más clics. Funciona mejor con ideas de verdad distintas.</p>
+  {% if ab.titles %}
+  <p class="small"><strong>Títulos para probar</strong> (en YouTube Studio: Título → «Probar»):</p>
+  <ol class="ab-list">
+    {% for t in ab.titles %}
+    <li>
+      <span class="copy-text" id="ab-titulo-{{ loop.index }}">{{ t.text }}</span>
+      <button class="btn small secondary" data-copy="ab-titulo-{{ loop.index }}">Copiar</button>
+      <span class="muted small">{{ t.length }} caracteres{% if t.style %} · estilo {{ t.style }}{% endif %}</span>
+      {% if t.reason %}<br><span class="muted small">{{ t.reason }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+  {% if ab.thumbs %}
+  <p class="small"><strong>Miniaturas para probar</strong> (en Miniatura → «Probar y comparar»):</p>
+  <div class="ab-thumbs">
+    {% for v in ab.thumbs %}
+    <a href="/proyectos/{{ project.id }}/archivos/miniaturas/{{ v.file }}" download="miniatura-{{ project.id }}-{{ loop.index }}.jpg">
+      <img src="/proyectos/{{ project.id }}/archivos/miniaturas/{{ v.file }}" alt="Miniatura {{ loop.index }}">
+      <span class="small">Descargar {{ loop.index }} · «{{ v.text }}»</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted small">Haz las miniaturas en la pestaña <a href="/proyectos/{{ project.id }}/miniatura">Miniatura</a> para poder probarlas.</p>
+  {% endif %}
+  {% for w in ab.warnings %}<p class="alert info small">⚠️ {{ w }}</p>{% endfor %}
+  <p class="muted small">YouTube activa esta función a los canales del Programa de Socios y a los que tienen
+    las funciones avanzadas (se piden en YouTube Studio → Configuración → Canal → Elegibilidad de funciones).
+    Si aún no te aparece, sube el primer título y la miniatura elegida.</p>
+</div>
+
 <div class="card">
   <h3>Lista para subir el vídeo</h3>
   <ol class="steps">

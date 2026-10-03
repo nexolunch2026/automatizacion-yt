@@ -2,6 +2,16 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-03 — Versión 0.26: listo para «Probar y comparar»
+
+- En **Publicación** hay una tarjeta nueva, **🧪 Probar y comparar**, con 3 títulos
+  distintos (cada uno con su estilo y por qué puede funcionar) y las miniaturas para
+  descargar de una en una.
+- Te avisa si dos títulos se parecen demasiado (la prueba no serviría), si un título es
+  tan largo que se corta en el móvil o si una miniatura repite el título.
+- Explica cómo decide YouTube: gana la opción con **más tiempo visto**, no solo más clics.
+- Cuando YouTube te active la función, solo tienes que copiar y subir.
+
 ## 2026-10-03 — Versión 0.25: variedad visual
 
 - En **Vídeo** hay un selector nuevo, **Tono de color**: Cine, Cálido, Frío, Archivo

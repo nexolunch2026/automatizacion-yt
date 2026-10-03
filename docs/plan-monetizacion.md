@@ -74,7 +74,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [x] **Variedad visual** (0.25.0): turnar entre vídeos el estilo de subtítulos, la música y el
   «look» (como ya se turnan las estructuras), y que el control de calidad avise si el vídeo
   se parece demasiado al anterior.
-- [ ] **Preparado para «Probar y comparar»**: en Publicación, 3 títulos y las 3
+- [x] **Preparado para «Probar y comparar»** (0.26.0): en Publicación, 3 títulos y las 3
   miniaturas listos para el A/B de YouTube, con cuál probar y por qué.
 - [ ] **Guion más humano**: control de calidad de frases demasiado largas, repeticiones y
   palabras de relleno, con botón para reescribir solo esas frases.

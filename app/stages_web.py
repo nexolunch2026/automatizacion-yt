@@ -13,6 +13,7 @@ from app import jobs
 from app.auth import DB, CurrentUser
 from app.media import MUSIC_DIR, MUSIC_EXTENSIONS, music_library, project_dir, safe_path
 from app.models import LEVELS, SCRIPT_TONES, STAGES, Project, StageResult
+from app.pipeline.ab_test import ab_plan
 from app.pipeline.monetization import AREAS, project_review
 from app.pipeline.render import AUTO as AUTO_LOOK
 from app.pipeline.render import LOOKS, MUSIC_VOLUMES
@@ -582,6 +583,11 @@ def publish_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         project,
         "publish",
         has_ai_images=any(e.get("ai") for e in visuals.get("items", {}).values()),
+        ab=ab_plan(
+            jobs.get_result(db, project_id, "publish"),
+            jobs.get_result(db, project_id, "strategy"),
+            jobs.get_result(db, project_id, "thumbnail"),
+        ),
     )
 
 
