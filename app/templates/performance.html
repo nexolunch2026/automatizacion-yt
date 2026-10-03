@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>📈 Rendimiento</h1>
+    <p class="muted">Cómo le va a cada vídeo y qué aprende JARVIS para el siguiente.
+      {% if last %}Cifras leídas el {{ last[:16]|replace('T', ' a las ') }} (se actualizan solas cada 3 horas).{% endif %}</p>
+  </div>
+  <form method="post" action="/rendimiento/actualizar"
+        onsubmit="this.querySelector('button').textContent = 'Leyendo YouTube…'">
+    <button class="btn secondary">Actualizar cifras ahora</button>
+  </form>
+</div>
+{% if error %}<p class="alert">{{ error }}</p>{% endif %}
+{% if not has_key %}
+<p class="alert info">Sin la clave gratuita de YouTube solo se ven los últimos 15 vídeos y los suscriptores son aproximados.
+  Ponla en <a href="/jarvis#preferencias">JARVIS → Lo que JARVIS sabe de ti</a> para tener datos exactos.</p>
+{% endif %}
+
+<div class="two-col">
+  <div class="card">
+    <h2>Canal</h2>
+    {% if channel %}
+    <p class="big-number">{{ '{:,}'.format(channel.subscribers).replace(',', '.') if channel.subscribers is not none else '—' }}
+      <span class="muted small">suscriptores</span></p>
+    {% if channel.goal_pct is not none %}
+    <div class="progress goal-bar"><div style="width: {{ channel.goal_pct }}%"></div></div>
+    <p class="muted small">{{ channel.goal_pct }} % de los 1.000 suscriptores para monetizar
+      (también hacen falta 4.000 horas vistas en un año, o 10 millones de visitas en Shorts en 90 días).</p>
+    {% endif %}
+    {% else %}
+    <p class="muted">No pude leer el canal. Revisa que esté bien escrito en la página JARVIS.</p>
+    {% endif %}
+    {% if subs_spark %}
+    <svg class="spark big" viewBox="0 0 260 48" preserveAspectRatio="none"><polyline points="{{ subs_spark }}"/></svg>
+    <p class="muted small">Suscriptores desde el {{ subs[0][0] }}: {{ subs[0][1] }} → {{ subs[-1][1] }}</p>
+    {% endif %}
+  </div>
+
+  <div class="card" id="analisis">
+    <div class="row">
+      <h2>🧠 Lo que aprende JARVIS</h2>
+      <form method="post" action="/rendimiento/analizar"
+            onsubmit="this.querySelector('button').textContent = 'Analizando…'">
+        <button class="btn small" {% if not rows or not has_gemini %}disabled{% endif %}>Analizar ahora</button>
+      </form>
+    </div>
+    {% if insight %}
+    <p>{{ insight.summary }}</p>
+    {% if insight.worked %}<h3>✅ Lo que funcionó</h3><ul>{% for x in insight.worked %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+    {% if insight.improve %}<h3>🔧 Qué mejorar</h3><ul>{% for x in insight.improve %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+    {% if insight.next_steps %}<h3>👉 Próximos pasos</h3><ol>{% for x in insight.next_steps %}<li>{{ x }}</li>{% endfor %}</ol>{% endif %}
+    {% if insight.topic_ideas %}<h3>💡 Temas que encajan</h3><ul>{% for x in insight.topic_ideas %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+    <p class="muted small">Análisis del {{ insight.date }}.</p>
+    {% else %}
+    <p class="muted">Cuando tus vídeos tengan unos días de datos, pulsa «Analizar ahora» y JARVIS te dirá qué funcionó
+      y qué hacer después. Con pocos datos será prudente.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>Vídeos</h2>
+  {% if rows %}
+  <div class="table-wrap">
+  <table class="perf">
+    <thead><tr>
+      <th>Vídeo</th><th>Visitas</th><th>Por día</th><th>48 h</th><th>Me gusta</th><th>Coment.</th><th>Evolución</th>
+      <th title="Cópialos de YouTube Studio → Estadísticas del vídeo">CTR % · Visto %</th>
+    </tr></thead>
+    <tbody>
+    {% for r in rows %}
+    <tr>
+      <td><a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.title }}</a>
+        <div class="muted small">{{ r.published }} · {{ r.age }}
+          {% if r.vs_average is not none and rows|length > 1 %}·
+          <span class="{{ 'status-done' if r.vs_average >= 100 else 'status-failed' }}">{{ r.vs_average }} % de la media</span>{% endif %}
+          {% if r.project %}· <a href="/proyectos/{{ r.project_id }}">proyecto</a>{% endif %}</div></td>
+      <td><strong>{{ '{:,}'.format(r.views).replace(',', '.') }}</strong></td>
+      <td>{{ r.views_per_day }}</td>
+      <td>{{ r.views_48h if r.views_48h is not none else '—' }}</td>
+      <td>{{ r.likes if r.likes is not none else '—' }}{% if r.like_rate is not none %} <span class="muted small">({{ r.like_rate }} %)</span>{% endif %}</td>
+      <td>{{ r.comments if r.comments is not none else '—' }}</td>
+      <td>{% if r.spark %}<svg class="spark" viewBox="0 0 120 32" preserveAspectRatio="none"><polyline points="{{ r.spark }}"/></svg>{% endif %}</td>
+      <td>
+        <form method="post" action="/rendimiento/{{ r.video_id }}" class="perf-form">
+          <input name="ctr" value="{{ r.ctr if r.ctr is not none else '' }}" placeholder="CTR" inputmode="decimal">
+          <input name="retention" value="{{ r.retention if r.retention is not none else '' }}" placeholder="Visto" inputmode="decimal">
+          <select name="project_id" title="Proyecto de este vídeo">
+            <option value="">(sin proyecto)</option>
+            {% for p in projects %}<option value="{{ p.id }}" {% if p.id == r.project_id %}selected{% endif %}>{{ p.title[:40] }}</option>{% endfor %}
+          </select>
+          <button class="btn small secondary">Guardar</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted small">CTR = de cada 100 personas que ven la miniatura, cuántas hacen clic. «Visto %» = porcentaje medio del vídeo que ve la gente.
+    Los encuentras en YouTube Studio → el vídeo → Estadísticas. Con ellos el análisis es mucho mejor.</p>
+  {% else %}
+  <p class="muted">Todavía no hay datos. Pulsa «Actualizar cifras ahora» (tu canal tiene que tener al menos un vídeo público).</p>
+  {% endif %}
+</div>
+{% endblock %}

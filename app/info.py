@@ -81,7 +81,7 @@ def _count(text: str) -> int | None:
     return int(re.sub(r"[.,]", "", number))
 
 
-def fetch_youtube_api(handle: str, key: str) -> dict:
+def fetch_youtube_api(handle: str, key: str, limit: int = 5) -> dict:
     """Con la clave gratuita de YouTube Data API v3 (datos exactos)."""
     base = "https://www.googleapis.com/youtube/v3"
     ident = {"forHandle": handle} if handle.startswith("@") else {"id": handle}
@@ -92,7 +92,11 @@ def fetch_youtube_api(handle: str, key: str) -> dict:
     stats = item["statistics"]
     uploads = item["contentDetails"]["relatedPlaylists"]["uploads"]
     playlist = _get(
-        f"{base}/playlistItems", part="contentDetails", playlistId=uploads, maxResults=5, key=key
+        f"{base}/playlistItems",
+        part="contentDetails",
+        playlistId=uploads,
+        maxResults=min(limit, 50),
+        key=key,
     ).json()
     ids = [i["contentDetails"]["videoId"] for i in playlist.get("items", [])]
     videos = []
@@ -101,10 +105,12 @@ def fetch_youtube_api(handle: str, key: str) -> dict:
         for v in found.json().get("items", []):
             videos.append(
                 {
+                    "id": v["id"],
                     "title": v["snippet"]["title"],
                     "views": int(v["statistics"].get("viewCount", 0)),
                     "likes": int(v["statistics"].get("likeCount", 0)),
-                    "published": v["snippet"]["publishedAt"][:10],
+                    "comments": int(v["statistics"].get("commentCount", 0)),
+                    "published": v["snippet"]["publishedAt"][:16],
                     "url": f"https://www.youtube.com/watch?v={v['id']}",
                 }
             )
@@ -156,24 +162,27 @@ def parse_channel_page(page: str) -> dict:
     }
 
 
-def parse_channel_feed(xml_text: str) -> list[dict]:
+def parse_channel_feed(xml_text: str, limit: int = 5) -> list[dict]:
     root = ET.fromstring(xml_text)
     videos = []
-    for entry in root.findall("a:entry", ATOM)[:5]:
+    for entry in root.findall("a:entry", ATOM)[:limit]:
         stats = entry.find("media:group/media:community/media:statistics", ATOM)
+        rating = entry.find("media:group/media:community/media:starRating", ATOM)
         link = entry.find("a:link", ATOM)
         videos.append(
             {
+                "id": entry.findtext("yt:videoId", "", ATOM),
                 "title": entry.findtext("a:title", "", ATOM),
                 "views": int(stats.get("views", 0)) if stats is not None else 0,
-                "published": entry.findtext("a:published", "", ATOM)[:10],
+                "likes": int(rating.get("count", 0)) if rating is not None else None,
+                "published": entry.findtext("a:published", "", ATOM)[:16],
                 "url": link.get("href") if link is not None else "",
             }
         )
     return videos
 
 
-def fetch_youtube_public(handle: str) -> dict:
+def fetch_youtube_public(handle: str, limit: int = 5) -> dict:
     """Sin clave: la página pública del canal y su RSS (los suscriptores, aproximados)."""
     url = f"https://www.youtube.com/{handle if handle.startswith('@') else 'channel/' + handle}"
     page = parse_channel_page(_get(url, hl="es").text)
@@ -184,7 +193,7 @@ def fetch_youtube_public(handle: str) -> dict:
         raise ValueError("La página del canal no tiene datos")
     try:  # el RSS de YouTube a veces falla: sin él seguimos con los suscriptores
         feed = _get("https://www.youtube.com/feeds/videos.xml", channel_id=channel_id).text
-        latest = parse_channel_feed(feed)
+        latest = parse_channel_feed(feed, limit)
     except (httpx.HTTPError, ET.ParseError) as exc:
         log.warning("RSS del canal no disponible: %s", exc)
         latest = []

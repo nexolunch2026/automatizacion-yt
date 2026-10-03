@@ -26,6 +26,8 @@ SKILL_ACTIONS = (
     "fact",
     "open",
     "stats",
+    "performance",
+    "analyze",
 )
 
 # Páginas que JARVIS sabe abrir (clave sin tildes y en minúsculas).
@@ -117,6 +119,23 @@ STATS_WORDS = (
     "informe semanal",
     "resumen de la semana",
 )
+PERFORMANCE_WORDS = (
+    "rendimiento",
+    "como va mi video",
+    "como va el video",
+    "como van mis videos",
+    "como va el ultimo video",
+    "cuantas visitas tiene el video",
+    "resultados",
+    "que video funciona mejor",
+)
+ANALYZE_WORDS = (
+    "analiza el canal",
+    "analisis",
+    "analiza mis videos",
+    "que aprendiste",
+    "que mejoro",
+)
 REMINDER_LIST_WORDS = ("recordatorios", "mis recordatorios", "que recordatorios tengo", "alarmas")
 
 REMINDER = re.compile(
@@ -148,6 +167,8 @@ def quick(text: str, norm: str):
         (FACT_WORDS, "fact"),
         (STATS_WORDS, "stats"),
         (REMINDER_LIST_WORDS, "reminder_list"),
+        (PERFORMANCE_WORDS, "performance"),
+        (ANALYZE_WORDS, "analyze"),
     ):
         if bare in words:
             return Intent(action=action)
@@ -186,6 +207,8 @@ def act(db: Session, intent) -> list:
         "fact": _fact,
         "open": _open,
         "stats": _stats,
+        "performance": _performance,
+        "analyze": _analyze,
     }[intent.action]
     return handler(db, intent)
 
@@ -421,3 +444,48 @@ def _stats(db: Session, intent) -> list:
     if summary:
         lines.append(f"📺 Canal: {summary}")
     return [_r("\n".join(lines))]
+
+
+def _performance(db: Session, intent) -> list:
+    from app import analytics
+
+    rows = analytics.video_rows(db)
+    if not rows:
+        return [
+            _r(
+                "📈 Todavía no tengo cifras de tus vídeos. Abre la página Rendimiento y pulsa "
+                "«Actualizar cifras ahora» (el canal necesita al menos un vídeo público)."
+            )
+        ]
+    latest = rows[0]
+    lines = [
+        f"📈 <b>«{escape(latest['title'])}»</b> ({latest['age']}): "
+        f"{number(latest['views'])} visitas, {latest['views_per_day']} por día"
+        + (f", {latest['likes']} me gusta" if latest["likes"] is not None else "")
+        + (f", {latest['comments']} comentarios" if latest["comments"] is not None else "")
+        + "."
+    ]
+    if len(rows) > 1:
+        best = max(rows, key=lambda r: r["views_per_day"])
+        lines.append(
+            f"🏆 El que mejor va: «{escape(best['title'])}» ({best['views_per_day']}/día)."
+        )
+    insight = analytics.last_insight(db)
+    if insight:
+        lines.append(f"🧠 {escape(insight['summary'])}")
+    return [_r("\n".join(lines), buttons=[[("🧠 Analizar ahora", "analyze")]])]
+
+
+def _analyze(db: Session, intent) -> list:
+    from app import analytics, jobs
+
+    try:
+        ai = jobs.get_ai_provider(db)
+        data = analytics.analyze(db, ai)
+        jobs.remember_working_model(db, ai)
+    except ValueError as exc:
+        return [_r(f"📈 {escape(str(exc))} Publica un vídeo y espera unos días.")]
+    parts = [f"🧠 <b>Análisis del canal</b>\n{escape(data['summary'])}"]
+    if data["next_steps"]:
+        parts.append("👉 " + "\n👉 ".join(escape(x) for x in data["next_steps"][:3]))
+    return [_r("\n\n".join(parts))]

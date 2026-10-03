@@ -171,3 +171,30 @@ class StageResult(Base):
     stage: Mapped[str] = mapped_column(String(30))
     data: Mapped[dict] = mapped_column(JSON)
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+
+
+class Video(Base):
+    """Un vídeo publicado en YouTube (enlazado con su proyecto, si se sabe cuál es)."""
+
+    __tablename__ = "videos"
+
+    video_id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    title: Mapped[str] = mapped_column(String(200), default="")
+    published: Mapped[str] = mapped_column(String(20), default="")
+    project_id: Mapped[int | None] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"))
+    ctr: Mapped[float | None]  # % de clics en la miniatura (lo copias de YouTube Studio)
+    retention: Mapped[float | None]  # % medio visto (también de YouTube Studio)
+    milestones: Mapped[str | None] = mapped_column(String(200))  # hitos ya avisados
+
+
+class VideoStat(Base):
+    """Foto de las cifras de un vídeo en un momento (para ver cómo crece)."""
+
+    __tablename__ = "video_stats"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    video_id: Mapped[str] = mapped_column(ForeignKey("videos.video_id", ondelete="CASCADE"))
+    taken_at: Mapped[datetime]
+    views: Mapped[int] = mapped_column(default=0)
+    likes: Mapped[int | None]
+    comments: Mapped[int | None]

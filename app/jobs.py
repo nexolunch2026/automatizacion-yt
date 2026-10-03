@@ -617,6 +617,17 @@ def _handle_failure(db: Session, job: Job, exc: Exception) -> None:
     db.commit()
 
 
+def _refresh_analytics() -> None:
+    """Sin tareas pendientes: cada pocas horas guarda las cifras de los vídeos publicados."""
+    from app import analytics
+
+    try:
+        with SessionLocal() as db:
+            analytics.maybe_refresh(db)
+    except Exception:  # noqa: BLE001 — nunca debe parar el trabajador
+        log.exception("Error guardando las cifras del canal")
+
+
 class Worker(threading.Thread):
     def __init__(self, poll_seconds: float = 1.0):
         super().__init__(name="faceless-worker", daemon=True)
@@ -632,6 +643,7 @@ class Worker(threading.Thread):
                 log.exception("Error en el trabajador")
                 worked = False
             if not worked:
+                _refresh_analytics()
                 self._stop_event.wait(self._poll)
 
     def stop(self) -> None:

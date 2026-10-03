@@ -535,13 +535,17 @@
     alerting = true;
     const wasAsleep = state === "asleep";
     stopListening();
-    $("alert-kind").textContent = a.kind === "timer" ? "TEMPORIZADOR" : "RECORDATORIO";
+    $("alert-kind").textContent = { timer: "TEMPORIZADOR", milestone: "🎉 LOGRO" }[a.kind] || "RECORDATORIO";
     $("alert-text").textContent = a.text;
     $("alert").hidden = false;
     for (let i = 0; i < 3; i++) { beep(988, 160, i * 350, 0.12); beep(1318, 160, i * 350 + 170, 0.12); }
     await new Promise((r) => setTimeout(r, 1200));
     const name = window.JARVIS_NAME ? ", " + window.JARVIS_NAME : "";
-    await speak(a.kind === "timer" ? `${a.text} terminado${name}.` : `Disculpe${name}. Le recuerdo: ${a.text}.`);
+    const said = {
+      timer: `${a.text} terminado${name}.`,
+      milestone: `Buenas noticias${name}. ${a.text}. Enhorabuena.`,
+    }[a.kind] || `Disculpe${name}. Le recuerdo: ${a.text}.`;
+    await speak(said);
     setTimeout(() => { $("alert").hidden = true; }, 6000);
     if (alertQueue.length) return nextAlert();
     alerting = false;

@@ -187,6 +187,8 @@ class Intent(BaseModel):
         "fact",
         "open",
         "stats",
+        "performance",
+        "analyze",
     ]
     topic: str = Field(default="", description="Tema del vídeo, si pide uno")
     topics: list[str] = Field(default_factory=list, description="Temas para la cola")
@@ -386,6 +388,8 @@ documentales sin rostro sobre marcas: «Anatomía De Una Marca»). Clasifica el 
 - channel: pregunta por su canal de YouTube (suscriptores, visitas, vídeos).
 - dollar: pregunta el precio del dólar. forecast: pregunta el clima o el pronóstico.
 - fact: pide un dato curioso. stats: pide estadísticas de lo producido.
+- performance: pregunta cómo van sus vídeos publicados (visitas, resultados).
+- analyze: pide que analices el canal o qué aprendiste de los resultados.
 - open: quiere abrir una página, app o proyecto, buscar algo o poner música
   (target = qué; «google:…» para buscar, «youtube:…» para música o vídeos).
 - help: pregunta qué puedes hacer.
@@ -536,6 +540,15 @@ class IdeaList(BaseModel):
     ideas: list[Idea]
 
 
+def _performance_hint(db: Session) -> str:
+    from app import analytics
+
+    try:
+        return analytics.performance_hint(db)
+    except Exception:  # noqa: BLE001 — las ideas no deben fallar por esto
+        return ""
+
+
 def _ideas(db: Session) -> list[Reply]:
     channel = db.get(Channel, _defaults(db)["channel_id"] or 0)
     done = [p.topic for p in db.scalars(select(Project).order_by(Project.id.desc()).limit(40))]
@@ -547,6 +560,7 @@ def _ideas(db: Session) -> list[Reply]:
 (temática: {niche}), en {language}.
 Busca historias con conflicto real y verificable: auges, caídas, errores, rivalidades,
 resurgimientos. Mezcla marcas muy conocidas con alguna sorpresa. Nada de temas inventados.
+{_performance_hint(db)}
 No repitas estos temas ya hechos: {"; ".join(done) or "ninguno"}"""
     ideas = ai.generate_json(prompt, IdeaList).ideas[:5]
     jobs.remember_working_model(db, ai)
@@ -740,6 +754,8 @@ def _button(db: Session, data: str) -> list[Reply]:
         return _act(db, Intent(action="queue_show"), "")
     if kind == "tasks":
         return [Reply(tasks_text(db))]
+    if kind == "analyze":
+        return skills.act(db, Intent(action="analyze"))
     if kind == "radar":
         headlines = _json_setting(db, "jarvis_radar", [])
         if rest.isdigit() and int(rest) < len(headlines):
@@ -1055,6 +1071,8 @@ def reminder_alerts(db: Session, now: datetime | None = None) -> list[Reply]:
         Reply(
             f"⏱️ <b>¡Tiempo!</b> {escape(item['text'])} terminado."
             if item["kind"] == "timer"
+            else f"🎉 <b>¡Logro!</b> {escape(item['text'])}"
+            if item["kind"] == "milestone"
             else f"⏰ <b>Recordatorio:</b> {escape(item['text'])}"
         )
         for item in agenda.unsent_alerts(db, now)

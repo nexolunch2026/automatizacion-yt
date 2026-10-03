@@ -101,6 +101,12 @@
   });
 </script>
 <div class="card">
+  <form method="post" action="/proyectos/{{ project.id }}/enlace-youtube" class="row">
+    <label class="grow">Enlace del vídeo en YouTube <span class="muted small">(para que JARVIS siga sus visitas)</span>
+      <input name="url" placeholder="https://youtu.be/…" required>
+    </label>
+    <button class="btn secondary">Guardar enlace</button>
+  </form>
   {% if project.status == 'Publicado' %}
   <p class="alert ok">✅ Marcado como publicado en YouTube.</p>
   {% else %}

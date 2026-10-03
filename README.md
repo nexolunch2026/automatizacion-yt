@@ -69,6 +69,12 @@ pantalla completa:
 - Abre cosas: *«abre YouTube Studio»*, *«busca la historia de Kodak»*, *«pon música lofi»*,
   *«abre el proyecto de Nokia»*. Y recuerda la conversación para seguir el hilo.
 
+### Rendimiento (cuando ya publicas)
+En **📈 Rendimiento** ves las visitas, «me gusta» y comentarios de cada vídeo, cómo
+crecen día a día y cuál va mejor. Las cifras se guardan solas cada 3 horas, JARVIS te
+avisa de los logros (100, 500, 1.000 visitas… o suscriptores) y con **«Analizar ahora»**
+te dice qué funcionó, qué mejorar y qué temas hacer después.
+
 ### Para apagarlo
 Cierra la **ventana negra**.
 

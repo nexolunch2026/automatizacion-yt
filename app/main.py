@@ -6,7 +6,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from app import auth, jarvis_web, settings_web, stages_web, web
+from app import analytics_web, auth, jarvis_web, settings_web, stages_web, web
 from app.config import SECRET_KEY, WORKER_ENABLED
 from app.db import init_db
 from app.jobs import Worker
@@ -38,6 +38,7 @@ app.include_router(web.router)
 app.include_router(settings_web.router)
 app.include_router(stages_web.router)
 app.include_router(jarvis_web.router)
+app.include_router(analytics_web.router)
 
 
 @app.exception_handler(auth.LoginRequired)
