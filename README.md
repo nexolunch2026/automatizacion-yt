@@ -73,6 +73,12 @@ pantalla completa:
 - Abre cosas: *«abre YouTube Studio»*, *«busca la historia de Kodak»*, *«pon música lofi»*,
   *«abre el proyecto de Nokia»*. Y recuerda la conversación para seguir el hilo.
 
+### Aprender de los mejores
+En `docs/aprender-de-los-mejores.md` tienes una guía con los canales que mejor hacen
+documentales de marcas, qué hacen en los primeros 30 segundos, títulos y miniaturas,
+cuánto paga cada nicho, 36 ideas de vídeo y cursos gratis para aprender. Pídele a JARVIS
+**«banco de ideas»**, **«ideas de España»** o **«ideas de Latinoamérica»**.
+
 ### Control de calidad (antes de subir)
 En cada proyecto, la pestaña **Control de calidad** te da una nota de 0 a 100 y te dice si
 el vídeo podrá llevar anuncios: duración, palabras que quitan anuncios, si se parece

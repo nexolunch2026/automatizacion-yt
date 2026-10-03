@@ -50,6 +50,12 @@ concepto de miniatura.
 
 Reglas: basa todo en la investigación; los títulos deben ser atractivos pero honestos
 (nada que el vídeo no cumpla); no inventes cifras de CTR ni de visitas.
+Lo que hacen los mejores canales de documentales de empresas:
+- Títulos de 60 caracteres como mucho, con la marca y lo más intrigante al principio
+  (se cortan en el móvil). Crean una pregunta en la cabeza, no la responden.
+- La miniatura y el título son un equipo: el texto de la miniatura (2–4 palabras) añade
+  algo que el título no dice; nunca lo repite. Muestra la emoción o el resultado.
+- El gancho entra directo en el momento de más tensión de la historia, sin presentaciones.
 
 INVESTIGACIÓN:
 {research_summary(research)}"""

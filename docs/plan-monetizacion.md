@@ -50,6 +50,15 @@ automatización sirve para ahorrar horas, no para sustituir tu criterio.
   calidad y JARVIS (al acercarte a 1.000 suscriptores) te recuerdan pagar el plan más
   barato justo antes de solicitar la monetización.
 
+## Aprender de los mejores — hecho en la versión 0.22.0
+
+- Guía `docs/aprender-de-los-mejores.md`: referentes, técnicas, nichos, ideas y cursos.
+- Guiones con el gancho en 3 tiempos, giro hacia el segundo 30 y la sección fija «La
+  lección de la marca» (la firma del canal); títulos de 60 caracteres como mucho y
+  miniaturas que completan el título.
+- Banco de 36 historias reales en JARVIS (también de reserva si Gemini falla).
+- El aviso de IA del control de calidad solo pide marcar lo que parezca real.
+
 ## Fase 2 — siguiente (más impacto)
 
 1. **Más variedad**: turnar también estilos visuales y música entre vídeos.

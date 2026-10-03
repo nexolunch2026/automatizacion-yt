@@ -177,6 +177,27 @@ RULES = """Reglas:
   los temas delicados, con tono informativo."""
 
 
+# Lo que hacen los mejores canales de documentales faceless en cada parte del vídeo.
+SECTION_GUIDES = {
+    "hook": "Estructura del gancho (los primeros 30 s deciden si se quedan): 1) una frase "
+    "inesperada que meta al espectador en el momento de más tensión; 2) qué está en juego, "
+    "con un dato concreto; 3) una promesa: algo que solo descubrirá si se queda hasta el final.",
+    "promise": "Di en una o dos frases qué va a entender el espectador al terminar. Nada de "
+    "«suscríbete» aquí.",
+    "intro": "Contexto mínimo para seguir la historia: quién, dónde, cuándo. Vuelve rápido al "
+    "conflicto; a los 30–40 s de vídeo conviene un giro o dato sorprendente que reavive la "
+    "atención.",
+    "development": "Cada sección es un paso de la historia con una decisión o un giro. Cierra "
+    "con una pregunta abierta o un adelanto de lo que viene.",
+    "climax": "El momento decisivo. Cumple aquí la promesa del gancho: lo que se prometió al "
+    "principio se revela ahora.",
+    "conclusion": "Cierra con la sección fija del canal, «La lección de la marca»: una idea "
+    "práctica y propia que el espectador pueda aplicar (es la firma del canal).",
+    "cta": "Una sola llamada a la acción, natural: invita a comentar con una pregunta concreta "
+    "y menciona otro vídeo del canal relacionado, sin rogar.",
+}
+
+
 def _outline_prompt(brief: str, plan: list[dict], research: dict) -> str:
     slots = "\n".join(
         f"{i}. {SECTION_LABELS[p['kind']]} (~{p['words']} palabras)" for i, p in enumerate(plan, 1)
@@ -210,6 +231,7 @@ Estás escribiendo el guion por partes. Esquema completo (la flecha marca la par
 
 ESCRIBE AHORA SOLO la sección {index + 1}: «{section["label"]}: {section["title"]}».
 Ideas a cubrir: {"; ".join(section["key_points"])}
+{SECTION_GUIDES.get(section["kind"], "")}
 Extensión: unas {section["words"]} palabras (unos {paragraphs} párrafos). Es importante
 llegar a esa extensión con contenido real de la investigación.
 

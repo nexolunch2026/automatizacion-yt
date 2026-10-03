@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import agenda, coach, jobs, skills
+from app import agenda, coach, ideas_bank, jobs, skills
 from app.media import project_dir
 from app.models import DURATIONS, STAGES, Channel, Job, Project, User
 from app.pipeline.monetization import project_review, summary_text
@@ -193,6 +193,7 @@ class Intent(BaseModel):
         "next_step",
         "monetize",
         "review",
+        "idea_bank",
     ]
     topic: str = Field(default="", description="Tema del vídeo, si pide uno")
     topics: list[str] = Field(default_factory=list, description="Temas para la cola")
@@ -248,6 +249,17 @@ TASK_DONE = re.compile(
 )
 
 
+IDEA_BANK_WORDS = {  # frase → región ("" = todas)
+    "banco de ideas": "",
+    "ideas clasicas": "",
+    "ideas del banco": "",
+    "/banco": "",
+    "ideas de espana": "España",
+    "ideas espana": "España",
+    "ideas de latinoamerica": "Latinoamérica",
+    "ideas latinoamerica": "Latinoamérica",
+    "ideas latinas": "Latinoamérica",
+}
 NEXT_STEP_WORDS = (
     "que hago",
     "que hago ahora",
@@ -352,6 +364,8 @@ def quick_intent(text: str) -> Intent | None:
         return Intent(action="status")
     if bare in ("ideas", "/ideas", "dame ideas", "sugerencias"):
         return Intent(action="ideas")
+    if bare in IDEA_BANK_WORDS:
+        return Intent(action="idea_bank", topic=IDEA_BANK_WORDS[bare])
     if bare in NEXT_STEP_WORDS:
         return Intent(action="next_step")
     if bare in MONETIZE_WORDS:
@@ -444,6 +458,8 @@ documentales sin rostro sobre marcas: «Anatomía De Una Marca»). Clasifica el 
 - fact: pide un dato curioso. stats: pide estadísticas de lo producido.
 - performance: pregunta cómo van sus vídeos publicados (visitas, resultados).
 - analyze: pide que analices el canal o qué aprendiste de los resultados.
+- idea_bank: pide ideas del banco de historias, o de España o Latinoamérica
+  (topic = «España», «Latinoamérica» o vacío).
 - next_step: pregunta qué hacer ahora, qué falta o cuál es el siguiente paso.
 - monetize: pregunta cuánto le falta para monetizar o para el Programa de Socios.
 - review: pregunta si un vídeo se puede monetizar o pide revisarlo antes de subirlo
@@ -476,6 +492,8 @@ def help_replies() -> list[Reply]:
             "🎬 <b>«Hazme un vídeo sobre Kodak»</b> — investigo, te propongo 3 enfoques y, "
             "cuando elijas, hago todo: guion, voz, imágenes, montaje y textos.\n"
             "💡 <b>«ideas»</b> — te propongo temas para el canal.\n"
+            "📚 <b>«banco de ideas»</b>, <b>«ideas de España»</b>, <b>«ideas de "
+            "Latinoamérica»</b> — historias reales ya elegidas, con formatos variados.\n"
             "📊 <b>«estado»</b> — cómo va todo.\n"
             "👉 <b>«¿qué hago ahora?»</b> — el siguiente paso de cada vídeo, con un botón.\n"
             "💰 <b>«¿cuánto me falta para monetizar?»</b> — suscriptores, horas y consejos.\n"
@@ -681,6 +699,24 @@ def _review(db: Session, topic: str = "") -> list[Reply]:
     return [Reply("🔎 " + escape(coach.review_project(db, project)))]
 
 
+def bank_replies(db: Session, region: str = "") -> list[Reply]:
+    """Historias reales del banco de ideas que aún no se han hecho, con formatos variados."""
+    done = [p.topic for p in db.scalars(select(Project))]
+    ideas = ideas_bank.fresh_ideas(done, region)
+    if not ideas:
+        return [Reply("📚 Ya hiciste todas las ideas del banco. Di «ideas» y pienso nuevas.")]
+    _save_json(db, "telegram_ideas", [i["topic"] for i in ideas])
+    lines = [
+        f"{n}. <b>{escape(i['topic'])}</b> <i>({ideas_bank.FORMAT_LABELS[i['format']]}, "
+        f"{escape(i['region'])})</i>\n   🪝 {escape(i['hook'])}"
+        for n, i in enumerate(ideas, 1)
+    ]
+    buttons = [[(f"🎬 {n}", f"idea:{n - 1}") for n in range(1, len(ideas) + 1)]]
+    buttons.append([("🛫 Todas a la cola", "idea:all"), ("💡 Ideas nuevas", "ideas")])
+    title = f"📚 <b>Banco de historias{f' — {escape(region)}' if region else ''}</b>"
+    return [Reply(title + "\n\n" + "\n\n".join(lines), buttons=buttons)]
+
+
 class Idea(BaseModel):
     topic: str = Field(description="Tema concreto del vídeo (marca o empresa y el ángulo)")
     hook: str = Field(description="Por qué engancha, en una frase")
@@ -716,7 +752,11 @@ rivalidad entre dos marcas, el juicio o escándalo, «qué habría pasado si», 
 para que el canal no parezca hecho en serie: YouTube no monetiza el contenido repetitivo.
 {_performance_hint(db)}
 No repitas estos temas ya hechos: {"; ".join(done) or "ninguno"}"""
-    ideas = ai.generate_json(prompt, IdeaList).ideas[:5]
+    try:
+        ideas = ai.generate_json(prompt, IdeaList).ideas[:5]
+    except ProviderError:
+        log.info("Gemini no respondió; uso el banco de ideas", exc_info=True)
+        return bank_replies(db)
     jobs.remember_working_model(db, ai)
     if not ideas:
         return [Reply("No se me ocurrió nada bueno ahora. Prueba otra vez en un rato.")]
@@ -858,6 +898,9 @@ def _act(db: Session, intent: Intent, text: str) -> list[Reply]:
             state["on"] = intent.on
             save_autopilot(db, state)
         return [Reply(_queue_text(state), buttons=_autopilot_buttons(state))]
+    if intent.action == "idea_bank":
+        region = intent.topic if intent.topic in ("España", "Latinoamérica") else ""
+        return bank_replies(db, region)
     if intent.action == "next_step":
         return next_step_replies(db)
     if intent.action == "monetize":

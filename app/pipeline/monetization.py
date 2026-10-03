@@ -302,9 +302,11 @@ def _rights_checks(results: dict) -> list[dict]:
                     "synthetic",
                     "rights",
                     WARN,
-                    "Hay imágenes de IA: márcalo al subir",
-                    "YouTube pide avisar del contenido alterado o sintético si parece real.",
-                    "En YouTube Studio → Detalles → «Contenido alterado» marca «Sí».",
+                    "Hay imágenes de IA: ¿alguna parece una foto real?",
+                    "YouTube solo pide avisar si la IA puede confundirse con algo real (una"
+                    " persona real o un hecho que no pasó). Las ilustraciones no hace falta.",
+                    "Si alguna parece real: YouTube Studio → Detalles → «Contenido alterado»"
+                    " → «Sí».",
                     "publicacion",
                 )
             )
