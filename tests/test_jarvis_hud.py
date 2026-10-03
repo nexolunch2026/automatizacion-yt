@@ -135,6 +135,7 @@ def test_briefing_speaks_the_day(logged_in, ai):
 def test_hud_pages(logged_in, ai):
     create_channel(logged_in)
     page = logged_in.get("/jarvis/hud").text
+    assert 'id="set-wake"' in page  # despertar diciendo «Jarvis»
     assert "J.A.R.V.I.S." in page and "jarvis_hud.js" in page
 
     logged_in.post("/jarvis/preferencias", data={"city": "Medellín", "call_me": "jefe"})

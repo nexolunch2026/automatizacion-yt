@@ -15,7 +15,7 @@
 
   // ------------------------------------------------------------ ajustes
 
-  const defaults = { voice: "", lang: "es-CO", sens: 5, claps: true, briefing: true };
+  const defaults = { voice: "", lang: "es-CO", sens: 5, claps: true, briefing: true, wakeWord: true };
   let settings = { ...defaults };
   try { settings = { ...defaults, ...JSON.parse(localStorage.getItem("jarvis-hud") || "{}") }; } catch (e) {}
   const saveSettings = () => { try { localStorage.setItem("jarvis-hud", JSON.stringify(settings)); } catch (e) {} };
@@ -40,7 +40,7 @@
     [...body].filter((c) => c.startsWith("state-")).forEach((c) => body.remove(c));
     body.add("state-" + next);
     const labels = {
-      asleep: settings.claps ? "EN ESPERA · 👏👏" : "EN ESPERA · TÓCAME",
+      asleep: settings.wakeWord ? "EN ESPERA · DI «JARVIS»" : settings.claps ? "EN ESPERA · 👏👏" : "EN ESPERA · TÓCAME",
       listening: "ESCUCHANDO",
       thinking: "PROCESANDO",
       speaking: "HABLANDO",
@@ -48,6 +48,8 @@
     };
     $("state-label").textContent = label || labels[next] || "";
     if (next === "listening") lastActivity = Date.now();
+    if (next === "asleep") setTimeout(listenForName, 300);
+    else stopNameListening();
   }
 
   // ------------------------------------------------------------ sonidos
@@ -322,6 +324,53 @@
       }
     };
     try { rec.start(); } catch (e) {}
+  }
+
+  // ------------------------------------------------------------ despertar con su nombre
+  // Dormido, escucha solo para oír «Jarvis» (como un altavoz inteligente). Si se dice la
+  // orden seguida («Jarvis, ¿qué hora es?»), la contesta sin más pasos.
+
+  const WAKE_NAME = /\b(jarvis|yarvis|jarbis|harvis|harvey|harvest|jarvi)\b/i;
+  let nameRec = null;
+
+  function listenForName() {
+    if (!Recognition || !settings.wakeWord || state !== "asleep" || nameRec) return;
+    const rec = new Recognition();
+    nameRec = rec;
+    rec.lang = settings.lang || "es-CO";
+    rec.continuous = true;
+    rec.interimResults = false;
+    rec.onresult = (e) => {
+      const said = e.results[e.results.length - 1][0].transcript.trim();
+      const m = said.match(WAKE_NAME);
+      if (!m || state !== "asleep") return;
+      const rest = said.slice(m.index + m[0].length).replace(/^[\s,.:;!¡¿?]+/, "").trim();
+      stopNameListening();
+      if (rest.split(/\s+/).filter(Boolean).length >= 2) {
+        chimeWake();
+        energy = 1;
+        handle(rest);
+      } else {
+        wake();
+      }
+    };
+    rec.onerror = (e) => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") settings.wakeWord = false;
+    };
+    rec.onend = () => { // el navegador corta la escucha cada cierto tiempo: se reanuda
+      if (nameRec !== rec) return;
+      nameRec = null;
+      setTimeout(listenForName, 400);
+    };
+    try { rec.start(); } catch (e) { nameRec = null; }
+  }
+
+  function stopNameListening() {
+    if (nameRec) {
+      const r = nameRec;
+      nameRec = null;
+      try { r.abort(); } catch (e) {}
+    }
   }
 
   function stopListening() {
@@ -881,6 +930,7 @@
     $("set-sens").value = settings.sens;
     $("set-claps").checked = settings.claps;
     $("set-briefing").checked = settings.briefing;
+    $("set-wake").checked = settings.wakeWord;
     $("settings").hidden = false;
   });
   $("settings-close").addEventListener("click", () => ($("settings").hidden = true));
@@ -939,6 +989,12 @@
   $("set-sens").addEventListener("input", (e) => { settings.sens = parseInt(e.target.value, 10); saveSettings(); });
   $("set-claps").addEventListener("change", (e) => { settings.claps = e.target.checked; saveSettings(); setState(state); });
   $("set-briefing").addEventListener("change", (e) => { settings.briefing = e.target.checked; saveSettings(); });
+  $("set-wake").addEventListener("change", (e) => {
+    settings.wakeWord = e.target.checked;
+    saveSettings();
+    if (settings.wakeWord) listenForName(); else stopNameListening();
+    if (state === "asleep") setState("asleep");
+  });
   $("set-test").addEventListener("click", () => {
     const previous = state;
     speak("Hola. Soy JARVIS, su asistente de producción. Todos los sistemas funcionan.").then(() => {

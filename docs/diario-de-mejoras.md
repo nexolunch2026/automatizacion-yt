@@ -2,6 +2,14 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-03 — Versión 0.30: despertar a JARVIS con su nombre
+
+- En la pantalla JARVIS, mientras duerme, basta con decir **«Jarvis»** para despertarlo
+  (además de las palmadas, tocarlo o la barra espaciadora).
+- Si lo dices todo seguido, **«Jarvis, ¿qué hora es?»**, contesta directamente.
+- Se puede apagar en ⚙ Ajustes → «Despertar diciendo Jarvis».
+- Ya seguía escuchando tras responder (1 minuto) para continuar la conversación.
+
 ## 2026-10-03 — Versión 0.29: JARVIS sabe de todo
 
 - **Pregúntale lo que sea** (cultura, noticias, deportes, precios, cómo hacer algo…):
