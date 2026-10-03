@@ -42,8 +42,15 @@ def migrate_legacy(old: Path, new: Path) -> bool:
     shutil.rmtree(temp, ignore_errors=True)
     shutil.copytree(old, temp)
     # Comprueba que la base de datos copiada se abre bien antes de darla por buena.
-    with sqlite3.connect(temp / "faceless.db") as conn:
-        conn.execute("PRAGMA integrity_check").fetchone()
+    # (en Windows hay que cerrar la conexión: «with» solo confirma, no cierra el archivo)
+    conn = sqlite3.connect(temp / "faceless.db")
+    try:
+        ok = conn.execute("PRAGMA integrity_check").fetchone()[0]
+    finally:
+        conn.close()
+    if ok != "ok":
+        shutil.rmtree(temp, ignore_errors=True)
+        raise ValueError(f"La base de datos antigua está dañada ({ok}); no se ha movido.")
     if new.exists():
         shutil.rmtree(new)  # carpeta vacía creada antes (sin base de datos)
     temp.rename(new)
@@ -79,8 +86,12 @@ def daily_backup(data_dir: Path, now: datetime | None = None, target: Path | Non
     out = target / f"faceless-{now:%Y-%m-%d}.zip"
     with tempfile.TemporaryDirectory() as tmp:
         snapshot = Path(tmp) / "faceless.db"
-        with sqlite3.connect(data_dir / "faceless.db") as source, sqlite3.connect(snapshot) as dest:
+        source, dest = sqlite3.connect(data_dir / "faceless.db"), sqlite3.connect(snapshot)
+        try:
             source.backup(dest)
+        finally:
+            dest.close()
+            source.close()
         partial = out.with_suffix(".tmp")
         with zipfile.ZipFile(partial, "w", zipfile.ZIP_DEFLATED) as zf:
             zf.write(snapshot, "datos/faceless.db")

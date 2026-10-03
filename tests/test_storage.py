@@ -7,17 +7,22 @@ from app import storage
 
 def make_data(folder, text="MIS PROYECTOS"):
     folder.mkdir(parents=True)
-    with sqlite3.connect(folder / "faceless.db") as conn:
-        conn.execute("CREATE TABLE t (x TEXT)")
-        conn.execute("INSERT INTO t VALUES (?)", (text,))
+    conn = sqlite3.connect(folder / "faceless.db")
+    conn.execute("CREATE TABLE t (x TEXT)")
+    conn.execute("INSERT INTO t VALUES (?)", (text,))
+    conn.commit()
+    conn.close()
     (folder / "encryption.key").write_text("clave", encoding="utf-8")
     (folder / "proyectos" / "1" / "video").mkdir(parents=True)
     (folder / "proyectos" / "1" / "video" / "video.mp4").write_bytes(b"0" * 100)
 
 
 def read(db):
-    with sqlite3.connect(db) as conn:
+    conn = sqlite3.connect(db)
+    try:
         return conn.execute("SELECT x FROM t").fetchone()[0]
+    finally:
+        conn.close()
 
 
 def test_old_data_is_copied_to_the_fixed_folder(tmp_path):
