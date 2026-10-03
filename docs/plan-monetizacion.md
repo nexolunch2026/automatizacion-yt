@@ -80,7 +80,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   responder; falta poder cortarle con la voz mientras habla, sin que se oiga a sí mismo).
 - [x] **JARVIS se despierta con su nombre** (0.30.0): además de las palmadas, decir «Jarvis»
   (reconocimiento en el navegador, sin gastar Gemini).
-- [ ] **JARVIS útil en el día a día**: conversiones y cálculos, traducir frases, recetas
+- [x] **JARVIS útil en el día a día** (0.35.0): conversiones y cálculos, traducir frases, recetas
   y cantidades (Simón trabaja en cocina), listas de la compra y notas largas por voz.
 - [x] **JARVIS con más habilidades en el PC** (0.34.0): abrir carpetas y programas de Windows,
   subir/bajar volumen, poner y parar música, y avisos en pantalla.

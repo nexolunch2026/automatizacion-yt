@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import agenda, coach, ideas_bank, jobs, learning, skills
+from app import agenda, coach, daily, ideas_bank, jobs, learning, skills
 from app.media import project_dir
 from app.models import DURATIONS, STAGES, Channel, Job, Project, User
 from app.pipeline.monetization import project_review, summary_text
@@ -195,6 +195,8 @@ class Intent(BaseModel):
         "review",
         "idea_bank",
         "pc",
+        "shopping",
+        "calc",
         "week_plan",
         "publish_day",
         "learn_video",
@@ -352,6 +354,36 @@ REVIEW_PROJECT = re.compile(
 )
 
 
+def _original(text: str, bare: str, span: tuple[int, int]) -> str:
+    """El trozo de lo que dijo (con sus tildes) que corresponde a `span` dentro de `bare`."""
+    offset = normalize(text).find(bare)
+    if offset < 0:
+        return bare[span[0] : span[1]]
+    return text[offset + span[0] : offset + span[1]].strip()
+
+
+def daily_intent(text: str, norm: str, bare: str) -> Intent | None:
+    """Lista de la compra y cuentas: al instante, sin IA."""
+    match = daily.ADD.match(bare)
+    if match:
+        return Intent(action="shopping", target="add", task=_original(text, bare, match.span(1)))
+    match = daily.BOUGHT.match(bare)
+    if match:
+        group = 1 if match.group(1) else 2
+        return Intent(
+            action="shopping", target="remove", task=_original(text, bare, match.span(group))
+        )
+    if bare in daily.SHOW:
+        return Intent(action="shopping", target="show")
+    if bare in daily.CLEAR:
+        return Intent(action="shopping", target="clear")
+    match = daily.CALC.match(bare)
+    expression = match.group(1) if match else (bare if daily.PERCENT.match(bare) else "")
+    if expression and daily.calculate(expression) is not None:
+        return Intent(action="calc", task=expression)
+    return None
+
+
 def quick_intent(text: str) -> Intent | None:
     """Órdenes habituales sin gastar IA."""
     wake = WAKE_WORD.match(normalize(text))
@@ -364,6 +396,9 @@ def quick_intent(text: str) -> Intent | None:
     link = learning.find_link(text)
     if link:
         return Intent(action="learn_video", target=link)
+    shopping = daily_intent(text, norm, bare)
+    if shopping:
+        return shopping
     skill = skills.quick(text, norm)
     if skill:
         return skill
@@ -601,6 +636,8 @@ def help_replies() -> list[Reply]:
             "📡 <b>«radar»</b> — marcas en apuros esta semana (ideas de vídeo); "
             "<b>«noticias»</b>, <b>«dólar»</b>, <b>«clima»</b>, <b>«dato curioso»</b>.\n"
             "🖥️ <b>«abre YouTube Studio»</b>, <b>«busca…»</b>, <b>«pon música lofi»</b>.\n"
+            "🛒 <b>«añade leche a la lista de la compra»</b>, <b>«¿qué hay en la lista?»</b>; "
+            "🧮 <b>«¿cuánto es 25 por 4?»</b>, <b>«el 15 por ciento de 80000»</b>.\n"
             "💻 En tu ordenador: <b>«abre descargas»</b>, <b>«abre la calculadora»</b>, "
             "<b>«sube el volumen»</b>, <b>«pausa»</b>, <b>«siguiente canción»</b>, "
             "<b>«bloquea el ordenador»</b>.\n"
@@ -750,6 +787,17 @@ def next_step_replies(db: Session) -> list[Reply]:
         if button:
             buttons.append([button])
     return [Reply("\n".join(lines), buttons=buttons or None)]
+
+
+def shopping_reply(db: Session, intent: Intent) -> Reply:
+    if intent.target == "add" and intent.task.strip():
+        return Reply(escape(daily.add(db, intent.task)))
+    if intent.target == "remove" and intent.task.strip():
+        done = daily.remove(db, intent.task)
+        return Reply(escape(done) if done else "Eso no estaba en la lista de la compra.")
+    if intent.target == "clear":
+        return Reply(daily.clear(db))
+    return Reply(daily.show(db))
 
 
 def learn_video_replies(db: Session, url: str) -> list[Reply]:
@@ -1042,6 +1090,13 @@ def _act(db: Session, intent: Intent, text: str, chat_id: int = 0) -> list[Reply
             coach.set_publish_slot(db, DAY_NAMES.index(day), hour)
             return [week_plan_reply(db)]
         return [Reply("¿Qué día quieres publicar? Por ejemplo: «publico los jueves a las 18».")]
+    if intent.action == "shopping":
+        return [shopping_reply(db, intent)]
+    if intent.action == "calc":
+        value = daily.calculate(normalize(intent.task))
+        if value is None:
+            return answer_question(db, text)
+        return [Reply(f"🧮 {escape(intent.task)} = <b>{daily.say_number(value)}</b>")]
     if intent.action == "next_step":
         return next_step_replies(db)
     if intent.action == "monetize":

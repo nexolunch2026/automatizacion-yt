@@ -2,6 +2,14 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-03 — Versión 0.35: lista de la compra y cuentas
+
+- **Lista de la compra por voz**: «añade leche y azúcar a la lista de la compra», «¿qué
+  hay en la lista?», «ya compré la leche», «borra la lista de la compra».
+- **Cuentas al instante** (sin esperar a Google): «¿cuánto es 25 por 4?», «el 15 por
+  ciento de 80.000», «calcula 3500 entre 7». Entiende números escritos como en Colombia.
+- Conversiones, traducciones y recetas: pregúntaselas normal y las busca.
+
 ## 2026-10-03 — Versión 0.34: JARVIS controla el ordenador
 
 - **Carpetas**: «abre descargas», «abre documentos», «abre la carpeta de datos»…
