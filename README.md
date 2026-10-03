@@ -87,7 +87,7 @@ Cierra la **ventana negra**.
 4. Haz doble clic en **`Iniciar`**. La versión nueva aparece arriba a la izquierda.
 
 Tus cuentas, proyectos y claves **no se tocan**. Además, antes de actualizar se guarda
-una copia de seguridad en la carpeta `copias_de_seguridad`.
+una copia de seguridad en `FacelessStudio\copias_de_seguridad`.
 
 ---
 
@@ -97,8 +97,13 @@ una copia de seguridad en la carpeta `copias_de_seguridad`.
 - **El navegador dice que no puede conectar:** asegúrate de que la ventana negra sigue abierta.
 
 ## Dónde se guardan tus datos
-En la carpeta `datos`, dentro de la carpeta del programa. **No la borres**: ahí están
-las cuentas, los canales y los proyectos.
+En **`C:\Usuarios\<tu usuario>\FacelessStudio`** (carpeta `datos`): cuentas, proyectos,
+vídeos y claves. Está fuera de la carpeta del programa y de OneDrive, así que da igual
+qué copia del programa abras: siempre verás los mismos datos. **No la borres.**
+
+Cada día se guarda una **copia de seguridad** pequeña (proyectos, guiones y claves; sin
+vídeos) en tu OneDrive, carpeta `FacelessStudio-copias` (o, si no tienes OneDrive, en
+`FacelessStudio\copias_de_seguridad`). Dentro de cada copia hay instrucciones para restaurar.
 
 ---
 

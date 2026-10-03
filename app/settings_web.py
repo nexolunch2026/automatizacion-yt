@@ -4,6 +4,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import RedirectResponse
 
 from app.auth import DB, CurrentUser
+from app.config import DATA_DIR
 from app.providers.ai import GeminiProvider, ProviderError
 from app.providers.search import WikipediaSearch
 from app.settings_store import (
@@ -14,6 +15,7 @@ from app.settings_store import (
     save_api_key,
     set_setting,
 )
+from app.storage import backup_folder
 from app.templating import render
 
 router = APIRouter(prefix="/configuracion")
@@ -68,6 +70,8 @@ def _page(request: Request, db: DB, status_code: int = 200, **ctx):
         stock_hints={name: api_key_hint(db, name) for name in STOCK_PROVIDERS},
         eleven_hint=api_key_hint(db, "elevenlabs"),
         pollinations_hint=api_key_hint(db, "pollinations"),
+        backup_dir=str(backup_folder(DATA_DIR)),
+        last_backup=get_setting(db, "backup_last"),
         **ctx,
     )
 

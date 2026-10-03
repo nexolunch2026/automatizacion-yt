@@ -212,14 +212,15 @@
   </form>
 </div>
 <div class="card form-card" id="carpeta">
-  <h2>📁 Carpeta del programa</h2>
-  <p>Tus proyectos, vídeos y claves están en: <code>{{ root_dir }}</code> (carpeta <code>datos</code>).</p>
-  <p class="muted small">Usa siempre el <strong>Iniciar</strong> de esta carpeta. Si abres otra copia del programa,
-    verás otros datos (o ninguno).</p>
+  <h2>📁 Dónde están tus datos</h2>
+  <p>Proyectos, vídeos y claves: <code>{{ data_dir }}</code></p>
+  <p class="muted small">Esta carpeta es fija y está fuera del programa: abras la copia del programa que abras,
+    verás siempre los mismos datos. El programa está en <code>{{ root_dir }}</code>.</p>
+  <p>Copias de seguridad diarias (proyectos, guiones y claves; sin vídeos): <code>{{ backup_dir }}</code>
+    {% if last_backup %}<span class="muted small">· última: {{ last_backup }}</span>{% endif %}</p>
+  <p class="muted small">Dentro de cada copia hay un archivo «COMO RESTAURAR» con los pasos.</p>
   {% if in_onedrive %}
-  <p class="alert">⚠️ Esta carpeta está dentro de <strong>OneDrive</strong>. OneDrive puede llenarse con los vídeos
-    (solo trae 5 GB gratis) y estropear la base de datos al sincronizarla mientras el programa la usa.
-    Te recomendamos moverla fuera de OneDrive.</p>
+  <p class="alert">⚠️ Tus datos están dentro de OneDrive. OneDrive puede llenarse con los vídeos (solo trae 5 GB gratis).</p>
   {% endif %}
 </div>
 {% endblock %}

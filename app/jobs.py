@@ -628,6 +628,31 @@ def _refresh_analytics() -> None:
         log.exception("Error guardando las cifras del canal")
 
 
+_backup_tried = 0.0
+
+
+def _daily_backup() -> None:
+    """Una vez al día, copia de seguridad pequeña (en OneDrive si lo hay)."""
+    import time
+
+    from app.config import DATA_DIR
+    from app.storage import daily_backup
+
+    global _backup_tried
+    if time.time() - _backup_tried < 3600:  # como mucho un intento por hora
+        return
+    _backup_tried = time.time()
+    try:
+        with SessionLocal() as db:
+            today = datetime.now().strftime("%Y-%m-%d")
+            if (get_setting(db, "backup_last") or "").startswith(today):
+                return
+            daily_backup(DATA_DIR)
+            set_setting(db, "backup_last", datetime.now().strftime("%Y-%m-%d %H:%M"))
+    except Exception:  # noqa: BLE001 — nunca debe parar el trabajador
+        log.exception("No se pudo hacer la copia de seguridad diaria")
+
+
 class Worker(threading.Thread):
     def __init__(self, poll_seconds: float = 1.0):
         super().__init__(name="faceless-worker", daemon=True)
@@ -644,6 +669,7 @@ class Worker(threading.Thread):
                 worked = False
             if not worked:
                 _refresh_analytics()
+                _daily_backup()
                 self._stop_event.wait(self._poll)
 
     def stop(self) -> None:

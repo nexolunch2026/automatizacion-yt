@@ -95,7 +95,7 @@ def backup_data(root: Path, data_dir: Path) -> Path | None:
     """Copia de seguridad de `datos` antes de actualizar (se guardan las 5 últimas)."""
     if not data_dir.exists():
         return None
-    backups = root / "copias_de_seguridad"
+    backups = Path(data_dir).parent / "copias_de_seguridad"
     backups.mkdir(exist_ok=True)
     target = backups / f"datos-{datetime.now():%Y%m%d-%H%M%S}"
     # Solo lo que no se puede recuperar: base de datos (cuentas, proyectos, guiones),
