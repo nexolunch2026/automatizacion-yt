@@ -6,6 +6,7 @@
 """
 
 import logging
+import re
 import shutil
 import time
 from datetime import datetime
@@ -282,12 +283,34 @@ def briefing_text(db: Session, now: datetime | None = None, name: str = "") -> s
             f"En {sky['city']} hace {sky['temp']} grados, {sky['sky']}; máxima de "
             f"{sky['max']}.{rain}"
         )
+    from app import info, skills
+
+    channel = info.youtube(db)
+    if channel and channel.get("subscribers") is not None:
+        parts.append(
+            f"Su canal tiene {skills.number(channel['subscribers'])} suscriptores, el "
+            f"{channel['goal_pct']} por ciento de la meta para monetizar."
+        )
     making = production(db)
     if making:
         running = next((m for m in making if m["running"]), making[0])
         parts.append(
             f"En producción: {running['project']}, en {running['stage'].lower()}, "
             f"al {running['progress']} por ciento."
+        )
+    today = [
+        r
+        for r in reminders(db, now)
+        if not r["fired"] and datetime.fromisoformat(r["at"]).date() == now.date()
+    ]
+    if today:
+        parts.append(
+            "Recordatorios de hoy: "
+            + "; ".join(
+                f"a las {spoken_time(datetime.fromisoformat(r['at']))}, {r['text']}"
+                for r in today[:3]
+            )
+            + "."
         )
     studio = studio_tasks(db)
     mine = [t for t in personal_tasks(db, now) if not t.get("done")]
@@ -298,4 +321,178 @@ def briefing_text(db: Session, now: datetime | None = None, name: str = "") -> s
         parts.append(f"Tienes {total} tarea{'s' if total != 1 else ''} para hoy.")
         for task in (studio + mine)[:5]:
             parts.append(f"{task['text']}.")
+    radar = info.brand_radar(db)
+    if radar:
+        parts.append(f"En el radar de marcas: {radar[0]['title']}.")
     return " ".join(parts)
+
+
+# ---------------------------------------------------------------- recordatorios y temporizadores
+
+NUMBER_WORDS = {
+    "un": 1, "una": 1, "uno": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5, "seis": 6,
+    "siete": 7, "ocho": 8, "nueve": 9, "diez": 10, "once": 11, "doce": 12, "quince": 15,
+    "veinte": 20, "treinta": 30, "cuarenta": 40, "cuarenta y cinco": 45, "media": 30,
+}  # fmt: skip
+_NUM = r"(\d{1,3}|" + "|".join(sorted(NUMBER_WORDS, key=len, reverse=True)) + ")"
+
+
+def _num(word: str) -> int:
+    return int(word) if word.isdigit() else NUMBER_WORDS[word]
+
+
+def parse_when(text: str, now: datetime) -> tuple[datetime | None, str]:
+    """Encuentra cuándo en una frase y devuelve (momento, resto de la frase).
+
+    Entiende: «en 20 minutos», «en una hora», «en hora y media», «a las 5», «a las 5:30»,
+    «a las 5 de la tarde», «a las 17», «mañana a las 8», «a mediodía»."""
+    from datetime import timedelta
+
+    from app.assistant import normalize
+
+    norm = normalize(text)
+
+    def cut(match) -> str:
+        rest = (text[: match.start()] + " " + text[match.end() :]).strip(" ,.:;")
+        return " ".join(rest.split())
+
+    m = re.search(r"\ben (?:una )?hora y media\b", norm)
+    if m:
+        return now + timedelta(minutes=90), cut(m)
+    m = re.search(rf"\b(?:en|dentro de) {_NUM} (minutos?|min|horas?|segundos?|seg)\b", norm)
+    if m:
+        amount, unit = _num(m.group(1)), m.group(2)
+        delta = (
+            timedelta(hours=amount)
+            if unit.startswith("hora")
+            else timedelta(seconds=amount)
+            if unit.startswith("seg")
+            else timedelta(minutes=amount)
+        )
+        return now + delta, cut(m)
+    m = re.search(
+        r"\b(manana |pasado manana |hoy )?(?:a las?|a la) (\d{1,2})(?:[:.h](\d{2}))?"
+        r"(?: y (media|cuarto))?"
+        r"(?: (?:de la |en la |por la )?(manana|tarde|noche|am|pm|a\.m\.|p\.m\.))?\b",
+        norm,
+    )
+    noon = re.search(r"\b(manana )?(?:a|al) mediodia\b", norm)
+    if m or noon:
+        if noon and not m:
+            day_word, hour, minute, part = noon.group(1), 12, 0, None
+            m = noon
+        else:
+            day_word, hour = m.group(1), int(m.group(2))
+            minute = int(m.group(3) or 0)
+            minute += {"media": 30, "cuarto": 15}.get(m.group(4) or "", 0)
+            part = m.group(5)
+        if hour > 23 or minute > 59:
+            return None, text
+        if part in ("tarde", "noche", "pm", "p.m.") and hour < 12:
+            hour += 12
+        if part in ("manana", "am", "a.m.") and hour == 12:
+            hour = 0
+        when = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        day_word = (day_word or "").strip()
+        if day_word == "manana":
+            when += timedelta(days=1)
+        elif day_word == "pasado manana":
+            when += timedelta(days=2)
+        elif when <= now and not part and hour < 12 and when + timedelta(hours=12) > now:
+            when += timedelta(hours=12)  # «a las 5» por la tarde, si las 5 de la mañana ya pasaron
+        elif when <= now:
+            when += timedelta(days=1)
+        return when, cut(m)
+    return None, text
+
+
+def _load_reminders(db: Session) -> list[dict]:
+    import json
+
+    try:
+        return json.loads(get_setting(db, "jarvis_reminders") or "[]")
+    except ValueError:
+        return []
+
+
+def _save_reminders(db: Session, items: list[dict]) -> None:
+    import json
+
+    set_setting(db, "jarvis_reminders", json.dumps(items, ensure_ascii=False))
+
+
+def add_reminder(db: Session, text: str, when: datetime, kind: str = "reminder") -> dict:
+    items = _load_reminders(db)
+    item = {
+        "id": max((i["id"] for i in items), default=0) + 1,
+        "text": text[:200],
+        "at": when.isoformat(timespec="seconds"),
+        "kind": kind,  # reminder | timer
+        "fired": "",
+        "sent": False,
+    }
+    items.append(item)
+    _save_reminders(db, items)
+    return item
+
+
+def reminders(db: Session, now: datetime | None = None) -> list[dict]:
+    """Los pendientes y los que sonaron hace menos de 10 minutos, por hora."""
+    now = now or datetime.now()
+    keep = []
+    for item in _load_reminders(db):
+        fired = datetime.fromisoformat(item["fired"]) if item["fired"] else None
+        if fired is None or (now - fired).total_seconds() < 600:
+            keep.append(item)
+    return sorted(keep, key=lambda i: i["at"])
+
+
+def cancel_reminder(db: Session, reminder_id: int) -> None:
+    _save_reminders(db, [i for i in _load_reminders(db) if i["id"] != reminder_id])
+
+
+def fire_due(db: Session, now: datetime | None = None) -> list[dict]:
+    """Marca como sonados los que ya llegaron a su hora. Devuelve todos los sonados
+    recientes (la pantalla anuncia los que aún no anunció)."""
+    now = now or datetime.now()
+    items = _load_reminders(db)
+    changed = False
+    for item in items:
+        if not item["fired"] and datetime.fromisoformat(item["at"]) <= now:
+            item["fired"] = now.isoformat(timespec="seconds")
+            changed = True
+    # Los sonados hace más de un día se borran.
+    fresh = [
+        i for i in items if not i["fired"] or (now - datetime.fromisoformat(i["fired"])).days < 1
+    ]
+    if changed or len(fresh) != len(items):
+        _save_reminders(db, fresh)
+    return [i for i in fresh if i["fired"]]
+
+
+def unsent_alerts(db: Session, now: datetime | None = None) -> list[dict]:
+    """Los que sonaron y todavía no se avisaron por Telegram (y los marca como avisados)."""
+    fire_due(db, now)
+    items = _load_reminders(db)
+    pending = [i for i in items if i["fired"] and not i["sent"]]
+    if pending:
+        for item in items:
+            if item["fired"]:
+                item["sent"] = True
+        _save_reminders(db, items)
+    return pending
+
+
+def spoken_when(when: datetime, now: datetime) -> str:
+    seconds = (when - now).total_seconds()
+    if seconds < 3600:
+        minutes = max(1, round(seconds / 60))
+        return f"en {minutes} minuto{'s' if minutes != 1 else ''}"
+    day = (
+        "hoy"
+        if when.date() == now.date()
+        else "mañana"
+        if (when.date() - now.date()).days == 1
+        else spoken_date(when)
+    )
+    return f"{day} a las {spoken_time(when)}"

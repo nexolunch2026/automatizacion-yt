@@ -19,7 +19,11 @@
         <div class="title">J.A.R.V.I.S.</div>
         <div class="label">FACELESS STUDIO · ANATOMÍA DE UNA MARCA</div>
       </div>
-      <div class="weather-box" id="weather"><div class="label">CLIMA</div><div class="muted">Pon tu ciudad en la página JARVIS</div></div>
+      <div class="weather-box">
+        <div id="weather"><div class="label">CLIMA</div><div class="muted small">Pon tu ciudad en la página JARVIS</div></div>
+        <div id="forecast"></div>
+        <div id="dollar" class="label"></div>
+      </div>
     </header>
 
     <section class="col col-left">
@@ -27,7 +31,11 @@
         <div class="panel-title"><span>PRODUCCIÓN</span><span id="prod-count" class="label"></span></div>
         <div id="production"><div class="muted">Sin vídeos en marcha</div></div>
       </div>
-      <div class="panel">
+      <div class="panel panel-channel">
+        <div class="panel-title"><span>CANAL DE YOUTUBE</span><span id="channel-name" class="label"></span></div>
+        <div id="channel"><div class="muted small">Leyendo tu canal…</div></div>
+      </div>
+      <div class="panel panel-compact">
         <div class="panel-title"><span>SISTEMA</span><span id="telegram-state" class="label"></span></div>
         <div class="gauges">
           <div class="gauge" data-key="cpu"><svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="42"/><circle class="value" cx="50" cy="50" r="42"/></svg><b>--</b><span>CPU</span></div>
@@ -44,6 +52,7 @@
       <div id="heard"></div>
       <div id="caption"></div>
       <div id="choices"></div>
+      <div id="fact" hidden><span class="label">DATO DEL DÍA</span><p></p></div>
     </section>
 
     <section class="col col-right">
@@ -52,11 +61,20 @@
         <ul id="tasks"></ul>
         <form id="task-form"><input id="task-input" placeholder="+ Nueva tarea (o díselo: «anota…»)" autocomplete="off"></form>
       </div>
-      <div class="panel">
+      <div class="panel panel-compact">
+        <div class="panel-title"><span>RECORDATORIOS</span><span id="reminder-count" class="label"></span></div>
+        <ul id="reminders"></ul>
+      </div>
+      <div class="panel panel-compact">
         <div class="panel-title"><span>PILOTO AUTOMÁTICO</span><span id="pilot-state" class="label"></span></div>
         <ol id="pilot"></ol>
       </div>
     </section>
+
+    <div class="ticker" id="ticker" title="Noticias de negocios y radar de marcas">
+      <span class="ticker-label">📡 RADAR</span>
+      <div class="ticker-window"><div class="ticker-track" id="ticker-track">Cargando noticias…</div></div>
+    </div>
 
     <footer class="hud-bottom">
       <div class="mic-box" title="Nivel del micrófono: las palmadas deben pasar la raya roja">
@@ -71,6 +89,14 @@
         <a href="/" title="Volver al programa">✕</a>
       </div>
     </footer>
+  </div>
+
+  <div id="alert" hidden>
+    <div class="alert-box">
+      <div class="label" id="alert-kind">RECORDATORIO</div>
+      <div id="alert-text"></div>
+      <button id="alert-ok" class="hud-button">ENTENDIDO</button>
+    </div>
   </div>
 
   <div id="boot">

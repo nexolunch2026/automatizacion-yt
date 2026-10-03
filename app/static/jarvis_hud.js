@@ -36,7 +36,9 @@
 
   function setState(next, label) {
     state = next;
-    document.body.className = "state-" + next;
+    const body = document.body.classList;
+    [...body].filter((c) => c.startsWith("state-")).forEach((c) => body.remove(c));
+    body.add("state-" + next);
     const labels = {
       asleep: settings.claps ? "EN ESPERA · 👏👏" : "EN ESPERA · TÓCAME",
       listening: "ESCUCHANDO",
@@ -366,6 +368,9 @@
     }
     const replies = data.replies || [];
     showReplies(replies);
+    for (const r of replies) {
+      if (r.action && r.action.startsWith("open:")) window.open(r.action.slice(5), "_blank");
+    }
     refresh();
     const spoken = replies.map((r) => r.html).join(". ");
     const long = plain(spoken).length > 700;
@@ -376,6 +381,8 @@
 
   function showReplies(replies) {
     $("caption").innerHTML = replies.map((r) => r.html).join("\n\n");
+    // Respuestas largas (noticias, canal…): el reactor se encoge para dejar sitio al texto.
+    document.body.classList.toggle("long-answer", $("caption").innerText.length > 160);
     const box = $("choices");
     box.innerHTML = "";
     pendingButtons = [];
@@ -412,6 +419,7 @@
       } catch (e) {}
     }
     $("caption").textContent = text;
+    document.body.classList.toggle("long-answer", text.length > 160);
     $("choices").innerHTML = "";
     await speak(text);
     listen();
@@ -469,11 +477,133 @@
     $("disk-free").textContent = sys.disk_free_gb != null ? `${sys.disk_free_gb} GB LIBRES` : "";
     $("telegram-state").textContent = d.telegram ? "TELEGRAM ✓" : "TELEGRAM ✗";
 
-    const w = d.weather;
-    if (w) {
-      $("weather").innerHTML = `<div class="label">${esc(w.city)}</div><div class="weather-temp">${w.temp}°</div>
-        <div class="label">${esc(w.sky)} · ${w.min}° / ${w.max}°${w.rain >= 30 ? " · ☔ " + w.rain + "%" : ""}</div>`;
+    lastReminders = d.reminders || [];
+    renderReminders();
+    announceAlerts(d.alerts || []);
+  }
+
+  let lastReminders = [];
+  function renderReminders() {
+    const reminders = lastReminders;
+    $("reminder-count").textContent = reminders.length ? reminders.length + " ACTIVOS" : "";
+    $("reminders").innerHTML = reminders.length
+      ? reminders.map((r) => `<li><span class="when">${r.kind === "timer" ? "⏱ " + countdown(r.at) : "⏰ " + timeOf(r.at)}</span>
+          <span>${esc(r.text)}</span><button class="del" data-unremind="${r.id}" title="Cancelar">✕</button></li>`).join("")
+      : '<li class="muted">Di «recuérdame a las 5…» o «temporizador de 10 minutos»</li>';
+  }
+
+  function timeOf(iso) {
+    const d = new Date(iso);
+    const today = new Date().toDateString() === d.toDateString();
+    return (today ? "" : "mañ. ") + d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+  }
+  function countdown(iso) {
+    const left = Math.max(0, Math.round((new Date(iso) - Date.now()) / 1000));
+    const m = Math.floor(left / 60), sec = left % 60;
+    return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}:${String(sec).padStart(2, "0")}`;
+  }
+
+  // ------------------------------------------------------------ recordatorios que suenan
+
+  let announced = new Set();
+  try { announced = new Set(JSON.parse(memory.get("jarvis-announced") || "[]")); } catch (e) {}
+  let alertQueue = [];
+  let alerting = false;
+
+  function announceAlerts(alerts) {
+    for (const a of alerts) {
+      const key = a.id + "@" + a.at;
+      if (announced.has(key)) continue;
+      announced.add(key);
+      alertQueue.push(a);
     }
+    memory.set("jarvis-announced", JSON.stringify([...announced].slice(-100)));
+    if (!alerting && alertQueue.length && state !== "off") nextAlert();
+  }
+
+  async function nextAlert() {
+    const a = alertQueue.shift();
+    if (!a) { alerting = false; return; }
+    alerting = true;
+    const wasAsleep = state === "asleep";
+    stopListening();
+    $("alert-kind").textContent = a.kind === "timer" ? "TEMPORIZADOR" : "RECORDATORIO";
+    $("alert-text").textContent = a.text;
+    $("alert").hidden = false;
+    for (let i = 0; i < 3; i++) { beep(988, 160, i * 350, 0.12); beep(1318, 160, i * 350 + 170, 0.12); }
+    await new Promise((r) => setTimeout(r, 1200));
+    const name = window.JARVIS_NAME ? ", " + window.JARVIS_NAME : "";
+    await speak(a.kind === "timer" ? `${a.text} terminado${name}.` : `Disculpe${name}. Le recuerdo: ${a.text}.`);
+    setTimeout(() => { $("alert").hidden = true; }, 6000);
+    if (alertQueue.length) return nextAlert();
+    alerting = false;
+    if (wasAsleep) setState("asleep");
+    else listen();
+  }
+  $("alert-ok").addEventListener("click", () => { $("alert").hidden = true; });
+  $("reminders").addEventListener("click", async (e) => {
+    const id = e.target.dataset.unremind;
+    if (!id) return;
+    try { await fetch(`/jarvis/recordatorios/${id}/borrar`, { method: "POST" }); } catch (err) {}
+    refresh();
+  });
+
+  // ------------------------------------------------------------ el mundo (internet)
+
+  const num = (n) => Number(n).toLocaleString("es-CO");
+
+  function renderWorld(w) {
+    const now = w.weather;
+    if (now) {
+      $("weather").innerHTML = `<div class="label">${esc(now.city)}</div><div class="weather-temp">${now.temp}°</div>
+        <div class="label">${esc(now.sky)} · ${now.min}° / ${now.max}°${now.rain >= 30 ? " · ☔ " + now.rain + "%" : ""}</div>`;
+    }
+    $("forecast").innerHTML = (w.forecast || []).slice(1).map((f) =>
+      `<span>${esc(f.day)} <b>${f.min}°/${f.max}°</b>${f.rain >= 40 ? " ☔" : ""}</span>`).join("");
+    $("dollar").textContent = w.dollar ? `USD → ${w.dollar.currency}: ${num(w.dollar.rate)}` : "";
+
+    const yt = w.youtube;
+    if (yt) {
+      $("channel-name").textContent = yt.exact ? "EN VIVO" : "APROX.";
+      const subs = yt.subscribers != null ? num(yt.subscribers) : "—";
+      const goal = yt.goal_pct != null
+        ? `<div class="goal"><div class="job-stage"><span>Meta para monetizar: ${num(yt.goal)}</span><span>${yt.goal_pct}%</span></div>
+           <div class="bar"><div style="width:${yt.goal_pct}%"></div></div></div>` : "";
+      const stats = [
+        yt.videos ? `<span><b>${num(yt.videos)}</b> vídeos</span>` : "",
+        yt.views && yt.exact ? `<span><b>${num(yt.views)}</b> visitas</span>` : "",
+      ].join("");
+      const latest = (yt.latest || []).slice(0, 3).map((v) =>
+        `<li><a href="${esc(v.url)}" target="_blank" title="${esc(v.title)}">${esc(v.title)}</a><span>👁 ${num(v.views)}</span></li>`).join("");
+      $("channel").innerHTML = `<div class="subs"><b>${subs}</b><span class="label">SUSCRIPTORES</span></div>
+        ${goal}<div class="stat-row">${stats}</div><ul class="latest">${latest}</ul>`;
+    } else {
+      $("channel").innerHTML = '<div class="muted small">No pude leer el canal. Revisa el nombre en la página JARVIS.</div>';
+    }
+
+    const items = [
+      ...(w.radar || []).map((n) => ({ ...n, hot: true })),
+      ...(w.news || []),
+    ];
+    if (items.length) {
+      const html = items.map((n) => `<a href="${esc(n.url)}" target="_blank">${n.hot ? '<span class="hot">●</span>' : ""}${esc(n.title)}<span class="src">${esc(n.source)}</span></a>`).join("");
+      $("ticker-track").innerHTML = html + html; // dos veces para que el bucle no tenga saltos
+    } else {
+      $("ticker-track").textContent = "Sin noticias por ahora (¿hay internet?).";
+    }
+
+    if (w.fact) {
+      $("fact").hidden = false;
+      $("fact").querySelector("p").textContent = w.fact;
+    }
+  }
+
+  async function refreshWorld() {
+    try {
+      const r = await fetch("/jarvis/hud/mundo");
+      if (r.redirected) return;
+      renderWorld(await r.json());
+    } catch (e) {}
   }
 
   async function refresh() {
@@ -805,5 +935,10 @@
   setInterval(tickClock, 1000);
   refresh();
   setInterval(refresh, 5000);
+  refreshWorld();
+  setInterval(refreshWorld, 120000);
+  setInterval(() => { // los temporizadores cuentan cada segundo
+    if (lastReminders.some((r) => r.kind === "timer")) renderReminders();
+  }, 1000);
   requestAnimationFrame(frame);
 })();

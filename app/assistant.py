@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import agenda, jobs
+from app import agenda, jobs, skills
 from app.media import project_dir
 from app.models import DURATIONS, STAGES, Channel, Job, Project, User
 from app.pipeline.render import run_ffmpeg
@@ -175,12 +175,25 @@ class Intent(BaseModel):
         "sleep",
         "help",
         "chat",
+        "reminder",
+        "timer",
+        "reminder_list",
+        "news",
+        "radar",
+        "channel",
+        "dollar",
+        "forecast",
+        "fact",
+        "open",
+        "stats",
     ]
     topic: str = Field(default="", description="Tema del vídeo, si pide uno")
     topics: list[str] = Field(default_factory=list, description="Temas para la cola")
     duration: str = Field(default="", description="Duración pedida, p. ej. «10 minutos»")
     on: bool | None = Field(default=None, description="Encender/apagar el piloto automático")
-    task: str = Field(default="", description="Texto de la tarea a anotar o a completar")
+    task: str = Field(default="", description="Texto de la tarea o del recordatorio")
+    when: str = Field(default="", description="Cuándo, tal cual lo dijo: «a las 5», «en 10 min»")
+    target: str = Field(default="", description="Qué abrir o qué buscar")
     reply: str = Field(default="", description="Respuesta corta si es una conversación")
 
 
@@ -237,6 +250,9 @@ def quick_intent(text: str) -> Intent | None:
             return Intent(action="briefing")
     norm = normalize(text).strip()
     bare = norm.strip(" .!?¡¿")
+    skill = skills.quick(text, norm)
+    if skill:
+        return skill
     if bare in (
         "buenos dias",
         "buenas tardes",
@@ -309,10 +325,47 @@ def quick_intent(text: str) -> Intent | None:
     return None
 
 
-def _ai_intent(db: Session, text: str) -> Intent:
+# Lo último que se habló en cada chat, para que JARVIS siga el hilo de la conversación.
+MEMORY_TURNS = 6
+_memory: dict[int, list[tuple[str, str]]] = {}
+
+
+def remember(chat_id: int, said: str, replies: list[Reply]) -> None:
+    from app.jarvis_voice import spoken_text
+
+    answer = " ".join(spoken_text(r.text) for r in replies)[:500]
+    turns = _memory.setdefault(chat_id, [])
+    turns.append((said[:300], answer))
+    del turns[:-MEMORY_TURNS]
+
+
+def _context(db: Session, chat_id: int) -> str:
+    now = datetime.now()
+    lines = [f"Fecha y hora: {agenda.spoken_date(now)}, {agenda.spoken_time(now)}."]
+    channel = skills.channel_summary(db)
+    if channel:
+        lines.append(f"Canal de YouTube: {channel}.")
+    headlines = [n["title"] for n in (info_cache_news(db))[:5]]
+    if headlines:
+        lines.append("Titulares de negocios de hoy: " + " | ".join(headlines))
+    talk = "\n".join(f"Creador: {a}\nJARVIS: {b}" for a, b in _memory.get(chat_id, []))
+    if talk:
+        lines.append("CONVERSACIÓN RECIENTE:\n" + talk)
+    return "\n".join(lines)
+
+
+def info_cache_news(db: Session) -> list[dict]:
+    """Solo las noticias ya descargadas (para no hacer esperar a la IA)."""
+    from app import info
+
+    hit = info._cache.get("news:business")
+    return hit[1] if hit and hit[1] else []
+
+
+def _ai_intent(db: Session, text: str, chat_id: int = 0) -> Intent:
     ai = jobs.get_ai_provider(db)
     prompt = f"""Eres JARVIS, el asistente del estudio de YouTube «Faceless Studio» (canal de
-documentales sin rostro). Clasifica el mensaje del creador:
+documentales sin rostro sobre marcas: «Anatomía De Una Marca»). Clasifica el mensaje:
 - new_video: quiere un vídeo nuevo (topic = el tema, duration si la dice).
 - status: pregunta cómo va la producción.
 - ideas: pide ideas o temas para vídeos.
@@ -325,12 +378,24 @@ documentales sin rostro). Clasifica el mensaje del creador:
 - briefing: pide el resumen del día o te saluda para empezar.
 - time: pregunta la hora o la fecha.
 - sleep: se despide o te manda a descansar.
+- reminder: quiere que le recuerdes algo a una hora (task = qué, when = cuándo).
+- timer: quiere un temporizador (when = «en 10 minutos»).
+- reminder_list: pregunta qué recordatorios tiene.
+- news: pide noticias. radar: pregunta por marcas o empresas en crisis/noticias de marcas.
+- channel: pregunta por su canal de YouTube (suscriptores, visitas, vídeos).
+- dollar: pregunta el precio del dólar. forecast: pregunta el clima o el pronóstico.
+- fact: pide un dato curioso. stats: pide estadísticas de lo producido.
+- open: quiere abrir una página, app o proyecto, buscar algo o poner música
+  (target = qué; «google:…» para buscar, «youtube:…» para música o vídeos).
 - help: pregunta qué puedes hacer.
-- chat: cualquier otra cosa; responde en «reply» en 1–3 frases, en español, con el
-  tono de JARVIS (educado, eficiente, un toque de humor). No inventes datos del canal.
+- chat: cualquier otra cosa (preguntas de cultura general, de marcas, consejos para el
+  canal, conversación). Responde en «reply» en 1–4 frases, en español, con el tono de
+  JARVIS: educado, preciso, con un toque de humor británico; trátalo de «usted» y de vez
+  en cuando llámalo «señor». Si no sabes algo con seguridad, dilo. No inventes datos.
 
 ESTADO ACTUAL DEL ESTUDIO:
 {status_text(db, html=False)}
+{_context(db, chat_id)}
 
 MENSAJE: {text}"""
     intent = ai.generate_json(prompt, Intent)
@@ -354,6 +419,12 @@ def help_replies() -> list[Reply]:
             "📝 <b>«anota: comprar micrófono»</b>, <b>«tareas»</b>, <b>«ya hice lo del "
             "micrófono»</b> — tu lista del día.\n"
             "☀️ <b>«resumen»</b> — el informe del día (tiempo, tareas y producción).\n"
+            "⏰ <b>«recuérdame a las 5 llamar a Juan»</b>, <b>«temporizador de 10 minutos»</b>.\n"
+            "📺 <b>«¿cómo va el canal?»</b> — suscriptores, visitas y últimos vídeos.\n"
+            "📡 <b>«radar»</b> — marcas en apuros esta semana (ideas de vídeo); "
+            "<b>«noticias»</b>, <b>«dólar»</b>, <b>«clima»</b>, <b>«dato curioso»</b>.\n"
+            "🖥️ <b>«abre YouTube Studio»</b>, <b>«busca…»</b>, <b>«pon música lofi»</b>.\n"
+            "💬 Y pregúntame lo que quieras: recuerdo la conversación.\n"
             "🎙️ También puedes <b>mandarme notas de voz</b>.",
             buttons=[
                 [("📊 Estado", "status"), ("💡 Ideas", "ideas")],
@@ -574,26 +645,28 @@ def handle(db: Session, msg: Incoming, transcribe=None, trusted: bool = False) -
             text = transcribe(db, msg.audio, msg.audio_type)
             if not text:
                 return [Reply("🎧 No entendí el audio. ¿Me lo repites?")]
-            return [Reply(f"🎧 Entendí: «{escape(text)}»"), *_text(db, text)]
-        return _text(db, msg.text)
+            return [Reply(f"🎧 Entendí: «{escape(text)}»"), *_text(db, text, msg.chat_id)]
+        return _text(db, msg.text, msg.chat_id)
     except ProviderError as exc:
         return [Reply(f"⚠️ {escape(str(exc))}")]
 
 
-def _text(db: Session, text: str) -> list[Reply]:
+def _text(db: Session, text: str, chat_id: int = 0) -> list[Reply]:
     text = text.strip()
     if not text:
         return help_replies()
     intent = quick_intent(text)
     if intent is None:
         try:
-            intent = _ai_intent(db, text)
+            intent = _ai_intent(db, text, chat_id)
         except ProviderError:
             return [
                 Reply("No te entendí bien. Prueba con «hazme un vídeo sobre…» o «estado»."),
                 *help_replies(),
             ]
-    return _act(db, intent, text)
+    replies = _act(db, intent, text)
+    remember(chat_id, text, replies)
+    return replies
 
 
 def _act(db: Session, intent: Intent, text: str) -> list[Reply]:
@@ -611,6 +684,8 @@ def _act(db: Session, intent: Intent, text: str) -> list[Reply]:
             state["on"] = intent.on
             save_autopilot(db, state)
         return [Reply(_queue_text(state), buttons=_autopilot_buttons(state))]
+    if intent.action in skills.SKILL_ACTIONS:
+        return skills.act(db, intent)
     if intent.action.startswith("task_") or intent.action in ("briefing", "time", "sleep"):
         return _agenda_act(db, intent)
     if intent.action == "chat" and intent.reply.strip():
@@ -664,6 +739,14 @@ def _button(db: Session, data: str) -> list[Reply]:
         return _act(db, Intent(action="queue_show"), "")
     if kind == "tasks":
         return [Reply(tasks_text(db))]
+    if kind == "radar":
+        headlines = _json_setting(db, "jarvis_radar", [])
+        if rest.isdigit() and int(rest) < len(headlines):
+            return _new_video(db, headlines[int(rest)], "")
+        return [Reply("Esa noticia ya caducó. Di «radar» para ver las nuevas.")]
+    if kind == "unremind" and rest.isdigit():
+        agenda.cancel_reminder(db, int(rest))
+        return [Reply("❌ Cancelado.")]
     if kind == "idea":
         ideas = _json_setting(db, "telegram_ideas", [])
         if rest == "all":
@@ -920,6 +1003,25 @@ def briefing(db: Session, now: datetime | None = None) -> list[Reply]:
     ]
 
 
+def reminder_alerts(db: Session, now: datetime | None = None) -> list[Reply]:
+    if not linked_chats(db):
+        agenda.unsent_alerts(db, now)  # sin Telegram: solo los anuncia la pantalla
+        return []
+    return [
+        Reply(
+            f"⏱️ <b>¡Tiempo!</b> {escape(item['text'])} terminado."
+            if item["kind"] == "timer"
+            else f"⏰ <b>Recordatorio:</b> {escape(item['text'])}"
+        )
+        for item in agenda.unsent_alerts(db, now)
+    ]
+
+
 def tick(db: Session, now: datetime | None = None) -> list[Reply]:
     """Lo que JARVIS hace por su cuenta cada pocos segundos."""
-    return [*notifications(db), *briefing(db, now), *autopilot_tick(db, now)]
+    return [
+        *notifications(db),
+        *reminder_alerts(db, now),
+        *briefing(db, now),
+        *autopilot_tick(db, now),
+    ]

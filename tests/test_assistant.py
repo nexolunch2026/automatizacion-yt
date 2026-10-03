@@ -29,6 +29,8 @@ class JarvisAI(FakeAI):
             )
         if schema is Intent:
             return self.intent
+        if schema.__name__ == "Fact":
+            return schema(fact="Nokia empezó fabricando papel en 1865.")
         return super().generate_json(prompt, schema)
 
     def transcribe(self, audio, mime_type):

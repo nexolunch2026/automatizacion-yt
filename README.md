@@ -61,6 +61,13 @@ pantalla completa:
   grave, con un toque metálico y eco suave. En ⚙ puedes elegir la voz (Álvaro, Jorge,
   Gonzalo…), quitar el efecto o usar una voz de tu cuenta de ElevenLabs.
 - Si le mandas una **nota de voz por Telegram**, te contesta también con una nota de voz.
+- Sabe mucho más: *«¿cómo va el canal?»* (suscriptores y meta de monetización),
+  *«radar»* (marcas en apuros esta semana → un toque y lo convierte en vídeo),
+  *«noticias»*, *«dólar»*, *«clima»*, *«dato curioso»*, *«estadísticas»*.
+- Recordatorios y temporizadores: *«recuérdame a las 5 llamar a Juan»*,
+  *«temporizador de 10 minutos»* (suena en la pantalla y llega por Telegram).
+- Abre cosas: *«abre YouTube Studio»*, *«busca la historia de Kodak»*, *«pon música lofi»*,
+  *«abre el proyecto de Nokia»*. Y recuerda la conversación para seguir el hilo.
 
 ### Para apagarlo
 Cierra la **ventana negra**.

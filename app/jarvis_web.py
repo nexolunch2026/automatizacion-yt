@@ -45,6 +45,9 @@ def _page(request: Request, db: DB, status_code: int = 200, **ctx):
         status=assistant.status_text(db),
         city=get_setting(db, "jarvis_city") or "",
         call_me=get_setting(db, "jarvis_name") or "",
+        youtube_channel=get_setting(db, "youtube_channel") or "@AnatomiaDeUnaMarca",
+        youtube_hint=api_key_hint(db, "youtube"),
+        currency=get_setting(db, "jarvis_currency") or "COP",
         **ctx,
     )
 
@@ -174,9 +177,33 @@ def hud_data(db: DB, user: CurrentUser) -> dict:
         "tasks": agenda.personal_tasks(db),
         "pilot": {"on": pilot["on"], "hour": pilot["hour"], "queue": pilot["queue"][:6]},
         "system": agenda.system(),
-        "weather": agenda.weather(db),
+        "reminders": [r for r in agenda.reminders(db) if not r["fired"]],
+        "alerts": agenda.fire_due(db),  # la pantalla anuncia los que aún no anunció
         "telegram": bool(api_key_hint(db, "telegram")) and bool(assistant.linked_chats(db)),
     }
+
+
+@router.get("/hud/mundo")
+def hud_world(db: DB, user: CurrentUser) -> dict:
+    """Lo que viene de internet (canal, noticias, dólar, clima…); se pide cada 2 minutos."""
+    from app import info
+
+    return {
+        "weather": agenda.weather(db),
+        "forecast": info.forecast(db),
+        "youtube": info.youtube(db),
+        "news": info.news(db)[:8],
+        "radar": info.brand_radar(db)[:6],
+        "dollar": info.dollar(db),
+        "fact": info.fact_for_screen(db),
+        "stats": info.studio_stats(db),
+    }
+
+
+@router.post("/recordatorios/{reminder_id}/borrar")
+def remove_reminder(db: DB, user: CurrentUser, reminder_id: int) -> dict:
+    agenda.cancel_reminder(db, reminder_id)
+    return {"reminders": [r for r in agenda.reminders(db) if not r["fired"]]}
 
 
 @router.get("/hud/saludo")
@@ -210,10 +237,30 @@ def save_preferences(
     user: CurrentUser,
     city: Annotated[str, Form()] = "",
     call_me: Annotated[str, Form()] = "",
+    youtube_channel: Annotated[str, Form()] = "",
+    youtube_key: Annotated[str, Form()] = "",
+    currency: Annotated[str, Form()] = "COP",
 ):
+    from app import info
+
     set_setting(db, "jarvis_city", city.strip()[:80])
     set_setting(db, "jarvis_name", call_me.strip()[:40])
+    set_setting(db, "youtube_channel", youtube_channel.strip()[:120] or info.DEFAULT_CHANNEL)
+    if re.fullmatch(r"[A-Z]{3}", currency.strip().upper()):
+        set_setting(db, "jarvis_currency", currency.strip().upper())
+    if youtube_key.strip():
+        save_api_key(db, "youtube", youtube_key.strip())
+    info._cache.clear()  # que se vean ya los datos nuevos
     return _redirect("/jarvis?guardado=preferencias#preferencias")
+
+
+@router.post("/youtube/borrar")
+def delete_youtube_key(db: DB, user: CurrentUser):
+    from app import info
+
+    delete_api_key(db, "youtube")
+    info._cache.clear()
+    return _redirect("/jarvis#preferencias")
 
 
 # ---------------------------------------------------------------- voz de JARVIS

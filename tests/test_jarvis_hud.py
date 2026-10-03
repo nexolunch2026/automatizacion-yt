@@ -139,7 +139,7 @@ def test_hud_pages(logged_in, ai):
     logged_in.post("/jarvis/tareas", data={"text": "Revisar guion"})
     data = logged_in.get("/jarvis/hud/datos").json()
     assert data["tasks"][0]["text"] == "Revisar guion"
-    assert data["weather"]["temp"] == 24
+    assert logged_in.get("/jarvis/hud/mundo").json()["weather"]["temp"] == 24
     assert data["system"]["disk_free_gb"] > 0
     assert data["pilot"]["queue"] == []
 

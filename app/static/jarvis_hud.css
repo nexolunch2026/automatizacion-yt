@@ -35,8 +35,8 @@ body::after { /* líneas de monitor */
   position: relative; z-index: 1; height: 100vh; padding: 18px 24px;
   display: grid; gap: 16px;
   grid-template-columns: minmax(260px, 1fr) minmax(360px, 1.5fr) minmax(260px, 1fr);
-  grid-template-rows: auto 1fr auto;
-  grid-template-areas: "top top top" "left core right" "bottom bottom bottom";
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "top top top" "left core right" "ticker ticker ticker" "bottom bottom bottom";
   transition: opacity .6s;
 }
 .state-asleep #hud .col, .state-asleep #hud .hud-top { opacity: .45; }
@@ -59,7 +59,57 @@ body::after { /* líneas de monitor */
   clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
   box-shadow: inset 0 0 30px rgba(127, 216, 255, .06);
 }
-.col .panel:first-child { flex: 1; overflow-y: auto; }
+.col .panel:first-child { flex: 1; overflow-y: auto; min-height: 90px; }
+.panel-compact { padding: 10px 14px; }
+.panel-compact .panel-title { margin-bottom: 8px; font-size: 17px; }
+
+/* Canal */
+.subs { display: flex; align-items: baseline; gap: 8px; }
+.subs b { font-family: "Bebas Neue", sans-serif; font-size: 44px; font-weight: 400; color: var(--cyan); line-height: 1; text-shadow: 0 0 14px var(--cyan-dim); }
+.goal { margin: 6px 0 10px; }
+.goal .bar > div { background: linear-gradient(90deg, var(--red), #ff8a8a); box-shadow: 0 0 10px var(--red); }
+.stat-row { display: flex; gap: 16px; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.stat-row b { color: var(--text); font-weight: 600; }
+.latest { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 12px; }
+.latest li { display: flex; justify-content: space-between; gap: 8px; }
+.latest a { color: var(--text); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.latest span { color: var(--cyan); flex: none; }
+
+/* Recordatorios */
+#reminders { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
+#reminders li { display: flex; gap: 8px; align-items: center; }
+#reminders .when { font-family: ui-monospace, Consolas, monospace; color: var(--cyan); flex: none; min-width: 64px; }
+#reminders .del { margin-left: auto; background: none; border: 0; color: var(--muted); cursor: pointer; }
+
+/* Clima, pronóstico y dólar */
+#forecast { display: flex; gap: 12px; justify-content: flex-end; margin-top: 4px; font-size: 11px; color: var(--muted); }
+#forecast b { color: var(--text); font-weight: 600; }
+#dollar { margin-top: 4px; color: var(--cyan); }
+
+/* Dato del día */
+#fact { margin-top: 14px; max-width: 90%; text-align: center; border-top: 1px solid var(--cyan-faint); padding-top: 8px; }
+#fact p { margin: 4px 0 0; font-size: 13px; color: var(--muted); font-style: italic; }
+.state-speaking #fact, .state-thinking #fact { display: none; }
+
+/* Cinta de noticias */
+.ticker { grid-area: ticker; display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--cyan-faint); border-bottom: 1px solid var(--cyan-faint); padding: 6px 0; overflow: hidden; }
+.ticker-label { font-family: "Bebas Neue", sans-serif; letter-spacing: 3px; color: var(--red); flex: none; }
+.ticker-window { overflow: hidden; flex: 1; mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+.ticker-track { display: inline-block; white-space: nowrap; animation: ticker 120s linear infinite; font-size: 13px; }
+.ticker-track a { color: var(--text); text-decoration: none; margin-right: 48px; }
+.ticker-track a:hover { color: var(--cyan); }
+.ticker-track .src { color: var(--muted); font-size: 11px; margin-left: 6px; }
+.ticker-track .hot { color: var(--red); margin-right: 6px; }
+.ticker:hover .ticker-track { animation-play-state: paused; }
+@keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* Alerta de recordatorio */
+#alert { position: fixed; inset: 0; z-index: 12; display: grid; place-items: center; background: rgba(40, 4, 8, .55); animation: flash 1s ease-in-out infinite alternate; }
+#alert[hidden] { display: none; }
+.alert-box { text-align: center; display: grid; gap: 16px; justify-items: center; padding: 32px 48px; border: 2px solid var(--red); background: rgba(6, 10, 16, .92); box-shadow: 0 0 40px rgba(230, 57, 70, .5); }
+.alert-box .label { color: var(--red); font-size: 14px; letter-spacing: 6px; }
+#alert-text { font-family: "Bebas Neue", sans-serif; font-size: 48px; letter-spacing: 2px; max-width: 80vw; }
+@keyframes flash { from { background: rgba(40, 4, 8, .35); } to { background: rgba(80, 8, 16, .6); } }
 .panel-title {
   display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
   font-family: "Bebas Neue", sans-serif; font-size: 20px; letter-spacing: 3px; color: var(--cyan);
@@ -112,7 +162,9 @@ input:focus, select:focus { border-color: var(--cyan); }
 
 /* Centro */
 .core-area { grid-area: core; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 0; position: relative; }
-#reactor { width: min(100%, 52vh); height: auto; aspect-ratio: 1; cursor: pointer; }
+#reactor { width: min(100%, 52vh); height: auto; aspect-ratio: 1; cursor: pointer; transition: width .5s; }
+.long-answer #reactor { width: min(100%, 30vh); }
+.long-answer #caption { max-height: 40vh; font-size: 15px; text-align: left; }
 #state-label { font-family: ui-monospace, Consolas, monospace; letter-spacing: 6px; color: var(--cyan); margin-top: 4px; text-shadow: 0 0 10px var(--cyan); }
 .state-asleep #state-label { color: var(--muted); text-shadow: none; }
 #heard { min-height: 20px; margin-top: 10px; color: var(--muted); font-style: italic; text-align: center; max-width: 90%; }
@@ -159,6 +211,10 @@ input:focus, select:focus { border-color: var(--cyan); }
 .settings-box label { display: grid; gap: 4px; color: var(--muted); }
 .settings-box .check { display: flex; gap: 8px; align-items: center; color: var(--text); }
 .settings-box .check input { width: auto; }
+
+.panel-compact .gauge, .panel-compact .gauge svg { width: 64px; height: 64px; }
+.panel-compact .gauge { height: auto; }
+.panel-compact .gauge b { top: 19px; font-size: 20px; }
 
 @media (max-width: 1000px) {
   html, body { overflow: auto; }

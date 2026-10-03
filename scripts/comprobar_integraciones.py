@@ -161,6 +161,32 @@ def main() -> None:
             except ProviderError as exc:
                 failures.append(f"La voz de JARVIS falló con {voice}: {exc} {exc.detail}")
 
+    print("8) Información de JARVIS (servicios gratuitos; solo avisos)")
+    from app import info
+
+    class FakeDB:  # sin base de datos: valores por defecto
+        def get(self, *args):
+            return None
+
+    db = FakeDB()
+    news = info.news(db)
+    print(f"   Noticias: {len(news)} → {news[0]['title'] if news else 'AVISO: ninguna'}")
+    radar = info.brand_radar(db)
+    print(f"   Radar de marcas: {len(radar)} → {radar[0]['title'] if radar else 'AVISO: ninguno'}")
+    print(f"   Dólar: {info.dollar(db) or 'AVISO: sin datos'}")
+    try:
+        print(f"   Pronóstico Medellín: {info.fetch_forecast('Medellín')}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"   AVISO pronóstico: {exc}")
+    try:
+        channel = info.fetch_youtube_public(info.DEFAULT_CHANNEL)
+        print(
+            f"   Canal: {channel['name']} · {channel['subscribers']} suscriptores · "
+            f"{len(channel['latest'])} vídeos en el RSS"
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(f"   AVISO canal: {exc}")
+
     if failures:
         print("\nFALLOS:\n- " + "\n- ".join(failures))
         sys.exit(1)

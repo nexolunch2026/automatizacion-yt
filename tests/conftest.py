@@ -81,6 +81,15 @@ def no_real_internet(monkeypatch):
         raise ProviderError("Sin voz de Microsoft en los tests")
 
     monkeypatch.setattr(jarvis_voice, "microsoft_tts", no_microsoft)
+    import httpx
+
+    from app import info
+
+    def offline(url, **params):
+        raise httpx.ConnectError("sin internet en los tests")
+
+    monkeypatch.setattr(info, "_get", offline)
+    info._cache.clear()
     return voice
 
 
