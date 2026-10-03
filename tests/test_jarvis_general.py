@@ -138,3 +138,27 @@ def test_questions_are_concrete_local_and_remember_the_talk(logged_in, ai, monke
         ask(db, "¿Y a qué hora es la siguiente función?")
     assert "Simón vive en Rionegro" in prompts[0] and "Nada de «revise la cartelera»" in prompts[0]
     assert "Creador: ¿Qué película me recomiendas en el cine?" in prompts[1]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Exactamente necesito que me digas qué películas hay en la cartelera de Procinal",
+        "Quiero saber cuánto cuesta un vuelo a Cartagena",
+        "Ok, recomiéndame un restaurante para hoy",
+    ],
+)
+def test_info_requests_anywhere_go_to_search(text):
+    assert quick_intent(text).action == "question"
+
+
+def test_fake_refusals_are_replaced_by_a_real_search(logged_in, ai, monkeypatch):  # noqa: F811
+    monkeypatch.setattr(
+        JarvisAI, "grounded_research", lambda self, p, think=True: GroundedText(text="Hay 6 pelis.")
+    )
+    ai.intent = Intent(
+        action="chat",
+        reply="Me temo que mis sistemas no pueden acceder en tiempo real a la cartelera.",
+    )
+    with SessionLocal() as db:
+        assert ask(db, "oye, y el cine qué")[0].text == "Hay 6 pelis."

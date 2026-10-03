@@ -76,7 +76,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   se parece demasiado al anterior.
 - [x] **Preparado para «Probar y comparar»** (0.26.0): en Publicación, 3 títulos y las 3
   miniaturas listos para el A/B de YouTube, con cuál probar y por qué.
-- [ ] **JARVIS se deja interrumpir hablando** (ya sigue escuchando 1 minuto tras
+- [x] **JARVIS se deja interrumpir hablando** (0.33.0) (ya sigue escuchando 1 minuto tras
   responder; falta poder cortarle con la voz mientras habla, sin que se oiga a sí mismo).
 - [x] **JARVIS se despierta con su nombre** (0.30.0): además de las palmadas, decir «Jarvis»
   (reconocimiento en el navegador, sin gastar Gemini).

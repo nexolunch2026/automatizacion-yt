@@ -262,12 +262,23 @@ QUESTION = re.compile(
     r"cuantas|por que|para que|recomiendame|recomienda|sabes|hay|dime|explicame|"
     r"busca(?:me)?|en que|a que hora|de que)\b"
 )
+# Pedidos de datos en cualquier parte de la frase («Exactamente, necesito que me digas…»).
+INFO_REQUEST = re.compile(
+    r"\b(?:dime|digas|decirme|quiero saber|necesito saber|averigua|averiguame|investiga|"
+    r"recomiendame|recomiendas|recomendarme|recomiendeme|cartelera|horarios?|"
+    r"cuanto cuesta|cuanto vale|precio de|que peliculas|que pelicula)\b"
+)
 # Temas que ya tienen su propia habilidad (más rápida que buscar en Google): esas
 # preguntas las clasifica la IA.
 STUDIO_WORDS = re.compile(
     r"\b(?:clima|tiempo|llueve|lluvia|temperatura|dolar|noticias?|radar|canal|videos?|"
     r"shorts?|tareas?|recordatorios?|temporizador|proyectos?|suscriptores|visitas|estado|"
     r"monetiz\w*|plan|ideas?|cola|piloto|guion|miniaturas?)\b"
+)
+# Respuestas de charla que en realidad dicen «no puedo saberlo»: entonces se busca.
+REFUSAL = re.compile(
+    r"no (?:puedo|tengo acceso|dispongo)|mis sistemas|en tiempo real|le sugiero consultar|"
+    r"revise (?:la|su)|consultar directamente|no tengo (?:informacion|datos)"
 )
 REMEMBER = re.compile(r"^(?:recuerda|acuerdate de|no olvides|ten en cuenta)\s+que\s+")
 MEMORY_WORDS = ("que sabes de mi", "que recuerdas", "que recuerdas de mi", "tu memoria")
@@ -445,7 +456,8 @@ def quick_intent(text: str) -> Intent | None:
         topic = _clean_topic(text[match.end() :])
         if topic:
             return Intent(action="new_video", topic=topic, duration=text[: match.end()])
-    if QUESTION.match(norm) and len(bare.split()) >= 3 and not STUDIO_WORDS.search(norm):
+    asks = QUESTION.match(norm) or INFO_REQUEST.search(norm)
+    if asks and len(bare.split()) >= 3 and not STUDIO_WORDS.search(norm):
         return Intent(action="question")  # se contesta buscando en Google, sin más pasos
     return None
 
@@ -540,7 +552,8 @@ documentales sin rostro sobre marcas: «Anatomía De Una Marca»). Clasifica el 
   (cultura, actualidad, deportes, precios, salud, cocina, cómo se hace algo, marcas,
   YouTube…). No respondas tú: la contestará JARVIS buscando en Google.
 - remember: quiere que recuerdes algo de él para siempre (task = el dato).
-- chat: solo charla, saludos, opiniones o ánimo que no necesitan datos. Responde en
+- chat: solo charla, saludos, opiniones o ánimo que no necesitan datos. NUNCA digas
+  que no puedes acceder a información: si pide datos de lo que sea, es «question». Responde en
   «reply» en 1–4 frases, en español, con el tono de JARVIS: educado, preciso, con un toque
   de humor británico; trátalo de «usted» y de vez en cuando llámalo «señor».
 
@@ -1036,7 +1049,11 @@ def _act(db: Session, intent: Intent, text: str, chat_id: int = 0) -> list[Reply
         return [remember_fact(db, intent.task.strip())]
     if intent.action == "memory":
         return [memory_reply(db)]
-    if intent.action == "chat" and intent.reply.strip():
+    if (
+        intent.action == "chat"
+        and intent.reply.strip()
+        and not REFUSAL.search(normalize(intent.reply))
+    ):
         return [Reply(escape(intent.reply.strip()))]
     if intent.action in ("question", "chat") and text.strip():
         return answer_question(db, text, chat_id)  # cualquier pregunta: busca en Google
@@ -1094,8 +1111,11 @@ correctos; si no estás seguro, dilo. Tono: educado y preciso, con un toque de h
 británico; trátalo de «usted». {where}
 Si pregunta por planes (cine, restaurantes, eventos, sitios), sé CONCRETO: busca en su
 ciudad opciones reales de hoy, con nombres, horarios, precios y dónde, y recomienda una
-diciendo por qué. Nada de «revise la cartelera»: búscala tú. Si de verdad no encuentras
-horarios de hoy, dilo y da el enlace o la web donde mirarlos.
+diciendo por qué. Nada de «revise la cartelera»: búscala tú (por ejemplo «cartelera
+Procinal Rionegro hoy», «Cinépolis San Nicolás Rionegro horarios», «estrenos cine Colombia
+esta semana»). Nunca digas que no puedes acceder: busca. Si no aparecen los horarios de
+hoy, da al menos las películas en cartelera esta semana, recomienda una y di en qué web
+ver la hora exacta.
 
 LO QUE SABES DE SIMÓN:
 {facts}

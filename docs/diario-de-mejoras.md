@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-03 — Versión 0.33: JARVIS se calla si le hablas y no se inventa que no puede
+
+- **Se calla si le hablas** mientras habla, o si dices «para», «cállate», «silencio» o
+  «Jarvis». Ignora su propia voz (solo se corta con palabras que él no está diciendo).
+  Se puede apagar en ⚙ Ajustes.
+- **No se queda callado buscando**: si tarda, dice enseguida «Un momento, lo busco».
+- **Entiende pedidos en cualquier parte de la frase** («Exactamente, necesito que me digas
+  qué películas hay…») y los busca directamente en Google.
+- Si la IA intentaba contestar «mis sistemas no pueden acceder», ahora busca de verdad.
+- Para el cine busca la cartelera de Procinal y Cinépolis en Rionegro y los estrenos de la
+  semana, y recomienda una película.
+
 ## 2026-10-03 — Versión 0.32: JARVIS más rápido y concreto con las preguntas
 
 - Las preguntas claras («¿qué película me recomiendas…?», «¿dónde puedo comer…?») van

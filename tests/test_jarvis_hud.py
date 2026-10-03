@@ -136,6 +136,7 @@ def test_hud_pages(logged_in, ai):
     create_channel(logged_in)
     page = logged_in.get("/jarvis/hud").text
     assert 'id="set-wake"' in page  # despertar diciendo «Jarvis»
+    assert 'id="set-barge"' in page  # que se calle si le hablan
     assert "J.A.R.V.I.S." in page and "jarvis_hud.js" in page
 
     logged_in.post("/jarvis/preferencias", data={"city": "Medellín", "call_me": "jefe"})

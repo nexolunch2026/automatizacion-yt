@@ -15,7 +15,7 @@
 
   // ------------------------------------------------------------ ajustes
 
-  const defaults = { voice: "", lang: "es-CO", sens: 5, claps: true, briefing: true, wakeWord: true };
+  const defaults = { voice: "", lang: "es-CO", sens: 5, claps: true, briefing: true, wakeWord: true, bargeIn: true };
   let settings = { ...defaults };
   try { settings = { ...defaults, ...JSON.parse(localStorage.getItem("jarvis-hud") || "{}") }; } catch (e) {}
   const saveSettings = () => { try { localStorage.setItem("jarvis-hud", JSON.stringify(settings)); } catch (e) {} };
@@ -232,6 +232,7 @@
     ensurePlayer();
     let cancelled = false;
     stopSpeaking = () => { cancelled = true; player.pause(); player.onended && player.onended(); };
+    startBargeIn(text);
     const parts = voiceParts(text);
     try {
       let next = fetchVoice(parts[0]);
@@ -244,6 +245,7 @@
       $("voice-note").textContent = "No se pudo usar la voz neuronal (" + e.message + "). Uso la del navegador.";
       if (!cancelled) await speakBrowser(text);
     }
+    stopBargeIn();
     quietUntil = performance.now() + 700;
   }
 
@@ -255,11 +257,13 @@
       stopListening();
       setState("speaking");
       speechSynthesis.cancel();
+      startBargeIn(text);
       const voice = voices.find((v) => v.name === settings.voice) || voices[0];
       const pieces = chunks(text);
       let left = pieces.length;
       const done = () => {
         if (--left > 0) return;
+        stopBargeIn();
         quietUntil = performance.now() + 700;
         resolve();
       };
@@ -277,6 +281,51 @@
       // Seguridad: si el navegador no habla (sin voces), no se queda colgado.
       setTimeout(() => { if (left > 0 && !speechSynthesis.speaking) { left = 1; done(); } }, 4000);
     });
+  }
+
+  // ------------------------------------------------------------ interrumpirle hablando
+  // Mientras habla, escucha. Como el micrófono también oye su propia voz, solo se calla
+  // si oye palabras que NO está diciendo él (o «para», «cállate», «Jarvis»…).
+
+  const STOP_WORD = /^(para|parar|pare|callate|calla|silencio|basta|stop|espera|alto|jarvis|yarvis|harvey|harvest)$/;
+  const normWords = (t) => (t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").match(/[a-zñ0-9]+/g) || []);
+  let bargeRec = null;
+
+  function startBargeIn(spoken) {
+    const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Rec || !settings.bargeIn) return;
+    stopBargeIn();
+    const own = new Set(normWords(spoken));
+    const rec = new Rec();
+    bargeRec = rec;
+    rec.lang = settings.lang || "es-CO";
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.onresult = (e) => {
+      let heard = "";
+      for (const r of e.results) heard += r[0].transcript + " ";
+      const novel = normWords(heard).filter((w) => !own.has(w));
+      const stop = novel.some((w) => STOP_WORD.test(w));
+      // Palabras de verdad nuevas: sin números ni palabras de 1–2 letras (al oírse a sí mismo
+      // «19:30» puede salir como «diecinueve treinta»). Hacen falta 4 y la frase acabada.
+      const real = novel.filter((w) => w.length > 2 && !/\d/.test(w));
+      const finished = e.results[e.results.length - 1].isFinal;
+      if (!stop && (real.length < 4 || !finished)) return; // lo más probable: se oye a sí mismo
+      stopBargeIn();
+      $("heard").textContent = "Te escucho…";
+      if (stopSpeaking) stopSpeaking();
+    };
+    rec.onerror = () => {};
+    rec.onend = () => { if (bargeRec === rec) bargeRec = null; };
+    try { rec.start(); } catch (e) { bargeRec = null; }
+  }
+
+  function stopBargeIn() {
+    if (bargeRec) {
+      const r = bargeRec;
+      bargeRec = null;
+      try { r.abort(); } catch (e) {}
+    }
   }
 
   // ------------------------------------------------------------ escuchar
@@ -397,6 +446,8 @@
     return pendingButtons.find((b) => b.data.startsWith("pick:") && b.data.endsWith(":" + (n - 1))) || null;
   }
 
+  const FILLERS = ["Un momento, lo busco.", "Ahora mismo, señor.", "Déjeme comprobarlo.", "Enseguida."];
+
   async function handle(text, button) {
     lastActivity = Date.now();
     if (!button) {
@@ -406,12 +457,19 @@
     if (text) $("heard").textContent = "«" + text + "»";
     setState("thinking");
     let data;
+    // Si tarda (búsquedas en Google), avisa enseguida para no quedarse en silencio.
+    const filler = setTimeout(() => {
+      if (state === "thinking") speak(FILLERS[Math.floor(Math.random() * FILLERS.length)]);
+    }, 1400);
     try {
       const body = new URLSearchParams({ text: text || "", button: button || "" });
       const r = await fetch("/jarvis/orden", { method: "POST", body });
       if (r.redirected || r.status === 401) { location.href = "/entrar"; return; }
       data = await r.json();
+      clearTimeout(filler);
+      if (state === "speaking" && stopSpeaking) stopSpeaking(); // corta el «un momento»
     } catch (e) {
+      clearTimeout(filler);
       await speak("No puedo conectar con el estudio. ¿Sigue abierta la ventana negra?");
       return goToSleep();
     }
@@ -931,6 +989,7 @@
     $("set-claps").checked = settings.claps;
     $("set-briefing").checked = settings.briefing;
     $("set-wake").checked = settings.wakeWord;
+    $("set-barge").checked = settings.bargeIn;
     $("settings").hidden = false;
   });
   $("settings-close").addEventListener("click", () => ($("settings").hidden = true));
@@ -989,6 +1048,7 @@
   $("set-sens").addEventListener("input", (e) => { settings.sens = parseInt(e.target.value, 10); saveSettings(); });
   $("set-claps").addEventListener("change", (e) => { settings.claps = e.target.checked; saveSettings(); setState(state); });
   $("set-briefing").addEventListener("change", (e) => { settings.briefing = e.target.checked; saveSettings(); });
+  $("set-barge").addEventListener("change", (e) => { settings.bargeIn = e.target.checked; saveSettings(); });
   $("set-wake").addEventListener("change", (e) => {
     settings.wakeWord = e.target.checked;
     saveSettings();
