@@ -115,3 +115,15 @@ def test_download_with_rejected_token():
     with pytest.raises(updater.UpdateError) as info:
         updater.download("github_pat_malo", transport(401, []))
     assert "rechazó el token" in str(info.value)
+
+
+def test_backup_skips_heavy_project_files(install_dir):
+    data = install_dir / "datos"
+    (data / "proyectos" / "1" / "video").mkdir(parents=True)
+    (data / "proyectos" / "1" / "video" / "video-final.mp4").write_bytes(b"0" * 1000)
+    (data / "musica").mkdir(exist_ok=True)
+    (data / "musica" / "tema.mp3").write_bytes(b"m")
+    (data / "jarvis_voz").mkdir()
+    target = updater.backup_data(install_dir, data)
+    assert (target / "faceless.db").exists() and (target / "musica" / "tema.mp3").exists()
+    assert not (target / "proyectos").exists() and not (target / "jarvis_voz").exists()

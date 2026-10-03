@@ -82,6 +82,19 @@ class TelegramAPI:
                     for row in reply.buttons
                 ]
             }
+        photos = [p for p in reply.photos if p.exists()]
+        if photos:  # álbum de fotos y, debajo, el mensaje con los botones
+            media, files, handles = [], {}, []
+            for n, path in enumerate(photos[:10]):
+                handle = path.open("rb")
+                handles.append(handle)
+                files[f"foto{n}"] = (path.name, handle, "image/jpeg")
+                media.append({"type": "photo", "media": f"attach://foto{n}"})
+            try:
+                self._call("sendMediaGroup", files=files, chat_id=chat_id, media=media)
+            finally:
+                for handle in handles:
+                    handle.close()
         if reply.video and reply.video.exists() and reply.video.stat().st_size < MAX_VIDEO_BYTES:
             with reply.video.open("rb") as f:
                 self._call(

@@ -393,6 +393,14 @@
       btn.onclick = () => { if (audioCtx) handle("", b.data); };
       box.appendChild(btn);
     })));
+    replies.forEach((r) => (r.photos || []).forEach((url, i) => {
+      const img = document.createElement("img");
+      img.src = url;
+      img.className = "choice-photo";
+      img.title = "Opción " + (i + 1);
+      img.onclick = () => window.open(url, "_blank");
+      box.appendChild(img);
+    }));
     replies.filter((r) => r.video).forEach((r) => {
       const link = document.createElement("button");
       link.textContent = "▶ Ver el avance";
@@ -435,7 +443,7 @@
   // ------------------------------------------------------------ datos en pantalla
 
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const KIND_ICON = { error: "⚠️", choice: "🧭", review: "🎥", upload: "🚀" };
+  const KIND_ICON = { error: "⚠️", choice: "🧭", review: "🎥", upload: "🚀", thumb: "🎨" };
 
   function renderData(d) {
     const prod = d.production || [];

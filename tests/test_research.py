@@ -127,6 +127,14 @@ class FakeAI:
                 pinned_comment="¿Crees que se pudo evitar?",
                 category="Educación",
             )
+        if schema.__name__ == "ThumbTexts":
+            return schema(
+                texts=[
+                    {"text": "El fin de Enron", "highlight": "fin"},
+                    {"text": "63.000 millones perdidos", "highlight": "63.000"},
+                    {"text": "Nadie lo vio venir", "highlight": "nadie"},
+                ]
+            )
         if schema is Rewrite:
             return Rewrite(text="Párrafo reescrito por la IA.", sources=[2, 7])
         assert schema is ResearchBrief
@@ -260,7 +268,7 @@ def test_interrupted_jobs_are_resumed(project, monkeypatch):
 
 
 def test_unknown_stage_returns_404(project):
-    assert project.post("/proyectos/1/etapas/thumbnail").status_code == 404
+    assert project.post("/proyectos/1/etapas/qc").status_code == 404
 
 
 def test_deleting_project_removes_jobs_and_results(project, monkeypatch):

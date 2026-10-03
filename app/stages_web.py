@@ -34,6 +34,7 @@ SLUGS = {
     "visuals": "visuales",
     "edit": "video",
     "publish": "publicacion",
+    "thumbnail": "miniatura",
 }
 STAGE_BY_SLUG = {slug: stage for stage, slug in SLUGS.items()}
 
@@ -509,6 +510,46 @@ def publish_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         "publish",
         has_ai_images=any(e.get("ai") for e in visuals.get("items", {}).values()),
     )
+
+
+@router.get("/miniatura")
+def thumbnail_page(request: Request, db: DB, user: CurrentUser, project_id: int):
+    return _stage_page(request, db, _project(db, project_id), "thumbnail")
+
+
+@router.post("/miniatura/elegir")
+def choose_thumbnail(db: DB, user: CurrentUser, project_id: int, index: Annotated[int, Form()]):
+    _project(db, project_id)
+    try:
+        jobs.select_thumbnail(db, project_id, index)
+    except ProviderError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return _redirect(f"/proyectos/{project_id}/miniatura")
+
+
+@router.post("/miniatura/textos")
+def thumbnail_texts(
+    db: DB,
+    user: CurrentUser,
+    project_id: int,
+    text1: Annotated[str, Form()] = "",
+    text2: Annotated[str, Form()] = "",
+    text3: Annotated[str, Form()] = "",
+    highlight1: Annotated[str, Form()] = "",
+    highlight2: Annotated[str, Form()] = "",
+    highlight3: Annotated[str, Form()] = "",
+):
+    """Rehace las 3 miniaturas con los textos que escribiste (mismos fondos)."""
+    _project(db, project_id)
+    texts = []
+    for text, highlight in ((text1, highlight1), (text2, highlight2), (text3, highlight3)):
+        text = " ".join(text.split())[:40]
+        if text:
+            texts.append({"text": text, "highlight": highlight.strip() or text.split()[-1]})
+    if not texts:
+        return _redirect(f"/proyectos/{project_id}/miniatura")
+    jobs.enqueue(db, project_id, "thumbnail", {"texts": texts})
+    return _redirect(f"/proyectos/{project_id}/miniatura")
 
 
 @router.post("/publicado")

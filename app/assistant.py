@@ -41,6 +41,7 @@ class Reply:
     text: str = ""
     buttons: Buttons | None = None
     video: Path | None = None
+    photos: list[Path] = field(default_factory=list)  # p. ej. las 3 miniaturas
     chat_id: int | None = None  # None: a todos los chats vinculados
     action: str = ""  # para la pantalla JARVIS: «sleep» = volver a dormir
 
@@ -762,6 +763,12 @@ def _button(db: Session, data: str) -> list[Reply]:
         return [Reply("Ese proyecto ya no existe.")]
     if kind == "pick":
         return _pick(db, project, arg)
+    if kind == "thumb" and arg.isdigit():
+        jobs.select_thumbnail(db, project.id, int(arg))
+        return [Reply(f"✅ Miniatura {int(arg) + 1} elegida para «{escape(project.title)}».")]
+    if kind == "rethumb":
+        jobs.enqueue(db, project.id, "thumbnail")
+        return [Reply("🎨 Preparo otras 3 miniaturas. Te las mando enseguida.")]
     if kind == "final":
         jobs.enqueue(db, project.id, "edit", {"quality": "final"})
         return [Reply(f"🎬 Monto la versión final de «{escape(project.title)}» en alta calidad.")]
@@ -833,6 +840,24 @@ def publish_replies(project: Project, seo: dict) -> list[Reply]:
     return replies
 
 
+def thumbnail_replies(project: Project, data: dict) -> list[Reply]:
+    folder = project_dir(project.id) / "miniaturas"
+    photos = [folder / v["file"] for v in data.get("variants", []) if (folder / v["file"]).exists()]
+    if not photos:
+        return []
+    texts = "\n".join(f"{n}. «{escape(v['text'])}»" for n, v in enumerate(data["variants"], 1))
+    return [
+        Reply(
+            f"🎨 <b>{escape(project.title)}</b>: tengo 3 miniaturas. ¿Cuál usamos?\n{texts}",
+            photos=photos,
+            buttons=[
+                [(f"✅ {n}", f"thumb:{project.id}:{n - 1}") for n in range(1, len(photos) + 1)],
+                [("🔄 Hacer otras 3", f"rethumb:{project.id}")],
+            ],
+        )
+    ]
+
+
 def make_teaser(video: Path, out: Path, seconds: int = TEASER_SECONDS) -> Path:
     """Un trozo pequeño (≈1 min, 480p) del vídeo para verlo en el móvil."""
     run_ffmpeg(
@@ -901,6 +926,8 @@ def _done_replies(db: Session, job: Job, project: Project) -> list[Reply]:
         return _video_replies(project, data)
     if job.stage == "publish":
         return publish_replies(project, data)
+    if job.stage == "thumbnail":
+        return thumbnail_replies(project, data)
     detail = {
         "research": lambda: (
             f"🔎 {name}: investigación lista ({len(data.get('sources', []))} fuentes)."

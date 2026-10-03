@@ -86,6 +86,11 @@ def extract(zip_bytes: bytes, target: Path) -> Path:
     raise UpdateError("La descarga no contiene el programa. Avisa a Claude.")
 
 
+# Carpetas de `datos` que no entran en la copia: pesan mucho y se pueden recuperar
+# (vídeos e imágenes de los proyectos, frases de JARVIS, voces de Piper descargadas).
+HEAVY_FOLDERS = {"proyectos", "jarvis_voz", "voces"}
+
+
 def backup_data(root: Path, data_dir: Path) -> Path | None:
     """Copia de seguridad de `datos` antes de actualizar (se guardan las 5 últimas)."""
     if not data_dir.exists():
@@ -93,7 +98,17 @@ def backup_data(root: Path, data_dir: Path) -> Path | None:
     backups = root / "copias_de_seguridad"
     backups.mkdir(exist_ok=True)
     target = backups / f"datos-{datetime.now():%Y%m%d-%H%M%S}"
-    shutil.copytree(data_dir, target)
+    # Solo lo que no se puede recuperar: base de datos (cuentas, proyectos, guiones),
+    # claves y música. Los vídeos, imágenes y audios de cada proyecto pesan mucho y la
+    # actualización nunca los toca, así que no se copian.
+    top = Path(data_dir).resolve()
+    shutil.copytree(
+        data_dir,
+        target,
+        ignore=lambda folder, names: (
+            set(names) & HEAVY_FOLDERS if Path(folder).resolve() == top else set()
+        ),
+    )
     for old in sorted(backups.glob("datos-*"))[:-BACKUPS_TO_KEEP]:
         shutil.rmtree(old, ignore_errors=True)
     return target

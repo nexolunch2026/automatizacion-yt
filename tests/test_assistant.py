@@ -170,6 +170,7 @@ def test_full_video_from_the_phone(studio, ai):
         "visuals",
         "edit",
         "publish",
+        "thumbnail",
     }
 
     texts = [r.text for r in tick()]

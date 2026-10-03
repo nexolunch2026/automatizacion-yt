@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% import "_project.html" as ui %}
+{% block content %}
+{% set thumbs = result %}
+{{ ui.header(project) }}
+{{ ui.tabs(project, stage, slugs, stages, results, jobs) }}
+
+<div class="card">
+  <div class="row">
+    <div>
+      <h2>Miniatura</h2>
+      <p class="muted small">Tres propuestas con el estilo del canal. La miniatura es lo que decide si alguien hace clic:
+        elige la que más te llame la atención en tamaño pequeño.</p>
+    </div>
+    {% if 'script' in results and not (job and job.active) %}
+    <form method="post" action="/proyectos/{{ project.id }}/etapas/thumbnail">
+      <button class="btn {{ 'secondary' if thumbs }}">{% if thumbs %}Hacer otras 3{% else %}Crear miniaturas{% endif %}</button>
+    </form>
+    {% endif %}
+  </div>
+  {{ ui.job_status(job) }}
+  {% if 'script' not in results %}
+  <p class="alert info">Primero hay que <a href="/proyectos/{{ project.id }}/guion">escribir el guion</a>.</p>
+  {% elif 'visuals' not in results %}
+  <p class="alert info">Consejo: haz antes los <a href="/proyectos/{{ project.id }}/visuales">visuales</a>; las miniaturas usan las imágenes más llamativas del vídeo.</p>
+  {% endif %}
+  {% for note in (thumbs.notes if thumbs else []) %}<p class="alert info">{{ note }}</p>{% endfor %}
+</div>
+
+{% if thumbs %}
+<div class="thumbs {{ 'portrait' if thumbs.portrait }}">
+  {% for v in thumbs.variants %}
+  <div class="card thumb-card {{ 'chosen' if thumbs.selected == loop.index0 }}">
+    <img src="/proyectos/{{ project.id }}/archivos/miniaturas/{{ v.file }}?v={{ job.id if job else 0 }}" alt="Miniatura {{ loop.index }}">
+    <div class="thumb-small" title="Así se ve en el móvil">
+      <img src="/proyectos/{{ project.id }}/archivos/miniaturas/{{ v.file }}?v={{ job.id if job else 0 }}" alt="">
+      <span class="muted small">En el móvil</span>
+    </div>
+    <p><strong>«{{ v.text }}»</strong> <span class="muted small">· fondo: {{ v.source }}</span></p>
+    <div class="row-actions">
+      {% if thumbs.selected == loop.index0 %}
+      <span class="badge ok">✓ Elegida</span>
+      <a class="btn small" href="/proyectos/{{ project.id }}/archivos/miniaturas/{{ v.file }}" download="miniatura-{{ project.id }}.jpg">Descargar</a>
+      {% else %}
+      <form method="post" action="/proyectos/{{ project.id }}/miniatura/elegir">
+        <input type="hidden" name="index" value="{{ loop.index0 }}">
+        <button class="btn small">Elegir esta</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card form-card">
+  <h3>Cambiar los textos</h3>
+  <p class="muted small">Escribe 2–4 palabras. En «rojo» pon la palabra que quieres destacar. Se rehacen con los mismos fondos.</p>
+  <form method="post" action="/proyectos/{{ project.id }}/miniatura/textos" class="stack">
+    {% for v in thumbs.variants %}
+    <div class="row-fields">
+      <label>Texto {{ loop.index }} <input name="text{{ loop.index }}" value="{{ v.text }}" maxlength="40"></label>
+      <label>En rojo <input name="highlight{{ loop.index }}" value="{{ v.highlight }}" maxlength="20"></label>
+    </div>
+    {% endfor %}
+    <button class="btn secondary">Rehacer con estos textos</button>
+  </form>
+</div>
+{% endif %}
+{{ ui.live_updates(project, jobs) }}
+{% endblock %}

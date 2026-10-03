@@ -222,3 +222,5 @@ input:focus, select:focus { border-color: var(--cyan); }
   .hud-top { flex-wrap: wrap; gap: 8px; }
   .title { font-size: 32px; letter-spacing: 8px; }
 }
+
+#choices .choice-photo { width: 200px; border: 1px solid var(--cyan-dim); cursor: zoom-in; }

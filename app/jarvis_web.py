@@ -82,6 +82,7 @@ def order(
                 "html": r.text,
                 "buttons": [[{"text": t, "data": d} for t, d in row] for row in r.buttons or []],
                 "video": _video_url(r.video) if r.video else None,
+                "photos": [_video_url(p) for p in r.photos],
                 "action": r.action,
             }
             for r in replies

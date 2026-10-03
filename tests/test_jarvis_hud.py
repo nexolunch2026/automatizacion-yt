@@ -107,6 +107,8 @@ def test_studio_tasks_follow_the_projects(logged_in, ai):
         assistant.handle(db, Incoming(chat_id=-1, button="pick:1:0"), trusted=True)
     run_all()
     with SessionLocal() as db:
+        assert agenda.studio_tasks(db)[0]["kind"] == "thumb"
+        jobs.select_thumbnail(db, 1, 0)
         assert agenda.studio_tasks(db)[0]["kind"] == "review"
         jobs.enqueue(db, 1, "edit", {"quality": "final"})
     run_all()

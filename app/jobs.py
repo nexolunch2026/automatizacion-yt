@@ -59,6 +59,7 @@ NEXT_STAGE = {
     "voice": "visuals",
     "visuals": "edit",
     "edit": "publish",
+    "publish": "thumbnail",
 }
 
 
@@ -86,6 +87,23 @@ def select_concept(db: Session, project_id: int, concept: int, title: int = 0) -
     if not 0 <= title < len(data["concepts"][concept]["titles"]):
         title = 0
     data["selected"] = {"concept": concept, "title": title}
+    row.data = data
+    db.commit()
+    return data
+
+
+def select_thumbnail(db: Session, project_id: int, index: int) -> dict:
+    import copy
+
+    row = db.scalar(
+        select(StageResult).where(
+            StageResult.project_id == project_id, StageResult.stage == "thumbnail"
+        )
+    )
+    if row is None or not 0 <= index < len(row.data.get("variants", [])):
+        raise ProviderError("Esa miniatura no existe.")
+    data = copy.deepcopy(row.data)
+    data["selected"] = index
     row.data = data
     db.commit()
     return data
@@ -259,6 +277,34 @@ def _run_publish(db: Session, project: Project, progress, params: dict) -> dict:
     return data
 
 
+def _run_thumbnail(db: Session, project: Project, progress, params: dict) -> dict:
+    from app.pipeline.thumbnail import run_thumbnail
+
+    script = _require(db, project, "script", "Primero hay que escribir el guion.")
+    try:
+        ai = get_ai_provider(db)
+    except ProviderError:
+        ai = None  # sin Gemini también se pueden hacer, con textos sencillos
+    use_ai_image = params.get("ai_image", True) and not params.get("texts")
+    folder = project_dir(project.id)
+    data = run_thumbnail(
+        project,
+        get_result(db, project.id, "strategy") or {},
+        script,
+        get_result(db, project.id, "visuals") or {"items": {}},
+        folder / "visuales",
+        folder / "miniaturas",
+        ai,
+        progress,
+        images=get_image_providers(db) if use_ai_image else None,
+        texts=params.get("texts"),
+        portrait=is_portrait(project),
+    )
+    if ai is not None:
+        remember_working_model(db, ai)
+    return data
+
+
 def is_portrait(project: Project) -> bool:
     return project.duration == "Short"
 
@@ -364,6 +410,7 @@ RUNNERS: dict[str, Runner] = {
     "visuals": _run_visuals,
     "edit": _run_edit,
     "publish": _run_publish,
+    "thumbnail": _run_thumbnail,
 }
 
 
@@ -441,6 +488,8 @@ def _chain_next(db: Session, project: Project, stage: str, data: dict) -> None:
         return
     if stage == "edit" and get_result(db, project.id, "publish"):
         return  # rehacer el vídeo (p. ej. la versión final) no rehace los textos
+    if stage == "publish" and get_result(db, project.id, "thumbnail"):
+        return  # ni las miniaturas ya elegidas
     if project.automation_mode == "asistido" and stage != "research":
         return
     if next_stage == "script" and not data.get("selected"):

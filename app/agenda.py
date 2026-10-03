@@ -123,6 +123,7 @@ def studio_tasks(db: Session) -> list[dict]:
         strategy = jobs.get_result(db, project.id, "strategy")
         edit = jobs.get_result(db, project.id, "edit") or {}
         renders = edit.get("renders", {})
+        thumbs = jobs.get_result(db, project.id, "thumbnail")
         link = f"/proyectos/{project.id}"
         if failed:
             text = f"Revisar el error de «{project.title}»"
@@ -130,6 +131,9 @@ def studio_tasks(db: Session) -> list[dict]:
         elif strategy and not strategy.get("selected") and strategy.get("concepts"):
             text = f"Elegir el enfoque de «{project.title}»"
             found.append({"text": text, "kind": "choice", "link": f"{link}/estrategia"})
+        elif thumbs and thumbs.get("variants") and thumbs.get("selected") is None:
+            text = f"Elegir la miniatura de «{project.title}»"
+            found.append({"text": text, "kind": "thumb", "link": f"{link}/miniatura"})
         elif "final" in renders:
             text = f"Subir «{project.title}» a YouTube"
             found.append({"text": text, "kind": "upload", "link": f"{link}/publicacion"})
