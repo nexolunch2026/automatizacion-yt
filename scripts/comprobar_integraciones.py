@@ -29,6 +29,7 @@ def voice_url(voice: str, extension: str) -> str:
 
 
 def main() -> None:
+    sys.stdout.reconfigure(encoding="utf-8")  # la consola de Windows no es UTF-8
     failures = []
 
     print("1) Voces del catálogo")
@@ -170,9 +171,9 @@ def main() -> None:
 
     db = FakeDB()
     news = info.news(db)
-    print(f"   Noticias: {len(news)} → {news[0]['title'] if news else 'AVISO: ninguna'}")
+    print(f"   Noticias: {len(news)} -> {news[0]['title'] if news else 'AVISO: ninguna'}")
     radar = info.brand_radar(db)
-    print(f"   Radar de marcas: {len(radar)} → {radar[0]['title'] if radar else 'AVISO: ninguno'}")
+    print(f"   Radar de marcas: {len(radar)} -> {radar[0]['title'] if radar else 'AVISO: ninguno'}")
     print(f"   Dólar: {info.dollar(db) or 'AVISO: sin datos'}")
     try:
         print(f"   Pronóstico Medellín: {info.fetch_forecast('Medellín')}")
