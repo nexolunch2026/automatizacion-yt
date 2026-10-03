@@ -65,18 +65,31 @@ automatización sirve para ahorrar horas, no para sustituir tu criterio.
   sábado, y una tarea de aprendizaje de 30 minutos); «publico los jueves a las 18» para
   cambiar el día; el resumen de la mañana avisa de lo que toca publicar hoy.
 
-## Fase 2 — siguiente (más impacto)
+## Lista de próximas mejoras
 
-1. **Más variedad**: turnar también estilos visuales y música entre vídeos.
-2. **Retención real**: leer la curva de retención de YouTube Analytics y señalar en qué
-   segundo se va la gente, para que el próximo guion lo evite.
-3. **Subir a YouTube como borrador privado** (con capítulos, etiquetas y la casilla de
-   contenido sintético ya puestos). Siempre privado: tú lo revisas y lo publicas.
+La sesión automática de cada noche coge **la primera sin marcar**, la hace, la marca con
+`[x]` y anota lo hecho en `docs/diario-de-mejoras.md`. Simón puede reordenar la lista o
+añadir ideas cuando quiera (escribiéndoselo a Claude).
 
-## Fase 3 — después
+- [ ] **Variedad visual**: turnar entre vídeos el estilo de subtítulos, la música y el
+  «look» (como ya se turnan las estructuras), y que el control de calidad avise si el vídeo
+  se parece demasiado al anterior.
+- [ ] **Preparado para «Probar y comparar»**: en Publicación, 3 títulos y las 3
+  miniaturas listos para el A/B de YouTube, con cuál probar y por qué.
+- [ ] **Guion más humano**: control de calidad de frases demasiado largas, repeticiones y
+  palabras de relleno, con botón para reescribir solo esas frases.
+- [ ] **Shorts que llevan al vídeo largo**: gancho propio en los primeros 2 s, texto en
+  pantalla y frase final que invite a ver el documental completo.
+- [ ] **Banco de ideas más grande**: llegar a 80 historias reales (sobre todo de España y
+  Latinoamérica) y marcar las que ya se hicieron.
+- [ ] **Pantalla JARVIS**: panel con el plan de la semana y la nota de monetización.
+- [ ] **Ideas con demanda real**: cruzar el radar de marcas con lo que más se busca y con
+  lo que mejor te ha funcionado en Rendimiento.
+- [ ] **Retención con datos**: en Rendimiento, apuntar el % de gente que sigue al minuto 1
+  y a la mitad (de YouTube Studio) y que el próximo guion refuerce esas partes.
+- [ ] **Biblioteca de música** con su licencia guardada, para que el control de calidad
+  la dé por buena.
 
-4. **Pruebas A/B de miniaturas y títulos** con la función «Probar y comparar» de YouTube.
-5. **Biblioteca de música** con su licencia guardada, para que el control de calidad la dé
-   por buena.
-6. **Ideas con demanda real**: cruzar el radar de marcas con lo que más se busca y con lo
-   que mejor te ha funcionado en Rendimiento.
+Necesitan a Simón (no se hacen solas por la noche): subir a YouTube como borrador privado
+(hay que conectar su cuenta de Google) y leer la retención automática de YouTube
+Analytics.
