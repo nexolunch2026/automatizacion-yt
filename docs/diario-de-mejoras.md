@@ -2,6 +2,15 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-03 — Versión 0.34: JARVIS controla el ordenador
+
+- **Carpetas**: «abre descargas», «abre documentos», «abre la carpeta de datos»…
+- **Programas**: «abre la calculadora», «abre el bloc de notas», Word, Excel, Spotify…
+- **Volumen y música**: «sube/baja el volumen», «silencia», «pausa», «siguiente
+  canción», «canción anterior».
+- **«Bloquea el ordenador»** (no apaga ni borra nada: es a propósito).
+- Funciona también por Telegram: lo hace en el ordenador donde está el programa.
+
 ## 2026-10-03 — Versión 0.33: JARVIS se calla si le hablas y no se inventa que no puede
 
 - **Se calla si le hablas** mientras habla, o si dices «para», «cállate», «silencio» o

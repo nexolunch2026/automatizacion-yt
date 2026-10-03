@@ -12,7 +12,7 @@ from urllib.parse import quote_plus
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import agenda, info
+from app import agenda, info, pc
 
 SKILL_ACTIONS = (
     "reminder",
@@ -28,6 +28,7 @@ SKILL_ACTIONS = (
     "stats",
     "performance",
     "analyze",
+    "pc",
 )
 
 # Páginas que JARVIS sabe abrir (clave sin tildes y en minúsculas).
@@ -179,8 +180,13 @@ def quick(text: str, norm: str):
     rest = text[match.end() :].strip(" .,:;") if match else ""
     if rest and agenda.parse_when(rest, datetime.now())[0] is not None:
         return Intent(action="reminder", task=rest)  # sin hora es una tarea, no un recordatorio
+    if bare in pc.PHRASES:  # volumen, música, bloquear: en el propio ordenador
+        return Intent(action="pc", target=pc.PHRASES[bare])
     match = OPEN.match(norm)
     if match:
+        found = pc.find_target(match.group(1))
+        if found:  # una carpeta o un programa de Windows, no una web
+            return Intent(action="pc", target=f"{found[0]}:{found[1]}")
         return Intent(action="open", target=text[match.start(1) :].strip(" .,:;"))
     match = SEARCH.match(norm)
     if match:
@@ -209,6 +215,7 @@ def act(db: Session, intent) -> list:
         "stats": _stats,
         "performance": _performance,
         "analyze": _analyze,
+        "pc": _pc,
     }[intent.action]
     return handler(db, intent)
 
@@ -430,6 +437,13 @@ def _open(db: Session, intent) -> list:
             action=f"open:{url}",
         )
     ]
+
+
+def _pc(db: Session, intent) -> list:
+    action, _, name = intent.target.partition(":")
+    if action in ("folder", "program") and not name:
+        return [_r("¿Qué quieres que abra?")]
+    return [_r(escape(pc.do(action, name)))]
 
 
 def _stats(db: Session, intent) -> list:

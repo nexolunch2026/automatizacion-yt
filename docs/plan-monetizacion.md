@@ -82,7 +82,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   (reconocimiento en el navegador, sin gastar Gemini).
 - [ ] **JARVIS útil en el día a día**: conversiones y cálculos, traducir frases, recetas
   y cantidades (Simón trabaja en cocina), listas de la compra y notas largas por voz.
-- [ ] **JARVIS con más habilidades en el PC**: abrir carpetas y programas de Windows,
+- [x] **JARVIS con más habilidades en el PC** (0.34.0): abrir carpetas y programas de Windows,
   subir/bajar volumen, poner y parar música, y avisos en pantalla.
 - [ ] **Guion más humano**: control de calidad de frases demasiado largas, repeticiones y
   palabras de relleno, con botón para reescribir solo esas frases.

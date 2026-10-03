@@ -194,6 +194,7 @@ class Intent(BaseModel):
         "monetize",
         "review",
         "idea_bank",
+        "pc",
         "week_plan",
         "publish_day",
         "learn_video",
@@ -547,6 +548,9 @@ documentales sin rostro sobre marcas: «Anatomía De Una Marca»). Clasifica el 
   (topic = de qué vídeo, si lo dice).
 - open: quiere abrir una página, app o proyecto, buscar algo o poner música
   (target = qué; «google:…» para buscar, «youtube:…» para música o vídeos).
+- pc: quiere algo en su ordenador: subir/bajar volumen (target «volume_up» /
+  «volume_down»), silenciar («mute»), pausar o seguir la música («play_pause»), siguiente
+  o anterior canción («next» / «previous»), bloquear el ordenador («lock»).
 - help: pregunta qué puedes hacer.
 - question: CUALQUIER pregunta que necesite datos o saber algo, de cualquier tema
   (cultura, actualidad, deportes, precios, salud, cocina, cómo se hace algo, marcas,
@@ -597,6 +601,9 @@ def help_replies() -> list[Reply]:
             "📡 <b>«radar»</b> — marcas en apuros esta semana (ideas de vídeo); "
             "<b>«noticias»</b>, <b>«dólar»</b>, <b>«clima»</b>, <b>«dato curioso»</b>.\n"
             "🖥️ <b>«abre YouTube Studio»</b>, <b>«busca…»</b>, <b>«pon música lofi»</b>.\n"
+            "💻 En tu ordenador: <b>«abre descargas»</b>, <b>«abre la calculadora»</b>, "
+            "<b>«sube el volumen»</b>, <b>«pausa»</b>, <b>«siguiente canción»</b>, "
+            "<b>«bloquea el ordenador»</b>.\n"
             "🎓 <b>Mándame un enlace de YouTube</b> y lo veo: te digo lo bueno y cómo "
             "aplicarlo a tu canal.\n"
             "❓ <b>Pregúntame lo que sea</b> (cultura, noticias, deportes, cómo hacer algo…): "
