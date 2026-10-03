@@ -368,6 +368,10 @@
     }
     const replies = data.replies || [];
     showReplies(replies);
+    if (typeof data.seconds === "number") { // cuánto tardó en entender y preparar la respuesta
+      const took = String(data.seconds).replace(".", ",") + " s";
+      $("heard").textContent = (text ? "«" + text + "» · " : "") + "respondí en " + took;
+    }
     for (const r of replies) {
       if (r.action && r.action.startsWith("open:")) window.open(r.action.slice(5), "_blank");
     }

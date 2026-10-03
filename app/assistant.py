@@ -506,7 +506,8 @@ ESTADO ACTUAL DEL ESTUDIO:
 {_context(db, chat_id)}
 
 MENSAJE: {text}"""
-    intent = ai.generate_json(prompt, Intent)
+    # Modo rápido (sin «pensar») si el proveedor lo tiene: entender una orden no necesita más.
+    intent = getattr(ai, "quick_json", ai.generate_json)(prompt, Intent)
     jobs.remember_working_model(db, ai)
     return intent
 

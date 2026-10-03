@@ -4,7 +4,9 @@ El resto de la app solo conoce `AIProvider`; cambiar de proveedor (Claude, OpenA
 consiste en añadir otra clase que cumpla la misma interfaz.
 """
 
+import hashlib
 import re
+import time
 from dataclasses import dataclass, field
 from typing import Protocol, TypeVar
 
@@ -104,6 +106,11 @@ def insert_citations(text: str, supports) -> str:
     return raw.decode("utf-8", errors="ignore")
 
 
+# Lista de modelos de cada clave: pedirla en cada mensaje añadía un viaje a Google.
+MODELS_TTL = 6 * 3600
+_models_cache: dict[str, tuple[float, list[str]]] = {}
+
+
 class GeminiProvider:
     name = "gemini"
 
@@ -111,6 +118,7 @@ class GeminiProvider:
         from google import genai
 
         self._client = genai.Client(api_key=api_key)
+        self._key_id = hashlib.sha256(api_key.encode()).hexdigest()[:16]
         self._models = [model] if model else None
         self._preferred = preferred  # el modelo que funcionó la última vez
         self.last_model: str | None = None  # modelo que respondió la última vez
@@ -118,7 +126,12 @@ class GeminiProvider:
     @property
     def models(self) -> list[str]:
         if self._models is None:
-            names = self._call(lambda: [m.name for m in self._client.models.list()])
+            cached = _models_cache.get(self._key_id)
+            if cached and time.monotonic() - cached[0] < MODELS_TTL:
+                names = cached[1]
+            else:
+                names = self._call(lambda: [m.name for m in self._client.models.list()])
+                _models_cache[self._key_id] = (time.monotonic(), names)
             self._models = candidate_models(names, self._preferred)
         return self._models
 
@@ -233,6 +246,33 @@ class GeminiProvider:
             temperature=0.3,
         )
         response = self._generate(prompt, config)
+        if isinstance(response.parsed, schema):
+            return response.parsed
+        try:
+            return schema.model_validate_json(response.text or "")
+        except ValidationError as exc:
+            raise ProviderError(
+                "La IA devolvió un formato inesperado. Se volverá a intentar.", transient=True
+            ) from exc
+
+    def quick_json(self, prompt: str, schema: type[T]) -> T:
+        """Como `generate_json` pero sin «pensar» antes de responder: mucho más rápido.
+        Para entender las órdenes de JARVIS, que no necesitan razonar. Si el modelo no
+        admite apagar el razonamiento, se usa el modo normal."""
+        from google.genai import types
+
+        config = types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=schema,
+            temperature=0.3,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        )
+        try:
+            response = self._generate(prompt, config)
+        except ProviderError as exc:
+            if "think" not in f"{exc} {exc.detail}".lower():
+                raise
+            return self.generate_json(prompt, schema)
         if isinstance(response.parsed, schema):
             return response.parsed
         try:

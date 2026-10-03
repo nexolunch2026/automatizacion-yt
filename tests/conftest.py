@@ -61,6 +61,16 @@ from app.providers.images import ImageChain  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
+def fresh_model_list():
+    """Cada test simula sus propios modelos de Gemini: sin la lista guardada de otro test."""
+    from app.providers import ai
+
+    ai._models_cache.clear()
+    yield
+    ai._models_cache.clear()
+
+
+@pytest.fixture(autouse=True)
 def no_real_internet(monkeypatch):
     """Ningún test llama a Wikipedia ni descarga voces de verdad."""
     from app import jobs

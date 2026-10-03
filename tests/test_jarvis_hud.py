@@ -154,6 +154,7 @@ def test_hud_pages(logged_in, ai):
 
     order = logged_in.post("/jarvis/orden", data={"text": "gracias jarvis"}).json()
     assert order["replies"][0]["action"] == "sleep"
+    assert isinstance(order["seconds"], float)  # la pantalla enseña cuánto tardó
 
 
 def test_hud_needs_login(client):

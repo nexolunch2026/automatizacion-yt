@@ -2,6 +2,14 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-03 — Versión 0.28: JARVIS más rápido
+
+- Para entender lo que le dices, JARVIS ya no le pide a Gemini que «piense» antes de
+  responder: es lo que más tardaba.
+- Ya no pregunta a Google la lista de modelos en cada mensaje (la guarda unas horas).
+- En la pantalla JARVIS, debajo de lo que dijiste, aparece **cuánto tardó** en responder
+  («respondí en 1,8 s»), para medir si va bien.
+
 ## 2026-10-03 — Versión 0.27: aprender de un vídeo
 
 - Menú nuevo **🎓 Aprender**: pegas el enlace de un vídeo de YouTube y Gemini lo **ve

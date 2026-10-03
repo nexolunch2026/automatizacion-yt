@@ -224,3 +224,47 @@ def test_all_models_overloaded_is_retryable():
         provider_with(fake).grounded_research("tema")
     assert info.value.transient
     assert "saturado" in str(info.value)
+
+
+def test_model_list_is_asked_once_per_key(monkeypatch):
+    from app.providers import ai as ai_module
+
+    calls = []
+
+    class Models:
+        def list(self):
+            calls.append(1)
+            return [N(name="models/gemini-flash-latest")]
+
+    class Client:
+        def __init__(self, api_key):
+            self.models = Models()
+
+    monkeypatch.setattr("google.genai.Client", Client)
+    for _ in range(3):
+        assert ai_module.GeminiProvider("clave-1").models[0] == "gemini-flash-latest"
+    assert ai_module.GeminiProvider("clave-2").models
+    assert len(calls) == 2  # una vez por clave, no en cada mensaje
+
+
+def test_quick_json_turns_thinking_off_and_falls_back(monkeypatch):
+    from pydantic import BaseModel
+
+    from app.providers import ai as ai_module
+
+    class Answer(BaseModel):
+        ok: bool
+
+    seen = []
+
+    def generate(self, contents, config):
+        budget = config.thinking_config.thinking_budget if config.thinking_config else None
+        seen.append(budget)
+        if budget == 0 and len(seen) == 1:
+            raise ai_module.ProviderError("Error de Gemini (400).", detail="thinking not supported")
+        return N(parsed=Answer(ok=True), text='{"ok": true}')
+
+    monkeypatch.setattr(ai_module.GeminiProvider, "_generate", generate)
+    provider = ai_module.GeminiProvider.__new__(ai_module.GeminiProvider)
+    assert provider.quick_json("hola", Answer).ok
+    assert seen == [0, None]  # primero sin pensar; si el modelo no lo admite, normal

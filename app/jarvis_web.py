@@ -1,7 +1,9 @@
 """Página JARVIS: hablar con el asistente desde el navegador, conectar Telegram y
 manejar el piloto automático."""
 
+import logging
 import re
+import time
 from typing import Annotated
 
 from fastapi import APIRouter, Form, Request
@@ -21,6 +23,8 @@ from app.settings_store import (
     set_setting,
 )
 from app.templating import render
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/jarvis")
 
@@ -75,8 +79,12 @@ def order(
 ) -> dict:
     """Una orden escrita o dicha en la web. Devuelve las respuestas para el chat."""
     msg = Incoming(chat_id=WEB_CHAT, name=user.username, text=text[:2000], button=button[:64])
+    started = time.perf_counter()
     replies = assistant.handle(db, msg, trusted=True)
+    seconds = round(time.perf_counter() - started, 1)
+    log.info("JARVIS respondió en %.1f s: %s", seconds, (text or button)[:60])
     return {
+        "seconds": seconds,
         "replies": [
             {
                 "html": r.text,
