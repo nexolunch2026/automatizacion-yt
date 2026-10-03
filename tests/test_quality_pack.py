@@ -137,6 +137,7 @@ def test_video_form_sends_options(produced, monkeypatch):
         "quality": "final",
         "subtitles": True,
         "film_look": False,
+        "look": "auto",  # tono de color automático (se turna entre vídeos)
         "music": "",
         "music_volume": "media",
     }

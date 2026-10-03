@@ -45,7 +45,42 @@ WHITE = (238, 238, 242)
 RED = (230, 57, 70)
 DARK = (13, 14, 18)
 
-DEFAULT_STYLE = {"subtitles": True, "film_look": True, "music": "", "music_volume": "media"}
+DEFAULT_STYLE = {
+    "subtitles": True,
+    "film_look": True,
+    "look": "auto",
+    "music": "",
+    "music_volume": "media",
+}
+AUTO = "auto"
+# Acabados de color. Se turnan entre vídeos («auto») para que el canal no parezca hecho en
+# serie, sin perder la identidad: subtítulos y rojo de la marca son siempre los mismos.
+LOOKS = {
+    "cine": ("Cine", "eq=contrast=1.06:saturation=0.94,vignette=PI/5,noise=alls=6:allf=t"),
+    "calido": (
+        "Cálido",
+        "eq=contrast=1.05:saturation=1.02,colorbalance=rs=0.06:bs=-0.06,vignette=PI/5",
+    ),
+    "frio": ("Frío", "eq=contrast=1.08:saturation=0.9,colorbalance=rs=-0.05:bs=0.07,vignette=PI/5"),
+    "archivo": (
+        "Archivo (tono antiguo)",
+        "eq=contrast=1.1:saturation=0.45,colorbalance=rs=0.08:gs=0.03:bs=-0.08,"
+        "vignette=PI/4,noise=alls=12:allf=t",
+    ),
+    "nitido": ("Nítido", "eq=contrast=1.04:saturation=1.05,unsharp=5:5:0.4"),
+}
+
+
+def least_recent(options: list[str], recent: list[str]) -> str:
+    """La opción que hace más tiempo que no se usa (`recent`: de la más nueva a la más
+    vieja). Las que nunca se han usado van primero."""
+
+    def last_used(key: str) -> int:
+        return recent.index(key) if key in recent else len(recent) + 1
+
+    return max(options, key=last_used)
+
+
 MUSIC_VOLUMES = {"baja": 0.10, "media": 0.16, "alta": 0.24}
 
 # Movimientos de cámara que se van alternando dentro de una escena.
@@ -487,7 +522,7 @@ def render_video(
     video_chain, video_label = _xfade_chain(lengths, seconds_list)
     finish = []
     if style.get("film_look"):
-        finish.append("eq=contrast=1.06:saturation=0.94,vignette=PI/5,noise=alls=6:allf=t")
+        finish.append(LOOKS.get(style.get("look"), LOOKS["cine"])[1])
     if style.get("subtitles"):
         (workdir / "subtitulos.ass").write_text(build_ass(segments, w, h), encoding="utf-8")
         fonts = workdir / "fonts"

@@ -20,11 +20,18 @@
       <label class="radio"><input type="checkbox" name="subtitles" value="1" {% if style.subtitles %}checked{% endif %}>
         Subtítulos animados en pantalla (la palabra que se dice se resalta en rojo)</label>
       <label class="radio"><input type="checkbox" name="film_look" value="1" {% if style.film_look %}checked{% endif %}>
-        Acabado de cine (viñeta, contraste suave y grano de película)</label>
+        Filtro de color (viñeta y tono de documental)</label>
       <div class="row-fields">
+        <label>Tono de color
+          <select name="look">
+            <option value="auto" {% if style.look == 'auto' %}selected{% endif %}>Automático (distinto a tus últimos vídeos)</option>
+            {% for key, item in looks.items() %}<option value="{{ key }}" {% if style.look == key %}selected{% endif %}>{{ item[0] }}</option>{% endfor %}
+          </select>
+        </label>
         <label>Música de fondo
           <select name="music">
             <option value="">Sin música</option>
+            {% if library %}<option value="auto" {% if style.music == 'auto' %}selected{% endif %}>Automática (la que menos has usado)</option>{% endif %}
             {% for song in library %}<option value="{{ song }}" {% if style.music == song %}selected{% endif %}>{{ song }}</option>{% endfor %}
           </select>
         </label>

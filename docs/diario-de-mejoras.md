@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-03 — Versión 0.25: variedad visual
+
+- En **Vídeo** hay un selector nuevo, **Tono de color**: Cine, Cálido, Frío, Archivo
+  (tono antiguo, ideal para historias de hace décadas) y Nítido.
+- En **Automático** (lo normal), cada vídeo nuevo usa el tono que hace más tiempo que no
+  usas, y la **música** también se turna («Automática (la que menos has usado)»).
+- La vista previa y la versión final del mismo vídeo salen siempre con el mismo tono.
+- Los Shorts usan el mismo tono que su vídeo largo.
+- El **Control de calidad** avisa si un vídeo repite el tono y la música del anterior.
+- Los subtítulos y el rojo de la marca no cambian: son la identidad del canal.
+
 ## 2026-10-03 — Versiones 0.19 a 0.24
 
 - 0.19: pestaña **Control de calidad** con nota de monetización de 0 a 100.

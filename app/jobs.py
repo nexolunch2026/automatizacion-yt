@@ -16,7 +16,15 @@ from sqlalchemy.orm import Session
 from app.db import SessionLocal
 from app.media import music_library, music_path, project_dir
 from app.models import STATUSES, Job, Project, StageResult
-from app.pipeline.render import DEFAULT_STYLE, MUSIC_VOLUMES, QUALITIES, render_video
+from app.pipeline.render import (
+    AUTO,
+    DEFAULT_STYLE,
+    LOOKS,
+    MUSIC_VOLUMES,
+    QUALITIES,
+    least_recent,
+    render_video,
+)
 from app.pipeline.research import run_research
 from app.pipeline.script import STRUCTURES, default_params, pick_structure, run_script
 from app.pipeline.seo import run_seo
@@ -387,16 +395,59 @@ def render_style(db: Session, params: dict | None = None) -> dict:
 
     saved = get_setting(db, "render_style")
     style = {**DEFAULT_STYLE, **(json.loads(saved) if saved else {})}
-    for key in ("subtitles", "film_look", "music", "music_volume"):
+    for key in ("subtitles", "film_look", "look", "music", "music_volume"):
         if params and key in params:
             style[key] = params[key]
-    if style["music"] == "auto":  # primera canción de la biblioteca
-        library = music_library()
-        style["music"] = library[0] if library else ""
-    if style["music"] and style["music"] not in music_library():
+    if style["music"] not in ("", AUTO, *music_library()):
         style["music"] = ""
+    if style["look"] not in (AUTO, *LOOKS):
+        style["look"] = AUTO
     if style["music_volume"] not in MUSIC_VOLUMES:
         style["music_volume"] = "media"
+    return style
+
+
+def _channel_renders(db: Session, project: Project) -> list[dict]:
+    """El último montaje de los otros vídeos del canal, del más nuevo al más viejo."""
+    rows = db.scalars(
+        select(StageResult)
+        .join(Project, Project.id == StageResult.project_id)
+        .where(
+            StageResult.stage == "edit",
+            Project.channel_id == project.channel_id,
+            Project.id != project.id,
+        )
+        .order_by(Project.id.desc())
+    )
+    renders = []
+    for row in rows:
+        all_renders = row.data.get("renders", {})
+        last = all_renders.get(row.data.get("last", "")) or next(iter(all_renders.values()), {})
+        renders.append(last.get("style") or {})
+    return renders
+
+
+def resolve_style(db: Session, project: Project, style: dict) -> dict:
+    """Convierte «auto» en un acabado y una canción concretos: los mismos que ya tiene este
+    vídeo (para que la vista previa y la final coincidan) o, si es nuevo, los que hace más
+    tiempo que no se usan en el canal."""
+    style = dict(style)
+    edit = get_result(db, project.id, "edit") or {}
+    own = (edit.get("renders", {}).get(edit.get("last", "")) or {}).get("style") or {}
+    others = _channel_renders(db, project)
+    if style.get("look") == AUTO:
+        style["look"] = (
+            own.get("look")
+            if own.get("look") in LOOKS
+            else least_recent(list(LOOKS), [s.get("look") for s in others if s.get("look")])
+        )
+    if style.get("music") == AUTO:
+        library = music_library()
+        if own.get("music") in library:
+            style["music"] = own["music"]
+        else:
+            used = [s.get("music") for s in others if s.get("music")]
+            style["music"] = least_recent(library, used) if library else ""
     return style
 
 
@@ -422,7 +473,7 @@ def _run_shorts(db: Session, project: Project, progress, params: dict) -> dict:
         ai = get_ai_provider(db)
     except ProviderError:
         ai = None  # sin Gemini se eligen los momentos automáticamente
-    style = render_style(db)
+    style = resolve_style(db, project, render_style(db))  # el mismo acabado que el vídeo
     folder = project_dir(project.id)
     quality = params.get("quality") if params.get("quality") in ("preview", "final") else "preview"
     seo = get_result(db, project.id, "publish") or {}
@@ -459,7 +510,8 @@ def _run_edit(db: Session, project: Project, progress, params: dict) -> dict:
     folder = project_dir(project.id)
     media = media_map(folder, visuals)
     quality = params.get("quality") if params.get("quality") in QUALITIES else "preview"
-    style = render_style(db, params)
+    chosen = render_style(db, params)  # lo que eligió el usuario («auto» incluido)
+    style = resolve_style(db, project, chosen)
     result = render_video(
         board["scenes"],
         media,
@@ -478,7 +530,7 @@ def _run_edit(db: Session, project: Project, progress, params: dict) -> dict:
         log.warning("No se pudo escribir creditos.txt", exc_info=True)
     import json
 
-    set_setting(db, "render_style", json.dumps(style))
+    set_setting(db, "render_style", json.dumps(chosen))  # «auto» sigue turnando
     previous = get_result(db, project.id, "edit") or {}
     renders = {**previous.get("renders", {}), quality: result}
     return {"renders": renders, "last": quality}

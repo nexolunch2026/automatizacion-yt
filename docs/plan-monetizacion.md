@@ -71,7 +71,7 @@ La sesión automática de cada noche coge **la primera sin marcar**, la hace, la
 `[x]` y anota lo hecho en `docs/diario-de-mejoras.md`. Simón puede reordenar la lista o
 añadir ideas cuando quiera (escribiéndoselo a Claude).
 
-- [ ] **Variedad visual**: turnar entre vídeos el estilo de subtítulos, la música y el
+- [x] **Variedad visual** (0.25.0): turnar entre vídeos el estilo de subtítulos, la música y el
   «look» (como ya se turnan las estructuras), y que el control de calidad avise si el vídeo
   se parece demasiado al anterior.
 - [ ] **Preparado para «Probar y comparar»**: en Publicación, 3 títulos y las 3

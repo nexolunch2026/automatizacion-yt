@@ -195,6 +195,37 @@ def _ads_checks(project: Project, results: dict, title: str) -> list[dict]:
     return checks
 
 
+def _look_check(results: dict, recent_styles: list[dict]) -> list[dict]:
+    """¿El acabado (tono de color y música) es distinto al del último vídeo del canal?"""
+    from app.pipeline.render import LOOKS
+
+    style = last_render(results).get("style") or {}
+    if not style or not recent_styles:
+        return []
+    previous = recent_styles[0]
+    look = LOOKS.get(style.get("look"), ("Cine", ""))[0] if style.get("film_look") else "sin filtro"
+    same_look = style.get("look") == previous.get("look") and style.get(
+        "film_look"
+    ) == previous.get("film_look")
+    same_music = bool(style.get("music")) and style.get("music") == previous.get("music")
+    repeated = same_look and same_music
+    return [
+        _check(
+            "look",
+            "original",
+            WARN if repeated else OK,
+            "Mismo tono de color y misma música que el último vídeo"
+            if repeated
+            else f"Acabado distinto al último vídeo (tono {look})",
+            "Cambiar el aspecto entre vídeos ayuda a que el canal no parezca hecho en serie.",
+            "En Vídeo, elige «Automático» en Tono de color y en Música y vuelve a montarlo."
+            if repeated
+            else "",
+            "video",
+        )
+    ]
+
+
 def _original_checks(results: dict, others: list[str], structures: list[str]) -> list[dict]:
     script = results.get("script")
     if not script:
@@ -485,6 +516,7 @@ def review(
     results: dict,
     other_scripts: list[str],
     recent_structures: list[str] | None = None,
+    recent_styles: list[dict] | None = None,
 ) -> dict:
     """Revisa el proyecto. `other_scripts` son los guiones de los demás vídeos del canal y
     `recent_structures` sus estructuras, del vídeo más nuevo al más viejo."""
@@ -492,6 +524,7 @@ def review(
     checks = (
         _ads_checks(project, results, title)
         + _original_checks(results, other_scripts, recent_structures or [])
+        + _look_check(results, recent_styles or [])
         + _rights_checks(results)
         + _audience_checks(results)
         + _publish_checks(project, results, title)
@@ -533,7 +566,19 @@ def project_review(db: Session, project: Project) -> dict:
         .order_by(Project.id.desc())
     ).all()
     structures = [s for r in others if (s := (r.data.get("params") or {}).get("structure"))]
-    return review(project, results, [script_text(r.data) for r in others], structures)
+    edits = db.scalars(
+        select(StageResult)
+        .join(Project, Project.id == StageResult.project_id)
+        .where(
+            StageResult.stage == "edit",
+            Project.channel_id == project.channel_id,
+            Project.id != project.id,
+        )
+        .order_by(Project.id.desc())
+    )
+    styles = [style for r in edits if (style := last_render({"edit": r.data}).get("style"))]
+    texts = [script_text(r.data) for r in others]
+    return review(project, results, texts, structures, styles)
 
 
 def summary_text(qc: dict) -> str:

@@ -14,7 +14,8 @@ from app.auth import DB, CurrentUser
 from app.media import MUSIC_DIR, MUSIC_EXTENSIONS, music_library, project_dir, safe_path
 from app.models import LEVELS, SCRIPT_TONES, STAGES, Project, StageResult
 from app.pipeline.monetization import AREAS, project_review
-from app.pipeline.render import MUSIC_VOLUMES
+from app.pipeline.render import AUTO as AUTO_LOOK
+from app.pipeline.render import LOOKS, MUSIC_VOLUMES
 from app.pipeline.script import (
     AUTO,
     SECTION_LABELS,
@@ -563,6 +564,7 @@ def video_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         style=jobs.render_style(db),
         library=music_library(),
         music_volumes=list(MUSIC_VOLUMES),
+        looks=LOOKS,
         has_ai_images=any(e.get("ai") for e in visuals.get("items", {}).values()),
         has_srt=(folder / "subtitulos.srt").exists(),
         has_credits=(folder / "creditos.txt").exists()
@@ -695,6 +697,7 @@ def run_stage(
     subtitles: Annotated[str | None, Form()] = None,
     film_look: Annotated[str | None, Form()] = None,
     music: Annotated[str | None, Form()] = None,
+    look: Annotated[str | None, Form()] = None,
     music_volume: Annotated[str | None, Form()] = None,
 ):
     _project(db, project_id)
@@ -714,7 +717,8 @@ def run_stage(
             "quality": quality if quality in ("preview", "final") else "preview",
             "subtitles": subtitles == "1",
             "film_look": film_look == "1",
-            "music": music if music in ("", *music_library()) else "",
+            "look": look if look in (AUTO_LOOK, *LOOKS) else AUTO_LOOK,
+            "music": music if music in ("", AUTO_LOOK, *music_library()) else "",
             "music_volume": music_volume if music_volume in MUSIC_VOLUMES else "media",
         }
     elif stage == "shorts":
