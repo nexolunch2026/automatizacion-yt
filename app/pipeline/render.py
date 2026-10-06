@@ -494,6 +494,97 @@ def _xfade_chain(lengths: list[float], seconds: list[float]) -> tuple[str, str]:
     return ";".join(parts), previous
 
 
+CACHE_DIR = "escenas"  # dentro de la carpeta del vídeo
+
+
+def scene_key(scene: dict, visual: dict | None, length: float, size, fps, crf, factor, motion):
+    """Huella de todo lo que cambia el clip de una escena: si es igual, se reutiliza."""
+    import hashlib
+    import json
+
+    from app.pipeline import accent
+
+    source = None
+    if visual and visual.get("kind") != "card":
+        path = Path(visual["path"])
+        stat = path.stat() if path.exists() else None
+        source = [
+            str(path),
+            visual["kind"],
+            stat.st_size if stat else 0,
+            stat.st_mtime if stat else 0,
+        ]
+    data = {
+        "v": 1,
+        "scene": {k: v for k, v in scene.items() if k != "number"},  # el nº solo nombra archivos
+        "visual": source,
+        "length": round(length, 3),
+        "size": list(size),
+        "fps": fps,
+        "crf": crf,
+        "factor": factor,
+        "motion": motion,
+        "accent": accent.color(),
+    }
+    raw = json.dumps(data, sort_keys=True, ensure_ascii=False, default=str)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:24]
+
+
+def first_motion(paragraph_id: str, previous_last: int | None) -> int:
+    """Primer movimiento de cámara de una escena: depende solo de su párrafo (así no cambia
+    si se toca otra escena) y nunca repite el último plano de la escena anterior."""
+    import zlib
+
+    motion = zlib.crc32(paragraph_id.encode("utf-8")) % len(MOTIONS)
+    if motion == previous_last:
+        motion = (motion + 1) % len(MOTIONS)
+    return motion
+
+
+def _link_or_copy(source: Path, target: Path) -> None:
+    """Enlace duro si se puede (no ocupa más disco); si no, copia."""
+    try:
+        target.unlink(missing_ok=True)
+        os.link(source, target)
+    except OSError:
+        shutil.copyfile(source, target)
+
+
+def _build_scene(scene, visual, i, length, clip, size, fps, crf, factor, motion, workdir) -> None:
+    w, h = size
+    if visual is None or visual["kind"] == "card":
+        text = scene.get("on_screen_text") or scene.get("visual") or ""
+        path = text_card(text, (w * factor, h * factor), workdir / f"tarjeta-{scene['number']}.png")
+        kind = "image"
+        scene = {**scene, "on_screen_text": ""}  # el texto ya va en la tarjeta
+    else:
+        path, kind = Path(visual["path"]), visual["kind"]
+    if scene.get("chart"):  # gráfico animado con las cifras de esta escena
+        from app.pipeline.charts import chart_clip
+
+        background = path if kind == "image" and visual and visual["kind"] != "card" else None
+        path = chart_clip(
+            scene["chart"], workdir / f"grafico-{i:03}.mp4", (w, h), fps, length, background
+        )
+        kind = "video"
+        scene = {**scene, "on_screen_text": ""}  # el gráfico ya lleva su título
+    # Clips intermedios casi sin pérdida: se recodifican una vez más al final.
+    scene_clip(
+        scene,
+        path,
+        kind,
+        length,
+        clip,
+        (w, h),
+        fps,
+        "veryfast",
+        max(crf - 6, 12),
+        workdir,
+        factor,
+        motion,
+    )
+
+
 def render_video(
     scenes: list[dict],
     visuals: dict,
@@ -518,48 +609,31 @@ def render_video(
     workdir = Path(tempfile.mkdtemp(prefix=f"tmp-{quality}-", dir=folder))
 
     clips, lengths, seconds_list, segments, t = [], [], [], [], 0.0
-    motion = 0
+    previous_last, reused = None, 0
+    cache = folder / CACHE_DIR  # escenas ya montadas: solo se rehacen las que cambian
+    cache.mkdir(exist_ok=True)
+    used: set[str] = set()
     for i, scene in enumerate(scenes):
         pid = scene["paragraph_id"]
         seconds = takes[pid] + (PAUSE if i < len(scenes) - 1 else 0)
         length = seconds + (CROSSFADE if i < len(scenes) - 1 else 0)
-        progress(round(3 + 70 * i / len(scenes)), f"Montando escena {i + 1} de {len(scenes)}")
         visual = visuals.get(pid)
-        if visual is None or visual["kind"] == "card":
-            text = scene.get("on_screen_text") or scene.get("visual") or ""
-            path = text_card(
-                text, (w * factor, h * factor), workdir / f"tarjeta-{scene['number']}.png"
-            )
-            kind = "image"
-            scene = {**scene, "on_screen_text": ""}  # el texto ya va en la tarjeta
-        else:
-            path, kind = Path(visual["path"]), visual["kind"]
-        if scene.get("chart"):  # gráfico animado con las cifras de esta escena
-            from app.pipeline.charts import chart_clip
-
-            background = path if kind == "image" and visual and visual["kind"] != "card" else None
-            path = chart_clip(
-                scene["chart"], workdir / f"grafico-{i:03}.mp4", (w, h), fps, length, background
-            )
-            kind = "video"
-            scene = {**scene, "on_screen_text": ""}  # el gráfico ya lleva su título
+        motion = first_motion(pid, previous_last)
         clip = workdir / f"escena-{i:03}.mp4"
-        # Clips intermedios casi sin pérdida: se recodifican una vez más al final.
-        scene_clip(
-            scene,
-            path,
-            kind,
-            length,
-            clip,
-            (w, h),
-            fps,
-            "veryfast",
-            max(crf - 6, 12),
-            workdir,
-            factor,
-            motion,
-        )
-        motion += len(split_shots(length))
+        key = scene_key(scene, visual, length, (w, h), fps, crf, factor, motion)
+        cached = cache / f"{key}.mp4"
+        used.add(cached.name)
+        if cached.exists() and cached.stat().st_size > 0:
+            progress(
+                round(3 + 70 * i / len(scenes)), f"Escena {i + 1} de {len(scenes)}: sin cambios"
+            )
+            _link_or_copy(cached, clip)
+            reused += 1
+        else:
+            progress(round(3 + 70 * i / len(scenes)), f"Montando escena {i + 1} de {len(scenes)}")
+            _build_scene(scene, visual, i, length, clip, (w, h), fps, crf, factor, motion, workdir)
+            _link_or_copy(clip, cached)
+        previous_last = (motion + len(split_shots(length)) - 1) % len(MOTIONS)
         clips.append(clip)
         lengths.append(length)
         seconds_list.append(seconds)
@@ -639,8 +713,12 @@ def render_video(
     srt = replace_file(tmp_srt, folder / "subtitulos.srt")
 
     _cleanup(workdir)
+    for stale in cache.glob("*.mp4"):  # escenas que ya no se usan (de versiones viejas)
+        if stale.name not in used:
+            stale.unlink(missing_ok=True)
     progress(100, "Vídeo listo")
     return {
+        "reused_scenes": reused,
         "file": f"video/{out.name}",
         "srt": f"video/{srt.name}",
         "seconds": round(t, 2),

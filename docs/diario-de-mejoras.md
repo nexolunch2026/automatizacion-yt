@@ -2,6 +2,14 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.46: el vídeo se rehace mucho más rápido
+
+- Idea sacada de «AS Video Studio»: al volver a montar el vídeo, **solo se rehacen las
+  escenas que cambiaron**. Si tocas un párrafo, una imagen o un texto en pantalla, el resto
+  sale de la memoria y el montaje tarda mucho menos.
+- La voz y las imágenes ya funcionaban así; ahora también el montaje (y los Shorts).
+- El movimiento de cámara de cada escena ya no cambia al tocar otra escena.
+
 ## 2026-10-06 — Versión 0.45.1: pregúntale a JARVIS qué busca la gente
 
 - Dile a JARVIS **«¿qué busca la gente sobre Nokia?»** o **«¿tiene demanda el caso Enron?»**

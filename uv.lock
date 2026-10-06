@@ -613,7 +613,7 @@ wheels = [
 
 [[package]]
 name = "faceless-studio"
-version = "0.45.1"
+version = "0.46.0"
 source = { virtual = "." }
 dependencies = [
     { name = "argon2-cffi" },
