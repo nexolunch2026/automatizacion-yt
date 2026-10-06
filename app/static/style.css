@@ -586,3 +586,9 @@ details > summary { cursor: pointer; }
 .day-item.long { background: rgba(255, 77, 79, .12); border: 1px solid rgba(255, 77, 79, .35); }
 .day-item.short { background: rgba(76, 141, 255, .1); }
 .day-item.learn { color: var(--muted); font-size: .8rem; }
+
+/* Estrategia: letras de cada título */
+.char-count { font-size: .72rem; padding: 1px 7px; border-radius: 999px; background: rgba(62, 207, 142, .14); color: #b5f0d4; margin-left: 4px; }
+.char-count.long { background: rgba(255, 200, 87, .16); color: #ffd98a; }
+/* Entrada */
+.auth-logo { display: block; margin-bottom: 14px; border-radius: 14px; box-shadow: 0 10px 30px -10px rgba(255, 77, 79, .6); }

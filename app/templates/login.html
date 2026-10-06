@@ -3,8 +3,9 @@
 {% block main_class %}auth{% endblock %}
 {% block content %}
 <div class="card narrow">
+  <img class="auth-logo" src="{{ url_for('static', path='favicon.svg') }}" alt="" width="56" height="56">
   <h1>Faceless Studio <span class="version">v{{ version }}</span></h1>
-  <p class="muted">Entra con tu usuario.</p>
+  <p class="muted">Tu estudio de vídeos sin rostro: de la idea al vídeo listo para YouTube. Entra con tu usuario.</p>
   {% if error %}<p class="alert">{{ error }}</p>{% endif %}
   <form method="post" action="/entrar" class="stack">
     <label>Usuario <input name="username" autocomplete="username" required autofocus></label>

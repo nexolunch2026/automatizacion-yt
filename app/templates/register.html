@@ -3,6 +3,7 @@
 {% block main_class %}auth{% endblock %}
 {% block content %}
 <div class="card narrow">
+  <img class="auth-logo" src="{{ url_for('static', path='favicon.svg') }}" alt="" width="56" height="56">
   <h1>Crear cuenta</h1>
   <p class="muted">En cada ordenador se pueden crear dos cuentas. Todo se guarda en este ordenador: nadie más ve tus datos.</p>
   {% if error %}<p class="alert">{{ error }}</p>{% endif %}
