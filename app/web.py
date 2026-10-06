@@ -404,3 +404,27 @@ def save_week(
 
     coach.set_publish_slot(db, day, hour)
     return _redirect("/semana")
+
+
+# ---------- Indicador de trabajo (barra de arriba) ----------
+
+
+@router.get("/estado-global")
+def global_status(db: DB, user: CurrentUser) -> dict:
+    """Lo que se está fabricando ahora, en corto: lo pide la barra de arriba cada pocos s."""
+    from app.models import Job
+
+    jobs_now = db.scalars(
+        select(Job).where(Job.status.in_(("queued", "running"))).order_by(Job.id)
+    ).all()
+    running = next((j for j in jobs_now if j.status == "running"), None)
+    current = running or (jobs_now[0] if jobs_now else None)
+    if current is None:
+        return {"count": 0}
+    return {
+        "count": len(jobs_now),
+        "project_id": current.project_id,
+        "stage": STAGES.get(current.stage, current.stage),
+        "progress": current.progress if current is running else 0,
+        "running": current is running,
+    }

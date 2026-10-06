@@ -627,3 +627,16 @@ details > summary { cursor: pointer; }
 
 /* El navegador dibuja en oscuro sus controles (audio, vídeo, barras de desplazamiento, menús) */
 :root { color-scheme: dark; }
+
+/* Indicador de trabajo en la barra de arriba */
+.busy {
+  font-size: .8rem; text-decoration: none; padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+  color: #b9d0ff; background: rgba(76, 141, 255, .14); border: 1px solid rgba(76, 141, 255, .35);
+  animation: pulse 2s ease-in-out infinite;
+}
+.busy[hidden] { display: none; }
+@media (max-width: 720px) {
+  .topbar { grid-template-columns: 1fr auto auto; }
+  .topbar .busy { grid-row: 1; grid-column: 2; }
+  .topbar .logout { grid-row: 1; grid-column: 3; }
+}

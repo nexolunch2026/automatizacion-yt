@@ -106,3 +106,17 @@ def test_page_titles_and_icon(logged_in):
     assert "<title>Faceless Studio</title>" in logged_in.get("/").text
     assert "favicon.svg" in logged_in.get("/").text
     assert logged_in.get("/static/favicon.svg").status_code == 200
+
+
+def test_global_status_pill(logged_in):
+    from app import jobs
+    from app.db import SessionLocal
+
+    create_channel(logged_in)
+    logged_in.post("/proyectos/nuevo", data=project_data())
+    assert logged_in.get("/estado-global").json() == {"count": 0}
+    with SessionLocal() as db:
+        jobs.enqueue(db, 1, "research")
+    status = logged_in.get("/estado-global").json()
+    assert status["count"] == 1 and status["project_id"] == 1 and status["running"] is False
+    assert 'id="busy"' in logged_in.get("/").text

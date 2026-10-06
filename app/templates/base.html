@@ -25,6 +25,7 @@
       <a href="/canales" class="{{ 'active' if path.startswith('/canales') }}">🧭 Canales</a>
       <a href="/configuracion" class="{{ 'active' if path.startswith('/configuracion') or path.startswith('/bienvenida') }}">⚙️ Configuración</a>
     </nav>
+    <a id="busy" class="busy" href="/" hidden></a>
     <form method="post" action="/salir" class="logout">
       <span class="muted">{{ user.username }}</span>
       <button class="btn-link">Salir</button>
@@ -34,6 +35,30 @@
   <main class="{% block main_class %}page{% endblock %}">
     {% block content %}{% endblock %}
   </main>
+  {% if user %}
+  <script>
+    // Indicador de la barra de arriba: qué se está fabricando, desde cualquier página.
+    (() => {
+      const pill = document.getElementById("busy");
+      if (!pill) return;
+      const tick = async () => {
+        try {
+          const r = await fetch("/estado-global");
+          if (!r.ok || r.redirected) return;
+          const s = await r.json();
+          pill.hidden = !s.count;
+          if (!s.count) return;
+          pill.href = `/proyectos/${s.project_id}`;
+          pill.textContent = s.running
+            ? `⏳ ${s.stage} ${s.progress} %${s.count > 1 ? ` · +${s.count - 1}` : ""}`
+            : `🕒 ${s.count} en cola`;
+        } catch (e) {}
+      };
+      tick();
+      setInterval(tick, 5000);
+    })();
+  </script>
+  {% endif %}
   <script>
     // Al enviar un formulario, el botón muestra que está trabajando y no se puede pulsar dos
     // veces. Se desactiva justo después de enviar (si no, el navegador no mandaría su valor).
