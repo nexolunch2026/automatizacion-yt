@@ -12,7 +12,7 @@ from tests.test_strategy_script import make_project, run_all
 
 
 def test_bank_is_well_formed():
-    assert len(ideas_bank.IDEAS) >= 30
+    assert len(ideas_bank.IDEAS) >= 80
     topics = [i["topic"] for i in ideas_bank.IDEAS]
     assert len(set(topics)) == len(topics)
     for idea in ideas_bank.IDEAS:
@@ -21,6 +21,17 @@ def test_bank_is_well_formed():
         assert idea["hook"].endswith(".") and len(idea["topic"]) <= 100
     regions = {i["region"] for i in ideas_bank.IDEAS}
     assert regions == {"Mundo", "España", "Latinoamérica"}
+    spanish = [i for i in ideas_bank.IDEAS if i["region"] != "Mundo"]
+    assert len(spanish) >= 50  # sobre todo España y Latinoamérica
+    brands = [ideas_bank._brand(i["topic"]) for i in ideas_bank.IDEAS]
+    for a in brands:  # una marca hecha no debe tachar otra distinta
+        assert not [b for b in brands if b != a and a in b], a
+
+
+def test_progress_counts_the_stories_already_made():
+    assert ideas_bank.progress([]) == (0, len(ideas_bank.IDEAS))
+    made, _ = ideas_bank.progress(["La caída de Blockbuster", "Bankia y su rescate"])
+    assert made == 2
 
 
 def test_fresh_ideas_vary_formats_and_regions():

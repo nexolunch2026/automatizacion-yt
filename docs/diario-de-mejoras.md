@@ -2,6 +2,14 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.68: banco de 80 historias
+
+- El **banco de historias** de JARVIS pasa de 37 a **80 historias reales**, sobre todo de
+  **España** (Bankia, Mercadona, Gowex, Terra, Telepizza, Marsans…) y **Latinoamérica**
+  (Cemex, Juan Valdez, Interbolsa, Postobón, Oxxo, Quilmes, Falabella, Pollo Campero…).
+- Al pedir «banco de historias», JARVIS te dice **cuántas llevas hechas** («Llevas 5 de
+  80»), y las que ya hiciste no vuelven a salir.
+
 ## 2026-10-06 — Versión 0.67: lo que pide tu audiencia
 
 - En **Rendimiento** hay una tarjeta nueva, **«💬 Lo que pide tu audiencia»**: pulsa

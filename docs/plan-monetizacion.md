@@ -106,7 +106,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   aprendido en un informe (🎓 Aprender o «investiga en YouTube…» a JARVIS).
 - [x] **Shorts que llevan al vídeo largo**: gancho propio en los primeros 2 s, texto en
   pantalla y frase final que invite a ver el documental completo.
-- [ ] **Banco de ideas más grande**: llegar a 80 historias reales (sobre todo de España y
+- [x] **Banco de ideas más grande** (0.68.0): llegar a 80 historias reales (sobre todo de España y
   Latinoamérica) y marcar las que ya se hicieron.
 - [x] **Lo que pide tu audiencia** (0.67.0): con la clave de YouTube, leer los comentarios de tus
   vídeos y sacar preguntas y temas que pide la gente (ideas nuevas y respuestas para el

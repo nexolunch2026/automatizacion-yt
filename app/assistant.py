@@ -1088,7 +1088,9 @@ def bank_replies(db: Session, region: str = "") -> list[Reply]:
     buttons = [[(f"🎬 {n}", f"idea:{n - 1}") for n in range(1, len(ideas) + 1)]]
     buttons.append([("🛫 Todas a la cola", "idea:all"), ("💡 Ideas nuevas", "ideas")])
     title = f"📚 <b>Banco de historias{f' — {escape(region)}' if region else ''}</b>"
-    return [Reply(title + "\n\n" + "\n\n".join(lines), buttons=buttons)]
+    made, total = ideas_bank.progress(done)
+    footer = f"\n\n✅ Llevas {made} de {total} historias del banco." if made else ""
+    return [Reply(title + "\n\n" + "\n\n".join(lines) + footer, buttons=buttons)]
 
 
 class Idea(BaseModel):
