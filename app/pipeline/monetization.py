@@ -19,6 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Project, StageResult
+from app.pipeline.humanize import SHARE_WARN, script_issues
 
 OK, WARN, FAIL, PENDING = "ok", "warn", "fail", "pending"
 POINTS = {OK: 1.0, WARN: 0.5, FAIL: 0.0, PENDING: 0.0}
@@ -481,6 +482,25 @@ def _audience_checks(results: dict) -> list[dict]:
                     "guion",
                 )
             )
+
+    if script:
+        human = script_issues(script)
+        flagged = len(human["paragraphs"])
+        ok = not human["total"] or flagged / human["total"] <= SHARE_WARN
+        checks.append(
+            _check(
+                "human",
+                "audience",
+                OK if ok else WARN,
+                "El guion suena natural"
+                if ok
+                else f"{flagged} párrafos con frases largas, repeticiones o relleno",
+                "Las frases cortas y sin muletillas se entienden mejor al oírlas y suenan "
+                "menos a texto hecho por máquina.",
+                "" if ok else "En el guion están marcadas en amarillo: pulsa «Hacerlo más humano».",
+                "guion",
+            )
+        )
 
     board = results.get("storyboard")
     if board and board.get("scenes"):

@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.models import WORDS_BY_DURATION, Project
 from app.pipeline.context import research_summary
+from app.pipeline.humanize import humanize_instruction
 from app.providers.ai import AIProvider, ProviderError
 
 SECTION_LABELS = {
@@ -468,6 +469,7 @@ REWRITE_ACTIONS = {
     "expand": "Alarga este párrafo (más o menos el doble) con detalles de la investigación.",
     "summarize": "Resume este párrafo a la mitad, sin perder lo importante.",
     "tone": "Reescribe este párrafo con este tono: {tone}.",
+    "humanize": "",  # se arma con los avisos del párrafo (ver humanize.py)
 }
 
 
@@ -497,7 +499,10 @@ def rewrite_paragraph(
     index = next(i for i, p in enumerate(flat) if p["id"] == paragraph_id)
     before = flat[index - 1]["text"] if index > 0 else "(inicio del vídeo)"
     after = flat[index + 1]["text"] if index + 1 < len(flat) else "(final del vídeo)"
-    instruction = REWRITE_ACTIONS[action].format(tone=tone or "más cercano")
+    if action == "humanize":
+        instruction = humanize_instruction(paragraph["text"], script.get("title", ""))
+    else:
+        instruction = REWRITE_ACTIONS[action].format(tone=tone or "más cercano")
 
     prompt = f"""Estás editando el guion del vídeo «{script["title"]}» en {project.language}.
 {_style(script.get("params", default_params()))}

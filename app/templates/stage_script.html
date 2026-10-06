@@ -82,14 +82,35 @@
     {% if script_map.weak %}<p class="small map-warning">⚠️ De {{ script_map.weak.text }} no hay preguntas ni adelantos: la gente puede irse. Reescribe un párrafo de ese tramo con «Otra forma».</p>{% endif %}
   </nav>
   {% endif %}
+  {% if human %}
+  {% set flagged = human.paragraphs|length %}
+  <div class="human-summary {{ 'ok' if not flagged }}">
+    {% if flagged %}
+    <p class="small"><strong>🗣️ Guion más humano:</strong> {{ flagged }} de {{ human.total }} párrafos
+      tienen frases que suenan raras al narrarlas
+      ({{ human.counts.long }} largas · {{ human.counts.repeat }} repeticiones · {{ human.counts.filler }} rellenos).
+      Están marcadas en amarillo: pulsa «Hacerlo más humano» en cada una y la IA cambia solo esas frases.</p>
+    {% else %}
+    <p class="small">🗣️ Guion más humano: sin frases largas, repeticiones ni relleno. ¡Bien!</p>
+    {% endif %}
+  </div>
+  {% endif %}
   {% for section in script.sections %}
   <section class="script-section" id="s-{{ loop.index0 }}">
     <h3><span class="kind">{{ labels.get(section.kind, section.kind) }}</span> {{ section.title }}</h3>
     {% for p in section.paragraphs %}
-    <div class="paragraph" id="p-{{ p.id }}">
+    {% set issues = human.paragraphs.get(p.id) if human else none %}
+    <div class="paragraph {{ 'has-issues' if issues }}" id="p-{{ p.id }}">
       <p>{{ p.text }}
         {% for n in p.sources %}<a class="cite" href="/proyectos/{{ project.id }}/investigacion#fuente-{{ n }}">[{{ n }}]</a>{% endfor %}
       </p>
+      {% if issues %}
+      <form method="post" action="/proyectos/{{ project.id }}/guion/parrafos/{{ p.id }}" class="human-issues">
+        <span class="small">{% for i in issues %}<span class="issue issue-{{ i.kind }}">{{ i.detail }}</span>{% endfor %}</span>
+        <button class="btn small secondary" name="action" value="humanize" {% if not has_gemini %}disabled{% endif %}
+          title="La IA cambia solo estas frases y deja el resto igual">Hacerlo más humano</button>
+      </form>
+      {% endif %}
       <details class="para-tools">
         <summary>Editar</summary>
         <form method="post" action="/proyectos/{{ project.id }}/guion/parrafos/{{ p.id }}" class="stack">
@@ -120,7 +141,7 @@
 {% endif %}
 <script>
   // Al pulsar una acción con IA, avisa de que está trabajando.
-  document.querySelectorAll(".para-tools form").forEach(form => {
+  document.querySelectorAll(".para-tools form, .human-issues").forEach(form => {
     form.addEventListener("submit", e => {
       const action = e.submitter && e.submitter.value;
       if (action && action !== "save" && action !== "delete") e.submitter.textContent = "Trabajando…";

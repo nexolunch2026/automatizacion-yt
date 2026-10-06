@@ -2,6 +2,16 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.58: guion más humano
+
+- En **Guion**, debajo del mapa, un aviso **«🗣️ Guion más humano»** te dice cuántos
+  párrafos tienen frases que suenan raras al narrarlas.
+- Esos párrafos salen con una **raya amarilla** y el motivo: frase demasiado larga (más
+  de 30 palabras), una palabra repetida 3 veces o relleno («básicamente», «cabe destacar»…).
+- El botón **«Hacerlo más humano»** pide a la IA que cambie **solo esas frases** y deje el
+  resto del párrafo igual, con los mismos datos.
+- El **Control de calidad** avisa si más del 15 % de los párrafos tienen estos fallos.
+
 ## 2026-10-06 — Versión 0.57: Configuración más clara
 
 - Arriba de **Configuración** hay un **panel con cada servicio** (Gemini, imágenes,
