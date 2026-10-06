@@ -53,6 +53,7 @@ def dashboard(request: Request, db: DB, user: CurrentUser, canal: int | None = N
         selected_channel=canal,
         needs_profile=not profile.is_set(db),
         thumbs={p.id: url for p in projects if (url := _thumb_url(db, p.id))},
+        has_gemini=api_key_hint(db, "gemini") is not None,
         summary=_studio_summary(db, projects) if projects else None,
     )
 
@@ -428,3 +429,23 @@ def global_status(db: DB, user: CurrentUser) -> dict:
         "progress": current.progress if current is running else 0,
         "running": current is running,
     }
+
+
+# ---------- Empezar un vídeo en un paso ----------
+
+
+@router.post("/rapido")
+def quick_start(db: DB, user: CurrentUser, topic: Annotated[str, Form()] = ""):
+    """La idea y listo: mismo canal, duración e idioma que el último vídeo; el formato se
+    deduce del tema («top 10 de…»). Empieza a investigar al momento."""
+    from app.assistant import start_video
+    from app.providers.ai import ProviderError
+
+    topic = " ".join(topic.split())[:300]
+    if not topic:
+        return _redirect("/")
+    try:
+        project = start_video(db, topic)
+    except ProviderError:
+        return _redirect("/canales?primero=1")
+    return _redirect(f"/proyectos/{project.id}")

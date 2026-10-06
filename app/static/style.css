@@ -647,3 +647,10 @@ details > summary { cursor: pointer; }
 .topbar { gap: 16px; }
 .topbar nav { gap: 2px; }
 .topbar nav a { padding: 6px 9px; font-size: .95rem; }
+
+/* Empezar en un paso */
+.quick-start label { gap: 4px; color: var(--text); margin-bottom: 10px; }
+.quick-row { display: flex; gap: 10px; }
+.quick-row input { flex: 1; font-size: 1.05rem; padding: 12px 14px; }
+.quick-start { border-color: rgba(255, 77, 79, .3); }
+@media (max-width: 720px) { .quick-row { flex-direction: column; } }

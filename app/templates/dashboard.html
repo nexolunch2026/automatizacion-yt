@@ -29,6 +29,16 @@
   {% endfor %}
 </div>
 
+<form method="post" action="/rapido" class="card quick-start">
+  <label for="quick-topic"><strong>✨ ¿Sobre qué hacemos el próximo vídeo?</strong>
+    <span class="muted small">Escribe la idea y empieza: usa el canal y la duración de tu último vídeo.
+      Si escribes «top 10 de…» o «explica por qué…», elige ese formato.</span></label>
+  <div class="quick-row">
+    <input id="quick-topic" name="topic" placeholder="Ej.: la caída de Nokia" maxlength="300" required>
+    <button class="btn" {% if not has_gemini %}disabled title="Conecta Gemini en Configuración"{% endif %}>Empezar</button>
+  </div>
+</form>
+
 {% if summary %}
 <div class="stats">
   <div class="stat"><span class="stat-num">{{ summary.working }}</span><span class="stat-label">En marcha</span></div>

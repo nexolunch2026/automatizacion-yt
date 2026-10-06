@@ -120,3 +120,20 @@ def test_global_status_pill(logged_in):
     status = logged_in.get("/estado-global").json()
     assert status["count"] == 1 and status["project_id"] == 1 and status["running"] is False
     assert 'id="busy"' in logged_in.get("/").text
+
+
+def test_quick_start_creates_and_researches(logged_in):
+    from app import jobs
+    from app.db import SessionLocal
+    from app.models import Project
+
+    create_channel(logged_in)
+    assert "¿Sobre qué hacemos el próximo vídeo?" in logged_in.get("/").text
+    r = logged_in.post("/rapido", data={"topic": "  top 10 marcas que desaparecieron "})
+    assert r.url.path == "/proyectos/1"
+    with SessionLocal() as db:
+        project = db.get(Project, 1)
+        assert project.topic == "top 10 marcas que desaparecieron"
+        assert project.video_format == "lista"
+        assert jobs.latest_jobs(db, 1)["research"].status == "queued"
+    assert logged_in.post("/rapido", data={"topic": "  "}).url.path == "/"
