@@ -301,6 +301,7 @@ def test_hud_world(logged_in, internet):
     assert world["radar"] and world["dollar"]["rate"] == 4123.46
     assert world["forecast"][1]["day"] == "Mañana"
     assert world["stats"]["projects"] == 0
+    assert world["references"] == []  # sin canales de referencia, nada en la cinta
     plan = world["plan"]  # panel «Esta semana»
     assert plan["subs"] == 1200 and plan["subs_pct"] == 100
     assert "empieza uno hoy" in plan["long"] and plan["hours_pct"] == 0

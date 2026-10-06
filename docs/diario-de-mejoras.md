@@ -2,6 +2,12 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.63: referencias en la pantalla de JARVIS
+
+- En la **pantalla de JARVIS**, la cinta de abajo enseña también los vídeos que destacan
+  en tus canales de referencia (🔥).
+- La bienvenida para gente nueva incluye los pasos de **referencias** y **Semana**.
+
 ## 2026-10-06 — Versión 0.62: JARVIS conoce tus referencias
 
 - Pregúntale **«¿qué funciona en mis referencias?»** y te dice los vídeos que más

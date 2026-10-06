@@ -705,6 +705,7 @@
     }
 
     const items = [
+      ...(w.references || []),
       ...(w.radar || []).map((n) => ({ ...n, hot: true })),
       ...(w.news || []),
     ];

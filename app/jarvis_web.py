@@ -224,7 +224,27 @@ def hud_world(db: DB, user: CurrentUser) -> dict:
         "fact": info.fact_for_screen(db),
         "stats": info.studio_stats(db),
         "plan": hud_plan(db),
+        "references": hud_references(db),
     }
+
+
+def hud_references(db) -> list[dict]:
+    """Los vídeos que destacan en los canales de referencia, para la cinta de la pantalla."""
+    from app import references
+
+    try:
+        top = references.top_outliers(references.overview(db), limit=4)
+    except Exception:  # noqa: BLE001 — la pantalla nunca debe romperse por esto
+        log.exception("No se pudieron leer los canales de referencia")
+        return []
+    return [
+        {
+            "title": f"🔥 {v['title']} (×{v['ratio']})",
+            "url": v.get("url", ""),
+            "source": v["channel"],
+        }
+        for v in top
+    ]
 
 
 def hud_plan(db) -> dict | None:
