@@ -22,12 +22,7 @@
   <a class="btn" href="/canales">Crear canal</a>
 </div>
 {% else %}
-<div class="filters">
-  <a class="chip {% if not selected_channel %}active{% endif %}" href="/">Todos</a>
-  {% for c in channels %}
-  <a class="chip {% if selected_channel == c.id %}active{% endif %}" href="/?canal={{ c.id }}">{{ c.name }}</a>
-  {% endfor %}
-</div>
+
 
 <form method="post" action="/rapido" class="card quick-start">
   <label for="quick-topic"><strong>✨ ¿Sobre qué hacemos el próximo vídeo?</strong>
@@ -59,6 +54,13 @@
 </div>
 {% endif %}
 {% endif %}
+
+<div class="filters">
+  <a class="chip {% if not selected_channel %}active{% endif %}" href="/">Todos</a>
+  {% for c in channels %}
+  <a class="chip {% if selected_channel == c.id %}active{% endif %}" href="/?canal={{ c.id }}">{{ c.name }}</a>
+  {% endfor %}
+</div>
 
 {% if projects %}
 <div class="grid">
