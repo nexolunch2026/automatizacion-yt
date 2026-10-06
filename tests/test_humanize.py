@@ -26,16 +26,31 @@ def test_long_sentence_is_flagged():
 
 
 def test_repeated_word_is_flagged_but_common_words_are_not():
-    text = "La marca creció. La marca dudó. Al final la marca cayó porque porque porque sí."
+    text = "La fábrica creció. La fábrica dudó. Al final la fábrica cayó porque porque porque sí."
     issues = paragraph_issues(text)
     assert [i["kind"] for i in issues] == ["repeat"]
-    assert "«marca» se repite 3 veces" in issues[0]["detail"]
+    assert "«fábrica» se repite 3 veces" in issues[0]["detail"]
 
 
 def test_filler_is_found_without_accents_and_whole_words():
     assert kinds("Básicamente, la empresa quebró.") == ["filler"]
     assert kinds("Cabe destacar que nadie lo vio venir.") == ["filler"]
     assert kinds("Fue una idea irrealmente buena.") == []  # no es «realmente»
+
+
+def test_brand_name_from_the_title_is_not_a_repetition():
+    text = "Kodak inventó la cámara digital. Kodak la escondió. Al final Kodak quebró."
+    assert kinds(text) == ["repeat"]
+    assert paragraph_issues(text, {"kodak"}) == []
+    found = script_issues({"title": "La caída de Kodak", **script(text)})
+    assert found["paragraphs"] == {}
+    assert kinds("La empresa creció, la empresa dudó y la empresa cayó.") == []
+
+
+def test_issues_keep_the_accents_of_the_script():
+    issues = paragraph_issues("Básicamente, la decisión fue mala. Otra decisión. Una decisión más.")
+    assert [i["text"] for i in issues] == ["decisión", "básicamente"]
+    assert "«decisión» se repite 3 veces" in issues[0]["detail"]
 
 
 def test_script_issues_counts_by_kind():
@@ -49,7 +64,7 @@ def test_script_issues_counts_by_kind():
 def test_instruction_only_mentions_flagged_sentences():
     instruction = humanize_instruction(f"Empieza bien. {LONG} Básicamente, eso.")
     assert "SOLO" in instruction
-    assert LONG in instruction and "basicamente" in instruction
+    assert LONG in instruction and "«básicamente»" in instruction
     assert "Empieza bien" not in instruction
     assert "natural" in humanize_instruction(GOOD)
 
@@ -66,6 +81,7 @@ def test_quality_check_warns_when_many_paragraphs_sound_robotic():
 
 def test_humanize_rewrites_only_that_paragraph(with_script, monkeypatch):  # noqa: F811
     from app import stages_web
+    from app.providers.ai import ProviderError
     from tests.test_strategy_script import first_paragraph_id, script_data
 
     pid = first_paragraph_id()
@@ -83,6 +99,13 @@ def test_humanize_rewrites_only_that_paragraph(with_script, monkeypatch):  # noq
                 if p["id"] == paragraph_id:
                     p["text"] = "Frase corta. Otra frase corta."
         return script
+
+    def fail(*args):
+        raise ProviderError("Google está saturado.")
+
+    monkeypatch.setattr(stages_web, "rewrite_with_ai", fail)
+    r = with_script.post(f"/proyectos/1/guion/parrafos/{pid}", data={"action": "humanize"})
+    assert r.status_code == 400 and "Hacerlo más humano" in r.text  # siguen las marcas
 
     monkeypatch.setattr(stages_web, "rewrite_with_ai", fake_rewrite)
     with_script.post(f"/proyectos/1/guion/parrafos/{pid}", data={"action": "humanize"})

@@ -21,7 +21,6 @@ SHARE_WARN = 0.15  # más del 15 % de párrafos con avisos: el control de calida
 FILLERS = (
     "basicamente",
     "literalmente",
-    "realmente",
     "sin duda alguna",
     "cabe destacar",
     "cabe mencionar",
@@ -34,7 +33,6 @@ FILLERS = (
     "por asi decirlo",
     "a lo largo de la historia",
     "en el mundo actual",
-    "hoy en dia",
     "sin lugar a dudas",
     "en ultima instancia",
     "dicho esto",
@@ -73,12 +71,27 @@ COMMON = {
     "puede",
     "podia",
     "hacer",
+    # En un canal de marcas, estas salen en casi todos los párrafos.
+    "empresa",
+    "empresas",
+    "compania",
+    "marca",
+    "marcas",
 }
 
 
 def _plain(text: str) -> str:
-    text = unicodedata.normalize("NFD", text.lower())
-    return "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
+    """Minúsculas y sin tildes, letra a letra: mide lo mismo que el texto original, así
+    lo encontrado se puede recortar del original con sus tildes."""
+    out = []
+    for ch in text:
+        bare = unicodedata.normalize("NFD", ch.lower())
+        out.append("".join(c for c in bare if unicodedata.category(c) != "Mn")[:1] or ch)
+    return "".join(out)
+
+
+def _words(text: str) -> set[str]:
+    return set(re.findall(r"[a-zñ]+", _plain(text)))
 
 
 def sentences(text: str) -> list[str]:
@@ -86,8 +99,10 @@ def sentences(text: str) -> list[str]:
     return [s.strip() for s in re.split(r"(?<=[.!?…])\s+", text.strip()) if s.strip()]
 
 
-def paragraph_issues(text: str) -> list[dict]:
-    """Avisos de un párrafo: [{kind, text, detail}]. Lista vacía si suena bien."""
+def paragraph_issues(text: str, names: set[str] | None = None) -> list[dict]:
+    """Avisos de un párrafo: [{kind, text, detail}]. Lista vacía si suena bien.
+    `names` son palabras que no cuentan como repetidas (las del título: la marca)."""
+    skip = COMMON | (names or set())
     issues = []
     for sentence in sentences(text):
         words = len(sentence.split())
@@ -98,18 +113,28 @@ def paragraph_issues(text: str) -> list[dict]:
 
     plain = _plain(text)
     counts: dict[str, int] = {}
-    for word in re.findall(r"[a-zñ]+", plain):
-        if len(word) >= REPEAT_MIN_LETTERS and word not in COMMON:
+    shown: dict[str, str] = {}  # la palabra tal como está escrita (con tildes)
+    for match in re.finditer(r"[a-zñ]+", plain):
+        word = match.group()
+        if len(word) >= REPEAT_MIN_LETTERS and word not in skip:
             counts[word] = counts.get(word, 0) + 1
+            shown.setdefault(word, text[match.start() : match.end()].lower())
     for word, times in sorted(counts.items(), key=lambda item: -item[1]):
         if times >= REPEAT_MIN_TIMES:
+            original = shown[word]
             issues.append(
-                {"kind": "repeat", "text": word, "detail": f"«{word}» se repite {times} veces"}
+                {
+                    "kind": "repeat",
+                    "text": original,
+                    "detail": f"«{original}» se repite {times} veces",
+                }
             )
 
     for filler in FILLERS:
-        if re.search(rf"\b{filler}\b", plain):
-            issues.append({"kind": "filler", "text": filler, "detail": f"Relleno: «{filler}»"})
+        found = re.search(rf"\b{filler}\b", plain)
+        if found:
+            original = text[found.start() : found.end()].lower()
+            issues.append({"kind": "filler", "text": original, "detail": f"Relleno: «{original}»"})
     return issues
 
 
@@ -117,10 +142,11 @@ def script_issues(script: dict | None) -> dict:
     """Revisa el guion entero: avisos por párrafo y cuántos hay de cada tipo."""
     by_paragraph: dict[str, list[dict]] = {}
     total = 0
+    names = _words((script or {}).get("title", ""))
     for section in (script or {}).get("sections", []):
         for paragraph in section["paragraphs"]:
             total += 1
-            issues = paragraph_issues(paragraph["text"])
+            issues = paragraph_issues(paragraph["text"], names)
             if issues:
                 by_paragraph[paragraph["id"]] = issues
     counts = {"long": 0, "repeat": 0, "filler": 0}
@@ -130,9 +156,9 @@ def script_issues(script: dict | None) -> dict:
     return {"paragraphs": by_paragraph, "counts": counts, "total": total}
 
 
-def humanize_instruction(text: str) -> str:
+def humanize_instruction(text: str, title: str = "") -> str:
     """Instrucción para la IA: cambiar solo las frases con avisos y dejar el resto igual."""
-    issues = paragraph_issues(text)
+    issues = paragraph_issues(text, _words(title))
     if not issues:
         return "Haz que este párrafo suene más natural al narrarlo, sin cambiar los datos."
     lines = []

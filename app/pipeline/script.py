@@ -500,7 +500,7 @@ def rewrite_paragraph(
     before = flat[index - 1]["text"] if index > 0 else "(inicio del vídeo)"
     after = flat[index + 1]["text"] if index + 1 < len(flat) else "(final del vídeo)"
     if action == "humanize":
-        instruction = humanize_instruction(paragraph["text"])
+        instruction = humanize_instruction(paragraph["text"], script.get("title", ""))
     else:
         instruction = REWRITE_ACTIONS[action].format(tone=tone or "más cercano")
 

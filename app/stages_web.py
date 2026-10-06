@@ -937,6 +937,8 @@ def edit_paragraph(
                 labels=SECTION_LABELS,
                 params=script.get("params") or default_params(),
                 structures=_structures(db, project),
+                script_map=script_map(script),
+                human=script_issues(script),
                 error=f"No se pudo cambiar el párrafo: {exc}",
             )
     row.data = script
