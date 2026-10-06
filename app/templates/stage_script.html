@@ -28,6 +28,11 @@
     {% if script and script.params and script.params.structure in structures %}
     <p class="muted small">Estructura de este guion: <strong>{{ structures[script.params.structure][0] }}</strong>
       — {{ structures[script.params.structure][1] }}</p>
+    {% elif script and script.structure_name %}
+    <p class="muted small">Estructura de este guion: <strong>{{ script.structure_name }}</strong></p>
+    {% endif %}
+    {% if project.video_format and project.video_format != 'auto' %}
+    <p class="muted small">📐 Este vídeo es formato <strong>{{ format_label }}</strong>: manda sobre la estructura que elijas abajo.</p>
     {% endif %}
     <form method="post" action="/proyectos/{{ project.id }}/etapas/script" class="tone-form">
       <label>Tono

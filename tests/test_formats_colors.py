@@ -62,6 +62,9 @@ def test_list_format_shapes_strategy_and_script(logged_in, ai, monkeypatch):  # 
     with SessionLocal() as db:
         script = jobs.get_result(db, 2, "script")
     assert script["structure_name"] == "Top / lista"
+    page = logged_in.get("/proyectos/2/guion").text
+    assert "Estructura de este guion: <strong>Top / lista</strong>" in page
+    assert "Este vídeo es formato <strong>Top / lista</strong>" in page
     assert "Formato" in logged_in.get("/proyectos/nuevo").text
 
 

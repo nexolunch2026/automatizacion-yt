@@ -19,6 +19,7 @@ from app.pipeline.render import AUTO as AUTO_LOOK
 from app.pipeline.render import LOOKS, MUSIC_VOLUMES
 from app.pipeline.script import (
     AUTO,
+    FORMATS,
     SECTION_LABELS,
     default_params,
     rewrite_paragraph,
@@ -122,6 +123,7 @@ def script_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         labels=SECTION_LABELS,
         params=(script or {}).get("params") or default_params(),
         structures=_structures(db, project),
+        format_label=FORMATS.get(project.video_format or "auto", ("",))[0],
     )
 
 

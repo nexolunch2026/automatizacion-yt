@@ -2,6 +2,11 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.44.2: detalle en la página del guion
+
+- En **Guion** se ve el formato del vídeo (por ejemplo «Top / lista») y el nombre de la
+  estructura usada, también cuando viene de la ficha del nicho.
+
 ## 2026-10-06 — Versión 0.44.1: «ideas» sigue siendo rápido
 
 - La comprobación de lo que se busca en YouTube se hace **a la vez para todas las ideas**
