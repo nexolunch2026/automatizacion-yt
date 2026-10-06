@@ -98,6 +98,10 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [ ] **Biblioteca de música** con su licencia guardada, para que el control de calidad
   la dé por buena.
 
+En pausa hasta que Simón lo pida (no hacer por la noche): **clips con Veo desde Google
+Opal** (texto para copiar en cada escena y «Subir clip» en Visuales). Ya está empezado en la
+rama `claude/clips-opal`: falta probarlo con Simón.
+
 Necesitan a Simón (no se hacen solas por la noche): subir a YouTube como borrador privado
 (hay que conectar su cuenta de Google) y leer la retención automática de YouTube
 Analytics.
