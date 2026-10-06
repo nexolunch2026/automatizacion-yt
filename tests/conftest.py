@@ -1,6 +1,8 @@
 import os
 import tempfile
 
+import httpx
+
 # La app guarda datos en una carpeta temporal durante los tests.
 os.environ["FACELESS_DATA_DIR"] = tempfile.mkdtemp(prefix="faceless-test-")
 # Los tests ejecutan las tareas a mano, sin trabajador en segundo plano.
@@ -91,6 +93,12 @@ def no_real_internet(monkeypatch):
     from app import jobs
 
     monkeypatch.setattr(jobs, "get_search_provider", lambda: FakeSearch())
+    from app import demand
+
+    def offline(term, language):
+        raise httpx.ConnectError("sin internet en las pruebas")
+
+    monkeypatch.setattr(demand, "_download", offline)
     voice = FakeVoice()
     monkeypatch.setattr(jobs, "get_voice_provider", lambda *args, **kwargs: voice)
     monkeypatch.setattr(jobs, "get_image_providers", lambda db: ImageChain([FakeImageMaker()]))
@@ -106,7 +114,6 @@ def no_real_internet(monkeypatch):
         raise ProviderError("Sin voz de Microsoft en los tests")
 
     monkeypatch.setattr(jarvis_voice, "microsoft_tts", no_microsoft)
-    import httpx
 
     from app import info
 

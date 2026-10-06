@@ -2,6 +2,15 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.44: ideas que la gente busca
+
+- Cuando le pides **«ideas»** a JARVIS, ahora comprueba qué se busca de verdad en YouTube
+  (lo que aparece al escribir en el buscador) y te pone **primero las que tienen demanda**.
+- Cada idea dice 🔥 demanda alta, 📈 media o 🌱 baja, y **qué escribe la gente**, para que
+  uses esas palabras en el título.
+- Las ideas también se inspiran en las **noticias de tu nicho** de esta semana y en tus
+  vídeos que mejor funcionaron.
+
 ## 2026-10-06 — Versión 0.43: música con licencia apuntada
 
 - En **Vídeo → Biblioteca de música**, cada canción tiene «¿De dónde salió?»: Biblioteca

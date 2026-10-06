@@ -110,8 +110,8 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   Latinoamérica) y marcar las que ya se hicieron.
 - [x] **Pantalla JARVIS** (0.42.0): panel «Esta semana» con el plan de la semana y el camino a
   la monetización (suscriptores, horas, fecha estimada y un consejo).
-- [ ] **Ideas con demanda real**: cruzar el radar de marcas con lo que más se busca y con
-  lo que mejor te ha funcionado en Rendimiento.
+- [x] **Ideas con demanda real** (0.44.0): las ideas de JARVIS se inspiran en el radar del
+  nicho y en lo que mejor funcionó, y se ordenan por lo que la gente busca en YouTube.
 - [x] **Retención con datos** (0.41.0): en Rendimiento, apuntar el % de gente que sigue a los
   30 s y a la mitad (de YouTube Studio) y que el próximo guion refuerce esas partes.
 - [x] **Biblioteca de música** (0.43.0) con su licencia guardada, para que el control de

@@ -24,6 +24,7 @@ from app import (
     agenda,
     coach,
     daily,
+    demand,
     ideas_bank,
     jobs,
     learning,
@@ -975,6 +976,10 @@ class Idea(BaseModel):
     topic: str = Field(description="Tema concreto del vídeo y su ángulo")
     hook: str = Field(description="Por qué engancha, en una frase")
     format: str = Field(default="", description="Formato del vídeo, distinto en cada idea")
+    keyword: str = Field(
+        default="",
+        description="2–4 palabras que la gente escribiría en YouTube para buscar este tema",
+    )
 
 
 class IdeaList(BaseModel):
@@ -988,6 +993,31 @@ def _performance_hint(db: Session) -> str:
         return analytics.performance_hint(db)
     except Exception:  # noqa: BLE001 — las ideas no deben fallar por esto
         return ""
+
+
+def _radar_hint(db: Session) -> str:
+    """Noticias recientes del nicho, como inspiración para ideas con interés actual."""
+    from app import info
+
+    try:
+        headlines = [n["title"] for n in info.brand_radar(db)[:5]]
+    except Exception:  # noqa: BLE001 — las ideas no deben fallar por esto
+        log.info("Sin radar para las ideas", exc_info=True)
+        return ""
+    if not headlines:
+        return ""
+    return "Noticias recientes del nicho (pueden inspirar una idea): " + " | ".join(headlines)
+
+
+def _lang_code(language: str) -> str:
+    return "en" if language.lower().startswith(("ingl", "engl")) else "es"
+
+
+def _demand_line(found: dict) -> str:
+    if not found["count"]:
+        return ""
+    searches = ", ".join(f"«{escape(s)}»" for s in found["searches"])
+    return f"\n   {found['icon']} Demanda {found['level']} en YouTube — la gente busca: {searches}"
 
 
 def _ideas(db: Session) -> list[Reply]:
@@ -1004,6 +1034,8 @@ conocidos con alguna sorpresa. Nada de temas inventados.
 Usa un FORMATO distinto en cada idea (por ejemplo: {", ".join(kit.idea_formats)})
 para que el canal no parezca hecho en serie: YouTube no monetiza el contenido repetitivo.
 {_performance_hint(db)}
+{_radar_hint(db)}
+Propón temas que la gente BUSQUE (en «keyword», lo que escribiría en YouTube).
 No repitas estos temas ya hechos: {"; ".join(done) or "ninguno"}"""
     try:
         ideas = ai.generate_json(prompt, IdeaList).ideas[:5]
@@ -1015,12 +1047,20 @@ No repitas estos temas ya hechos: {"; ".join(done) or "ninguno"}"""
     jobs.remember_working_model(db, ai)
     if not ideas:
         return [Reply("No se me ocurrió nada bueno ahora. Prueba otra vez en un rato.")]
+    ranked = demand.rank(
+        [
+            {"idea": i, "demand": demand.check(i.keyword or i.topic, _lang_code(language))}
+            for i in ideas
+        ]
+    )
+    ideas = [x["idea"] for x in ranked]  # primero las que más se buscan
     _save_json(db, "telegram_ideas", [i.topic for i in ideas])
     lines = [
-        f"{n}. <b>{escape(i.topic)}</b>"
-        + (f" <i>({escape(i.format)})</i>" if i.format.strip() else "")
-        + f"\n   {escape(i.hook)}"
-        for n, i in enumerate(ideas, 1)
+        f"{n}. <b>{escape(x['idea'].topic)}</b>"
+        + (f" <i>({escape(x['idea'].format)})</i>" if x["idea"].format.strip() else "")
+        + f"\n   {escape(x['idea'].hook)}"
+        + _demand_line(x["demand"])
+        for n, x in enumerate(ranked, 1)
     ]
     buttons = [[(f"🎬 {n}", f"idea:{n - 1}") for n in range(1, len(ideas) + 1)]]
     buttons.append([("🛫 Todas a la cola", "idea:all")])

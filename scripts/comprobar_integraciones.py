@@ -186,6 +186,10 @@ def main() -> None:
     radar = info.brand_radar(db)
     print(f"   Radar de marcas: {len(radar)} -> {radar[0]['title'] if radar else 'AVISO: ninguno'}")
     print(f"   Dólar: {info.dollar(db) or 'AVISO: sin datos'}")
+    from app import demand
+
+    found = demand.check("historia de Nokia")
+    print(f"   Demanda en YouTube («historia de Nokia»): {found['level']} {found['searches']}")
     try:
         print(f"   Pronóstico Medellín: {info.fetch_forecast('Medellín')}")
     except Exception as exc:  # noqa: BLE001
