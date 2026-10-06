@@ -197,6 +197,12 @@ def main() -> None:
     try:
         page = info._get("https://www.youtube.com/" + handle, hl="es").text
         print(f"   Página del canal: {info.parse_channel_page(page)}")
+        import re as _re
+
+        hints = _re.findall(r".{0,90}(?:suscriptor|subscriber).{0,40}", page)[:3]
+        print(f"   Pistas de suscriptores en la página ({len(page)} letras): {hints}")
+        if "consent.youtube.com" in page or "before you continue" in page.lower():
+            print("   AVISO: YouTube mostró la página de consentimiento de cookies")
         channel = info.fetch_youtube_public(handle)
         print(
             f"   Canal: {channel['name']} · {channel['subscribers']} suscriptores · "
