@@ -56,6 +56,9 @@
 {% endif %}
 
 <div class="filters">
+  {% if projects|length > 6 %}
+  <input id="project-search" class="project-search" type="search" placeholder="🔎 Buscar un vídeo…" aria-label="Buscar un vídeo">
+  {% endif %}
   <a class="chip {% if not selected_channel %}active{% endif %}" href="/">Todos</a>
   {% for c in channels %}
   <a class="chip {% if selected_channel == c.id %}active{% endif %}" href="/?canal={{ c.id }}">{{ c.name }}</a>
@@ -63,7 +66,8 @@
 </div>
 
 {% if projects %}
-<div class="grid">
+<p class="muted small" id="search-empty" hidden>Ningún vídeo coincide con la búsqueda.</p>
+<div class="grid" id="project-grid">
   {% for p in projects %}
   <a class="card project" href="/proyectos/{{ p.id }}">
     {% if thumbs.get(p.id) %}<img class="thumb" src="{{ thumbs[p.id] }}" alt="" loading="lazy">
@@ -85,4 +89,21 @@
 </div>
 {% endif %}
 {% endif %}
+<script>
+  (() => {
+    const box = document.getElementById("project-search");
+    if (!box) return;
+    const plain = (t) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    box.addEventListener("input", () => {
+      const q = plain(box.value.trim());
+      let shown = 0;
+      document.querySelectorAll("#project-grid .project").forEach((card) => {
+        const hit = !q || plain(card.textContent).includes(q);
+        card.hidden = !hit;
+        shown += hit;
+      });
+      document.getElementById("search-empty").hidden = shown > 0;
+    });
+  })();
+</script>
 {% endblock %}
