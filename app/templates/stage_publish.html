@@ -122,8 +122,8 @@
 </div>
 
 <div class="card">
-  <h3>Lista para subir el vídeo</h3>
-  <ol class="steps">
+  <div class="row"><h3>Lista para subir el vídeo</h3><span class="badge" id="upload-progress"></span></div>
+  <ol class="steps checklist" id="upload-list" data-key="subida-{{ project.id }}">
     <li>En YouTube Studio pulsa <strong>Crear → Subir vídeos</strong> y elige el MP4 final (pestaña Vídeo → Descargar MP4).</li>
     <li>Pega el <strong>título</strong> y la <strong>descripción</strong>.</li>
     <li>Sube la <strong>miniatura</strong>:
@@ -141,6 +141,38 @@
     <li>En <strong>Subtítulos</strong>, sube el archivo <strong>.srt</strong> (pestaña Vídeo).</li>
     <li>Pega las <strong>etiquetas</strong> y, al publicar, escribe y fija el <strong>comentario</strong>.</li>
   </ol>
+  <p class="muted small">Marca cada paso al hacerlo: se recuerda en este ordenador.</p>
+  <script>
+    (() => {
+      const list = document.getElementById("upload-list");
+      const key = list.dataset.key;
+      let done = [];
+      try { done = JSON.parse(localStorage.getItem(key) || "[]"); } catch (e) {}
+      const items = [...list.children];
+      const save = () => {
+        try { localStorage.setItem(key, JSON.stringify(done)); } catch (e) {}
+        const count = done.length;
+        document.getElementById("upload-progress").textContent =
+          count === items.length ? "✅ ¡Todo hecho!" : `${count} de ${items.length}`;
+      };
+      items.forEach((li, i) => {
+        const box = document.createElement("input");
+        box.type = "checkbox"; box.checked = done.includes(i);
+        box.setAttribute("aria-label", "Hecho");
+        li.classList.toggle("done", box.checked);
+        box.addEventListener("change", () => {
+          done = done.filter((n) => n !== i);
+          if (box.checked) done.push(i);
+          li.classList.toggle("done", box.checked);
+          save();
+        });
+        const text = document.createElement("span");
+        text.append(...li.childNodes);  // el texto junto, para que no se separen las negritas
+        li.append(box, text);
+      });
+      save();
+    })();
+  </script>
 </div>
 {% endif %}
 <script>

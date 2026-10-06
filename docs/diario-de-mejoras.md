@@ -2,6 +2,12 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.54: lista para subir con casillas
+
+- En **Publicación**, la «Lista para subir el vídeo» tiene **casillas**: vas marcando cada
+  paso (subir el MP4, título, miniatura, subtítulos…) y arriba ves «3 de 7».
+- Se recuerda en tu ordenador aunque cierres la página.
+
 ## 2026-10-06 — Versión 0.53: mapa del guion
 
 - Arriba del guion hay un **mapa de colores** con cada parte (gancho, desarrollo, clímax,

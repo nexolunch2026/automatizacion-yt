@@ -65,3 +65,10 @@ def test_music_credit_reaches_the_description(with_script):  # noqa: F811
     with_script.post("/proyectos/1/etapas/publish")
     run_all()
     assert "Música: «Noche» de Ana, CC BY 4.0" in result("publish")["description"]
+
+
+def test_publish_page_has_the_upload_checklist(with_script):  # noqa: F811
+    with_script.post("/proyectos/1/etapas/publish")
+    run_all()
+    page = with_script.get("/proyectos/1/publicacion").text
+    assert 'id="upload-list"' in page and "subida-1" in page

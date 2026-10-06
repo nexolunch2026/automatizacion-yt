@@ -545,3 +545,9 @@ details > summary { cursor: pointer; }
 .map-time { font-variant-numeric: tabular-nums; color: var(--text); }
 .map-warning { color: #ffd98a; margin: 8px 0 0; }
 .script-section { scroll-margin-top: 80px; }
+
+/* Lista para subir: casillas */
+.checklist { list-style: none; padding-left: 0; }
+.checklist li { display: flex; gap: 10px; align-items: flex-start; padding: 6px 8px; border-radius: 8px; }
+.checklist li input { margin-top: 3px; flex: none; }
+.checklist li.done { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(255, 255, 255, .25); }
