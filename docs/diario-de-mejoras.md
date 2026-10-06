@@ -2,6 +2,15 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.57: Configuración más clara
+
+- Arriba de **Configuración** hay un **panel con cada servicio** (Gemini, imágenes,
+  ElevenLabs, Telegram, YouTube…): verde si está conectado, rojo si hace falta. Pulsando
+  uno vas directo a sus instrucciones.
+- En **Estrategia**, cada título muestra **cuántas letras tiene** (amarillo si pasa de 60:
+  en el móvil se corta).
+- La pantalla de entrada tiene el **logo** y una frase de bienvenida.
+
 ## 2026-10-06 — Versión 0.56: tu semana en un calendario
 
 - Nueva página **«📅 Semana»** (en el menú de arriba): los próximos 7 días con lo que toca
