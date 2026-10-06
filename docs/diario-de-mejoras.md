@@ -2,6 +2,15 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.48: cuánto gasta cada vídeo
+
+- Tercera idea de «AS Video Studio»: en la página de cada vídeo hay un apartado
+  **«💸 Consumo de este vídeo»** con las llamadas a Gemini, el texto procesado y los
+  créditos de ElevenLabs que gastó, por etapa.
+- Abajo ves el **total del mes**: útil para saber si te alcanza el plan gratis y, cuando
+  pagues ElevenLabs, cuánto te cuesta cada vídeo.
+- Se empieza a contar desde esta versión.
+
 ## 2026-10-06 — Versión 0.47: cifras animadas
 
 - Otra idea de «AS Video Studio»: cuando la voz dice un dato importante («50 millones»,

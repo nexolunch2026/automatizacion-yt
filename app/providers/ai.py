@@ -111,6 +111,17 @@ MODELS_TTL = 6 * 3600
 _models_cache: dict[str, tuple[float, list[str]]] = {}
 
 
+def _record_usage(response) -> None:
+    """Apunta la llamada y el texto procesado en el contador de consumo del vídeo."""
+    from app import usage
+
+    usage.record("gemini_calls")
+    meta = getattr(response, "usage_metadata", None)
+    total = getattr(meta, "total_token_count", None) if meta is not None else None
+    if isinstance(total, int):
+        usage.record("gemini_tokens", total)
+
+
 class GeminiProvider:
     name = "gemini"
 
@@ -157,6 +168,7 @@ class GeminiProvider:
                 self._models.remove(model)
                 self._models.insert(0, model)
             self.last_model = model
+            _record_usage(response)
             return response
         raise last_error or ProviderError("No hay ningún modelo de Gemini disponible.")
 

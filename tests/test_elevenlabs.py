@@ -133,6 +133,10 @@ def test_record_with_elevenlabs(with_script, monkeypatch):  # noqa: F811
     assert fake.calls
     with SessionLocal() as db:
         assert get_setting(db, "eleven_model") == "eleven_flash_v2_5"
+        from app import usage
+
+        spent = usage.project_usage(db, 1)["stages"]["voice"]["eleven_credits"]
+        assert spent > 0  # el consumo de ElevenLabs queda apuntado en el vídeo
 
 
 def test_not_enough_credits_stops_before_spending(with_script, monkeypatch):  # noqa: F811

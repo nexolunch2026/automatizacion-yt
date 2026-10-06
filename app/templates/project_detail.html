@@ -68,6 +68,24 @@
       <dt>Creado por</dt><dd>{{ project.author.username }}</dd>
       <dt>Fecha</dt><dd>{{ project.created_at.strftime('%d/%m/%Y %H:%M') }}</dd>
     </dl>
+    <h3>💸 Consumo de este vídeo</h3>
+    {% set u = usage.total %}
+    {% if u.gemini_calls or u.eleven_credits %}
+    <dl class="meta">
+      <dt>Gemini</dt><dd>{{ u.gemini_calls }} llamadas · {{ '{:,}'.format(u.gemini_tokens).replace(',', '.') }} «tokens» de texto
+        <span class="muted small">(gratis dentro del límite diario)</span></dd>
+      {% if u.eleven_credits %}<dt>ElevenLabs</dt><dd>{{ '{:,}'.format(u.eleven_credits).replace(',', '.') }} créditos</dd>{% endif %}
+    </dl>
+    <details><summary class="small">Por etapa</summary>
+      <ul class="small">{% for stage, s in usage.stages.items() %}
+        <li>{{ stage_names.get(stage, stage) }}: {{ s.gemini_calls }} llamadas a Gemini{% if s.eleven_credits %}, {{ s.eleven_credits }} créditos de ElevenLabs{% endif %}</li>
+      {% endfor %}</ul>
+    </details>
+    {% else %}
+    <p class="muted small">Aún no hay consumo apuntado (se cuenta desde la versión 0.48).</p>
+    {% endif %}
+    <p class="muted small">Este mes, en total: {{ month_usage.gemini_calls }} llamadas a Gemini{% if month_usage.eleven_credits %} y
+      {{ '{:,}'.format(month_usage.eleven_credits).replace(',', '.') }} créditos de ElevenLabs{% endif %}.</p>
   </div>
 
   <div class="card">

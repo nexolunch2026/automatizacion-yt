@@ -308,6 +308,11 @@ def _run_voice(db: Session, project: Project, progress, params: dict) -> dict:
         tts.ensure_downloaded(chosen["voice"])
     folder = project_dir(project.id) / "voz"
     data = run_voice(project, script, previous, tts, chosen, folder, progress)
+    if is_eleven(chosen["voice"]):
+        from app import usage
+
+        spent = pending_characters(script, previous, chosen)
+        usage.record("eleven_credits", tts.cost(spent) if hasattr(tts, "cost") else spent)
     if credits:  # «free» = plan gratis: no permite monetizar y pide citar a ElevenLabs
         data["eleven_tier"] = credits.get("tier", "")
     set_setting(db, "voice_default", chosen["voice"])
@@ -646,10 +651,17 @@ def process_next_job() -> bool:
             db.commit()
 
         try:
+            from app import usage
             from app.pipeline import accent
 
-            with accent.use(project.channel.color if project.channel else None):
-                data = RUNNERS[job.stage](db, project, progress, job.params or {})
+            with (
+                accent.use(project.channel.color if project.channel else None),
+                usage.measure() as meter,
+            ):
+                try:
+                    data = RUNNERS[job.stage](db, project, progress, job.params or {})
+                finally:  # lo gastado cuenta aunque la tarea falle
+                    usage.save(db, project.id, job.stage, meter)
         except Exception as exc:  # noqa: BLE001 — cualquier fallo debe quedar registrado
             _handle_failure(db, job, exc)
             return True

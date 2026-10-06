@@ -5,7 +5,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app import jobs, profile
+from app import jobs, profile, usage
 from app.auth import DB, CurrentUser
 from app.media import delete_project_files
 from app.models import (
@@ -290,6 +290,9 @@ def project_detail(request: Request, db: DB, user: CurrentUser, project_id: int)
         slugs=SLUGS,
         has_gemini=api_key_hint(db, "gemini") is not None,
         qc=project_review(db, project) if "script" in results else None,
+        usage=usage.project_usage(db, project_id),
+        month_usage=usage.month_usage(db),
+        stage_names=STAGES,
     )
 
 
