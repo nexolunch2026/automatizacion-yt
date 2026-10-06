@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.59: portada más útil y detalles de diseño
+
+- **Empezar un vídeo en un paso**: en la portada, la caja «✨ ¿Sobre qué hacemos el próximo
+  vídeo?»: escribes la idea, pulsas «Empezar» y se pone a investigar con tu canal y
+  duración de siempre (y deduce el formato: «top 10 de…» sale como lista).
+- **Indicador arriba** en todas las páginas con lo que se está fabricando («⏳ Guion 45 %»):
+  pulsando vas al vídeo.
+- La página de cada vídeo enseña arriba el **vídeo montado**, su miniatura y la nota.
+- **Buscador** de vídeos en la portada (aparece cuando tienes más de 6).
+- Los **Shorts** se ven con forma de móvil; los reproductores de audio y vídeo, en oscuro;
+  la página de **JARVIS** ordena sus ajustes en dos columnas.
+
 ## 2026-10-06 — Versión 0.58: guion más humano
 
 - En **Guion**, debajo del mapa, un aviso **«🗣️ Guion más humano»** te dice cuántos

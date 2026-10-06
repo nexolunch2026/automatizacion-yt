@@ -65,7 +65,7 @@ def test_session_not_shared_between_browsers(client):
 
 
 def test_version_is_visible(client):
-    assert "v0.58.0" in client.get("/entrar").text
+    assert "v0.59.0" in client.get("/entrar").text
 
 
 def test_port_in_use_detection():
