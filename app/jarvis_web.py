@@ -223,6 +223,32 @@ def hud_world(db: DB, user: CurrentUser) -> dict:
         "dollar": info.dollar(db),
         "fact": info.fact_for_screen(db),
         "stats": info.studio_stats(db),
+        "plan": hud_plan(db),
+    }
+
+
+def hud_plan(db) -> dict | None:
+    """Plan de la semana y camino a la monetización, en corto para la pantalla."""
+    from app import coach
+
+    try:
+        week = coach.weekly_plan(db)
+        money = coach.monetization_path(db)
+    except Exception:  # noqa: BLE001 — la pantalla nunca debe romperse por esto
+        log.exception("No se pudo preparar el plan para la pantalla")
+        return None
+    return {
+        "long": week["long"],
+        "shorts": [{"day": day, "title": title} for day, title in week["shorts"][:3]],
+        "today_publish": week["today_publish"],
+        "today_short": week["today_short"],
+        "subs": money["subs"],
+        "subs_pct": money["subs_pct"],
+        "hours": money["hours"]["hours"],
+        "hours_pct": money["hours"]["pct"],
+        "eta": money["eta"].strftime("%d/%m/%Y") if money["eta"] else None,
+        "done": money["done"],
+        "tip": money["tips"][0] if money["tips"] else "",
     }
 
 

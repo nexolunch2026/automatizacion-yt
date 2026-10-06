@@ -108,7 +108,8 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   pantalla y frase final que invite a ver el documental completo.
 - [ ] **Banco de ideas más grande**: llegar a 80 historias reales (sobre todo de España y
   Latinoamérica) y marcar las que ya se hicieron.
-- [ ] **Pantalla JARVIS**: panel con el plan de la semana y la nota de monetización.
+- [x] **Pantalla JARVIS** (0.42.0): panel «Esta semana» con el plan de la semana y el camino a
+  la monetización (suscriptores, horas, fecha estimada y un consejo).
 - [ ] **Ideas con demanda real**: cruzar el radar de marcas con lo que más se busca y con
   lo que mejor te ha funcionado en Rendimiento.
 - [x] **Retención con datos** (0.41.0): en Rendimiento, apuntar el % de gente que sigue a los

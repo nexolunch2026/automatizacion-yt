@@ -701,7 +701,7 @@
       $("channel").innerHTML = `<div class="subs"><b>${subs}</b><span class="label">SUSCRIPTORES</span></div>
         ${goal}<div class="stat-row">${stats}</div><ul class="latest">${latest}</ul>`;
     } else {
-      $("channel").innerHTML = '<div class="muted small">No pude leer el canal. Revisa el nombre en la página JARVIS.</div>';
+      $("channel").innerHTML = '<div class="muted small">No pude leer el canal: escribe tu @canal en Configuración → Mi perfil (o no hay internet).</div>';
     }
 
     const items = [
@@ -715,10 +715,28 @@
       $("ticker-track").textContent = "Sin noticias por ahora (¿hay internet?).";
     }
 
+    renderPlan(w.plan);
+
     if (w.fact) {
       $("fact").hidden = false;
       $("fact").querySelector("p").textContent = w.fact;
     }
+  }
+
+  function renderPlan(p) {
+    if (!p) return;
+    $("plan-state").textContent = p.done ? "¡MONETIZABLE!" : (p.today_publish ? "HOY PUBLICAS" : "");
+    const bar = (label, pct, text) => pct == null ? "" :
+      `<div class="goal"><div class="job-stage"><span>${label}</span><span>${esc(text)}</span></div>
+       <div class="bar"><div style="width:${pct}%"></div></div></div>`;
+    const shorts = (p.shorts || []).map((s) =>
+      `<li><span class="kind">📱</span><span>${esc(s.day)}: ${esc(s.title)}</span></li>`).join("");
+    $("plan").innerHTML = `<div class="small">🎬 ${esc(p.long)}</div>
+      ${shorts ? `<ul class="plan-shorts">${shorts}</ul>` : ""}
+      ${bar("Suscriptores (1.000)", p.subs_pct, p.subs_pct == null ? "" : p.subs_pct + "%")}
+      ${bar("Horas vistas (4.000)", p.hours_pct, num(p.hours) + " h")}
+      ${p.eta ? `<div class="label">A este ritmo, 1.000 suscriptores hacia el ${esc(p.eta)}</div>` : ""}
+      ${p.tip ? `<div class="muted small">💡 ${esc(p.tip)}</div>` : ""}`;
   }
 
   async function refreshWorld() {

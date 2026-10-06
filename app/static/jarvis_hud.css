@@ -224,3 +224,9 @@ input:focus, select:focus { border-color: var(--cyan); }
 }
 
 #choices .choice-photo { width: 200px; border: 1px solid var(--cyan-dim); cursor: zoom-in; }
+
+/* Esta semana: plan y camino a la monetización */
+#plan .small { margin-bottom: 6px; }
+.plan-shorts { list-style: none; margin: 4px 0 8px; padding: 0; font-size: 12px; }
+.plan-shorts li { display: flex; gap: 6px; padding: 2px 0; }
+#plan .goal { margin: 6px 0; }

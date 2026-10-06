@@ -2,6 +2,15 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.42: la pantalla de JARVIS muestra tu semana
+
+- Nuevo panel **«ESTA SEMANA»** en la pantalla de JARVIS: qué vídeo subir (o terminar) y
+  cuándo, los Shorts de los próximos días y las barras de **suscriptores** y **horas
+  vistas** hacia la monetización.
+- Si vas a buen ritmo, te dice la **fecha estimada** para llegar a 1.000 suscriptores, y
+  un consejo para ir más rápido.
+- Se actualiza solo cada 2 minutos.
+
 ## 2026-10-06 — Versión 0.41: el guion aprende de la retención
 
 - En **📈 Rendimiento**, cada vídeo tiene dos casillas nuevas: «30 s» (cuánta gente sigue

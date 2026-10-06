@@ -301,6 +301,22 @@ def test_hud_world(logged_in, internet):
     assert world["radar"] and world["dollar"]["rate"] == 4123.46
     assert world["forecast"][1]["day"] == "Mañana"
     assert world["stats"]["projects"] == 0
+    plan = world["plan"]  # panel «Esta semana»
+    assert plan["subs"] == 1200 and plan["subs_pct"] == 100
+    assert "empieza uno hoy" in plan["long"] and plan["hours_pct"] == 0
+    page = logged_in.get("/jarvis/hud").text
+    assert "ESTA SEMANA" in page
+
+
+def test_hud_plan_never_breaks_the_screen(logged_in, monkeypatch):
+    from app import coach, jarvis_web
+
+    def broken(db, now=None):
+        raise RuntimeError("fallo raro")
+
+    monkeypatch.setattr(coach, "weekly_plan", broken)
+    with SessionLocal() as db:
+        assert jarvis_web.hud_plan(db) is None
 
 
 def test_offline_world_does_not_break(logged_in):
