@@ -1,0 +1,24 @@
+name: Seguridad (CodeQL)
+
+# Busca fallos de seguridad en el código (gratis en repositorios públicos). Los avisos
+# aparecen en GitHub → Security → Code scanning.
+on:
+  push:
+    branches: [claude/hola-5p4ttp, claude/control-monetizacion]
+  schedule:
+    - cron: "41 11 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: python, javascript
+      - uses: github/codeql-action/analyze@v3

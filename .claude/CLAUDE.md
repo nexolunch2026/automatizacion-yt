@@ -63,3 +63,23 @@ recordatorios, noticias/radar de marcas, y **Rendimiento** (cifras de YouTube y 
   imprimir), `.bat` con finales de línea CRLF.
 - Los tests nunca usan internet (ver `tests/conftest.py`): simular proveedores.
 - Comentarios y textos de la interfaz en español; seguir el estilo del código existente.
+
+## Herramientas de ECC (agentes y habilidades)
+Copiadas de ECC (nexolunch2026/ECC, licencia MIT en `.claude/ECC-LICENSE`), solo las útiles
+para este proyecto (Python + FastAPI + Windows + vídeo):
+- Agentes en `.claude/agents/`: `python-reviewer`, `fastapi-reviewer`, `security-reviewer`,
+  `silent-failure-hunter`, `code-simplifier`.
+- Habilidades en `.claude/skills/`: `python-patterns`, `python-testing`, `fastapi-patterns`,
+  `verification-loop`, `security-review`, `content-engine` (guiones y contenido para YouTube),
+  `video-editing` (FFmpeg y montaje).
+
+Cuándo usarlos:
+- Antes de subir una mejora: revisa el diff con `python-reviewer` y `silent-failure-hunter`
+  (los errores escondidos ya dieron problemas en JARVIS: «No te entendí bien» tapaba fallos
+  de Gemini). Corrige lo importante; lo opcional, solo si es claro.
+- Si tocas la web, subidas de archivos, claves, Telegram o el instalador: también
+  `security-reviewer` (y `fastapi-reviewer` para rutas y formularios).
+- Al cambiar prompts de guion, títulos o Shorts: consulta `content-engine`.
+- Al tocar el montaje (render, Shorts, filtros): consulta `video-editing` y prueba cada
+  filtro con el ffmpeg de `imageio_ffmpeg`.
+- Al terminar: `verification-loop` (ruff, formato, pytest) antes del commit.

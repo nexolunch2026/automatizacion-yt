@@ -3,6 +3,16 @@ name: CI
 on:
   push:
   pull_request:
+  schedule:
+    # Cada lunes, aunque nadie cambie nada: avisa si algo de fuera (voces de Piper,
+    # Gemini, el actualizador…) ha dejado de funcionar.
+    - cron: "17 11 * * 1"
+  workflow_dispatch:
+
+# Si llegan dos cambios seguidos a la misma rama, solo se prueba el último.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -13,6 +23,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
+        with:
+          # Versión fija: sin ella, setup-uv pregunta a GitHub cuál es la última y,
+          # si GitHub falla en ese momento, la prueba falla sin haber empezado.
+          version: "0.8.17"
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pytest -q
@@ -23,4 +37,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.17"
       - run: uv run --no-dev python -m scripts.comprobar_integraciones
