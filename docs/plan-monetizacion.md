@@ -98,7 +98,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   y cantidades (Simón trabaja en cocina), listas de la compra y notas largas por voz.
 - [x] **JARVIS con más habilidades en el PC** (0.34.0): abrir carpetas y programas de Windows,
   subir/bajar volumen, poner y parar música, y avisos en pantalla.
-- [ ] **Guion más humano**: control de calidad de frases demasiado largas, repeticiones y
+- [x] **Guion más humano** (0.58.0): control de calidad de frases demasiado largas, repeticiones y
   palabras de relleno, con botón para reescribir solo esas frases.
 - [x] **Versión para compartir**: perfil por instalación (nombre, canal, nicho, país),
   bienvenida para gente nueva y línea de instalación para pasar.

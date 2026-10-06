@@ -4,6 +4,16 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (6 de octubre de 2026, segunda búsqueda: guion que suena natural)
+
+- [What You NEED to Do Before Writing Your VOICEOVER SCRIPT](https://www.youtube.com/watch?v=XDgpuoRrlqs)
+  — la mejor voz en off no suena a alguien leyendo, sino a alguien contándote algo: va
+  justo con el nuevo aviso «Guion más humano».
+- [How To Sound Natural When Reading a Script!](https://www.youtube.com/watch?v=tKEF2ml_hmY)
+  — cómo evitar que la narración suene robótica; útil si un día grabas tu propia voz.
+- [¿Cómo hacer un guion para un video desde cero?](https://www.youtube.com/watch?v=cyIHLrSmRCo)
+  — en español: qué tener en cuenta al escribir el guion de un vídeo y su estructura.
+
 ## Nuevos (6 de octubre de 2026, búsqueda nocturna)
 
 - [How To Write A Documentary Script (With Examples)](https://www.youtube.com/watch?v=GWp0-iPN7iE)

@@ -14,6 +14,7 @@ from app.auth import DB, CurrentUser
 from app.media import MUSIC_DIR, MUSIC_EXTENSIONS, music_library, project_dir, safe_path
 from app.models import LEVELS, SCRIPT_TONES, STAGES, Project, StageResult
 from app.pipeline.ab_test import ab_plan
+from app.pipeline.humanize import script_issues
 from app.pipeline.monetization import AREAS, project_review
 from app.pipeline.render import AUTO as AUTO_LOOK
 from app.pipeline.render import LOOKS, MUSIC_VOLUMES
@@ -125,6 +126,7 @@ def script_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         structures=_structures(db, project),
         format_label=FORMATS.get(project.video_format or "auto", ("",))[0],
         script_map=script_map(script) if script else None,
+        human=script_issues(script) if script else None,
     )
 
 
@@ -870,7 +872,7 @@ def choose_concept(
     return _redirect(f"/proyectos/{project_id}/guion")
 
 
-PARAGRAPH_ACTIONS = {"save", "delete", "regenerate", "expand", "summarize", "tone"}
+PARAGRAPH_ACTIONS = {"save", "delete", "regenerate", "expand", "summarize", "tone", "humanize"}
 
 
 def rewrite_with_ai(db, project, research, script, paragraph_id, action, tone):

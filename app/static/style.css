@@ -610,3 +610,12 @@ details > summary { cursor: pointer; }
 .service.need { border-color: rgba(255, 77, 79, .45); }
 .service.need .service-state { color: #ffb3b4; }
 .form-card[id] { scroll-margin-top: 80px; }
+
+/* Guion más humano: párrafos con frases largas, repeticiones o relleno */
+.human-summary { border-left: 3px solid #ffd98a; padding: 6px 12px; margin: 8px 0 12px; }
+.human-summary.ok { border-left-color: var(--ok); }
+.human-summary p { margin: 0; }
+.paragraph.has-issues > p { border-left: 3px solid #ffd98a; padding-left: 10px; }
+.human-issues { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 6px; }
+.human-issues .issue { display: inline-block; margin-right: 6px; padding: 1px 8px; border-radius: 10px;
+  background: rgba(255, 217, 138, .14); color: #ffd98a; }
