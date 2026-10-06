@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Revisar mi ordenador · Faceless Studio{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>🩺 Revisar mi ordenador</h1>
+    <p class="muted">Comprueba en menos de un minuto que todo lo que usa el programa funciona:
+      la voz, el montaje de vídeo, internet, las claves y el espacio libre.</p>
+  </div>
+  <form method="post" action="/configuracion/revisar"
+        onsubmit="this.querySelector('button').textContent = 'Revisando… (unos segundos)'">
+    <button class="btn">{{ 'Revisar otra vez' if checks else 'Revisar ahora' }}</button>
+  </form>
+</div>
+{% if checks %}
+<div class="card">
+  <h2>{{ summary }}</h2>
+  <ul class="checks">
+    {% for c in checks %}
+    <li class="check {{ c.state }}">
+      <span class="check-icon">{{ '✅' if c.state == 'ok' else ('⚠️' if c.state == 'warn' else '❌') }}</span>
+      <span><strong>{{ c.name }}</strong> <span class="muted small">{{ c.detail }}</span>
+        {% if c.fix %}<br><span class="small">👉 {{ c.fix }}</span>{% endif %}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% else %}
+<p class="muted">Pulsa «Revisar ahora». Si algo falla, te dice qué hacer en palabras sencillas.</p>
+{% endif %}
+{% endblock %}

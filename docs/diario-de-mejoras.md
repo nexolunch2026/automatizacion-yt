@@ -2,6 +2,14 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.69: revisar mi ordenador
+
+- En **Configuración** hay un botón nuevo, **«🩺 Revisar mi ordenador»**. En unos segundos
+  comprueba la voz gratuita, el montaje de vídeo, internet, las claves de Gemini y
+  YouTube, el espacio libre en disco, si el programa está en OneDrive y si hay pasos
+  detenidos. Te dice qué falla y **qué hacer**, en palabras sencillas.
+- También puedes decirle a JARVIS **«revisa mi ordenador»**.
+
 ## 2026-10-06 — Versión 0.68.1: no más bucles de «abro y se cierra»
 
 - Si el programa se cierra **3 veces** a mitad del mismo paso de un vídeo, ya no lo

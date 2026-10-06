@@ -218,6 +218,7 @@ class Intent(BaseModel):
         "demand",
         "references",
         "audience",
+        "system_check",
         "question",
         "remember",
         "memory",
@@ -499,6 +500,33 @@ def audience_reply(db: Session, ai=None) -> Reply:
     return Reply("\n".join(lines), buttons=buttons if requests else None)
 
 
+CHECK_WORDS = (
+    "revisa mi ordenador",
+    "revisa el ordenador",
+    "revisa mi pc",
+    "revisa el pc",
+    "revisa el programa",
+    "comprueba el programa",
+    "diagnostico",
+    "funciona todo",
+    "esta todo bien",
+)
+
+
+def system_check_reply(db: Session) -> Reply:
+    from app import system_check
+
+    checks = system_check.run_all(db)
+    icons = {"ok": "✅", "warn": "⚠️", "fail": "❌"}
+    lines = [f"🩺 <b>{escape(system_check.summary(checks))}</b>\n"]
+    for c in checks:
+        line = f"{icons[c.state]} <b>{escape(c.name)}</b>: {escape(c.detail)}"
+        if c.fix and c.state != "ok":
+            line += f"\n   👉 {escape(c.fix)}"
+        lines.append(line)
+    return Reply("\n".join(lines))
+
+
 DEMAND = re.compile(
     r"^(?:que (?:busca|buscan|escribe) la gente|que se busca|que buscan|cuanta demanda tiene"
     r"|tiene demanda|se busca)(?: en youtube)? (?:sobre |de |acerca de )?(.+?)(?: en youtube)?$"
@@ -573,6 +601,8 @@ def quick_intent(text: str) -> Intent | None:
         return Intent(action="references")
     if bare in AUDIENCE_WORDS:
         return Intent(action="audience")
+    if bare in CHECK_WORDS:
+        return Intent(action="system_check")
     match = DEMAND.match(bare)
     if match and len(match.group(1).strip()) >= 3:
         return Intent(action="demand", topic=match.group(1).strip())
@@ -1343,6 +1373,8 @@ def _act(db: Session, intent: Intent, text: str, chat_id: int = 0) -> list[Reply
         return bank_replies(db, region)
     if intent.action == "references":
         return [references_reply(db)]
+    if intent.action == "system_check":
+        return [system_check_reply(db)]
     if intent.action == "audience":
         try:
             ai = jobs.get_ai_provider(db)

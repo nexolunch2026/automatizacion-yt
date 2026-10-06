@@ -101,6 +101,19 @@ def _page(request: Request, db: DB, status_code: int = 200, **ctx):
     )
 
 
+@router.get("/revisar")
+def system_check_page(request: Request, db: DB, user: CurrentUser):
+    return render(request, "system_check.html", checks=None, summary="")
+
+
+@router.post("/revisar")
+def system_check_run(request: Request, db: DB, user: CurrentUser):
+    from app import system_check
+
+    checks = system_check.run_all(db)
+    return render(request, "system_check.html", checks=checks, summary=system_check.summary(checks))
+
+
 @router.get("")
 def settings_page(request: Request, db: DB, user: CurrentUser):
     return _page(
