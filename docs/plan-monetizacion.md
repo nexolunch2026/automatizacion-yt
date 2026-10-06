@@ -111,6 +111,12 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [x] **Lo que pide tu audiencia** (0.67.0): con la clave de YouTube, leer los comentarios de tus
   vídeos y sacar preguntas y temas que pide la gente (ideas nuevas y respuestas para el
   comentario fijado), en Rendimiento y por JARVIS.
+- [ ] **Responder comentarios**: en «Lo que pide tu audiencia», borradores de respuesta para
+  los comentarios con más «me gusta» que aún no tienen respuesta (con botón copiar).
+- [ ] **Revisión semanal del ordenador**: cada lunes JARVIS pasa «Revisar mi ordenador» y
+  avisa por Telegram solo si algo falla (voz, espacio en disco, ffmpeg…).
+- [ ] **Banco de historias para cualquier nicho**: crear una vez con Gemini un banco de 30
+  temas reales del nicho del canal (no solo marcas) y marcar los ya hechos.
 - [x] **Miniatura legible en el móvil** (0.65.0): comprobar el tamaño y el contraste del texto de
   cada miniatura vista a 168 px de ancho y avisar si no se lee bien.
 - [x] **Alertas de referencias** (0.64.0): JARVIS avisa por Telegram cuando un vídeo de tus canales de

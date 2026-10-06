@@ -71,10 +71,7 @@
       <button class="btn small" {% if not rows or not has_key or not has_gemini %}disabled{% endif %}>Leer comentarios</button>
     </form>
   </div>
-  {% if not has_key %}
-  <p class="muted">Para leer los comentarios hace falta la clave gratuita de YouTube
-    (<a href="/jarvis#preferencias">JARVIS → Lo que JARVIS sabe de ti</a>).</p>
-  {% elif audience %}
+  {% if audience %}
   <p>{{ audience.summary }}</p>
   {% if audience.requests %}
   <h3>🎬 Temas que te piden</h3>
@@ -95,6 +92,9 @@
   {% endif %}
   <p class="muted small">{{ audience.comments }} comentarios leídos el {{ audience.date }}.
     Las ideas de JARVIS ya tienen en cuenta estos temas.</p>
+  {% elif not has_key %}
+  <p class="muted">Para leer los comentarios hace falta la clave gratuita de YouTube
+    (<a href="/jarvis#preferencias">JARVIS → Lo que JARVIS sabe de ti</a>).</p>
   {% else %}
   <p class="muted">Pulsa «Leer comentarios» y JARVIS leerá los comentarios de tus últimos vídeos para decirte
     qué temas te piden, qué preguntas se repiten y qué poner en el comentario fijado.</p>

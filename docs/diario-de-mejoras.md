@@ -2,6 +2,11 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.69.1: el informe de audiencia siempre a la vista
+
+- La tarjeta «Lo que pide tu audiencia» enseña el último informe aunque la clave de
+  YouTube se haya quitado después.
+
 ## 2026-10-06 — Versión 0.69: revisar mi ordenador
 
 - En **Configuración** hay un botón nuevo, **«🩺 Revisar mi ordenador»**. En unos segundos
