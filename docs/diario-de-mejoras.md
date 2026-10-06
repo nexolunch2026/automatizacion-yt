@@ -2,6 +2,12 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.68.1: no más bucles de «abro y se cierra»
+
+- Si el programa se cierra **3 veces** a mitad del mismo paso de un vídeo, ya no lo
+  retoma solo al abrirlo (podría ser ese paso lo que lo cierra). Lo deja en rojo con una
+  explicación y el botón «Reintentar», y el resto del programa funciona con normalidad.
+
 ## 2026-10-06 — Versión 0.68: banco de 80 historias
 
 - El **banco de historias** de JARVIS pasa de 37 a **80 historias reales**, sobre todo de

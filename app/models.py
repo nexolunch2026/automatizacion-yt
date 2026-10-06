@@ -157,6 +157,7 @@ class Job(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     finished_at: Mapped[datetime | None]
     notified: Mapped[bool | None]  # JARVIS ya avisó por Telegram de cómo terminó
+    interrupted: Mapped[int | None]  # veces que el programa se cerró a mitad de esta tarea
 
     @property
     def active(self) -> bool:

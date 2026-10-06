@@ -273,6 +273,24 @@ def test_interrupted_jobs_are_resumed(project, monkeypatch):
         assert db.get(Job, 1).status == "done"
 
 
+def test_a_job_that_keeps_closing_the_program_is_not_resumed_forever(project):
+    run_stage(project)
+    for _ in range(jobs.MAX_INTERRUPTIONS - 1):
+        with SessionLocal() as db:
+            db.get(Job, 1).status = "running"  # se cerró el programa a mitad
+            db.commit()
+        jobs.recover_interrupted()
+        with SessionLocal() as db:
+            assert db.get(Job, 1).status == "queued"
+    with SessionLocal() as db:
+        db.get(Job, 1).status = "running"
+        db.commit()
+    jobs.recover_interrupted()
+    with SessionLocal() as db:
+        job = db.get(Job, 1)
+        assert job.status == "failed" and "no lo reanudo solo" in job.error
+
+
 def test_unknown_stage_returns_404(project):
     assert project.post("/proyectos/1/etapas/qc").status_code == 404
 

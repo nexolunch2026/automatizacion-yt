@@ -619,6 +619,12 @@ def latest_jobs(db: Session, project_id: int) -> dict[str, Job]:
     return {job.stage: job for job in jobs}  # el último de cada etapa gana
 
 
+# Si el programa se cierra 3 veces a mitad de la misma tarea, puede que sea la tarea la que
+# lo cierra (p. ej. una librería en C que se cae): no se reanuda sola para no entrar en un
+# bucle de «abro el programa y se cierra».
+MAX_INTERRUPTIONS = 3
+
+
 def recover_interrupted() -> None:
     """Las tareas que estaban en marcha cuando se cerró el programa vuelven a la cola."""
     from app import yt_research
@@ -626,7 +632,17 @@ def recover_interrupted() -> None:
     with SessionLocal() as db:
         yt_research.recover_interrupted(db)
         for job in db.scalars(select(Job).where(Job.status == "running")):
-            job.status, job.message = "queued", "Reanudando tras un cierre"
+            job.interrupted = (job.interrupted or 0) + 1
+            if job.interrupted >= MAX_INTERRUPTIONS:
+                job.status, job.finished_at = "failed", datetime.now()
+                job.message = "Detenida tras varios cierres"
+                job.error = (
+                    f"El programa se cerró {job.interrupted} veces mientras hacía este paso, "
+                    "así que no lo reanudo solo (podría ser lo que lo cierra). Actualiza el "
+                    "programa y pulsa «Reintentar»; si vuelve a pasar, avisa a Claude."
+                )
+            else:
+                job.status, job.message = "queued", "Reanudando tras un cierre"
         db.commit()
 
 
