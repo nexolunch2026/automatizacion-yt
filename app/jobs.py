@@ -26,7 +26,7 @@ from app.pipeline.render import (
     render_video,
 )
 from app.pipeline.research import run_research
-from app.pipeline.script import default_params, pick_structure, run_script
+from app.pipeline.script import default_params, format_info, pick_structure, run_script
 from app.pipeline.seo import run_seo
 from app.pipeline.storyboard import run_storyboard
 from app.pipeline.strategy import run_strategy
@@ -233,10 +233,14 @@ def _run_script(db: Session, project: Project, progress, params: dict) -> dict:
     ai = get_ai_provider(db)
     kit = niche.ensure(db, project.channel, ai)  # lo propio del nicho del canal
     keys = [s.key for s in kit.structures]
-    if params["structure"] not in keys:  # automática: la que hace más que no se usa
-        params["structure"] = pick_structure(recent_structures(db, project), keys)
-    chosen = niche.structure(kit, params["structure"])
-    params["structure_info"] = chosen.model_dump() if chosen else {}
+    forced = format_info(project.video_format)  # top/lista, explicación o relato
+    if forced:
+        params["structure"], params["structure_info"] = forced["key"], forced
+    else:
+        if params["structure"] not in keys:  # automática: la que hace más que no se usa
+            params["structure"] = pick_structure(recent_structures(db, project), keys)
+        chosen = niche.structure(kit, params["structure"])
+        params["structure_info"] = chosen.model_dump() if chosen else {}
     params["closing"] = niche.closing_guide(kit)
     params["niche_notes"] = niche.script_notes(kit)
     params["lessons"] = script_rules(db)  # lo aprendido de vídeos que el creador marcó
@@ -625,7 +629,10 @@ def process_next_job() -> bool:
             db.commit()
 
         try:
-            data = RUNNERS[job.stage](db, project, progress, job.params or {})
+            from app.pipeline import accent
+
+            with accent.use(project.channel.color if project.channel else None):
+                data = RUNNERS[job.stage](db, project, progress, job.params or {})
         except Exception as exc:  # noqa: BLE001 — cualquier fallo debe quedar registrado
             _handle_failure(db, job, exc)
             return True

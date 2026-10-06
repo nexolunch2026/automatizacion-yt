@@ -74,6 +74,58 @@ STRUCTURES = {
 }
 
 
+# Formatos de vídeo: cambian cómo se cuenta TODO el vídeo (no solo el orden). «auto»: el
+# documental narrado con las estructuras de la ficha del nicho, que se turnan.
+FORMATS = {
+    "auto": ("Según la ficha del canal (documental narrado)", ""),
+    "lista": (
+        "Top / lista",
+        "Es un TOP: el gancho anuncia la lista y lo que está en juego; cada sección de "
+        "desarrollo es un puesto, en cuenta atrás (del menos al más impactante), y empieza "
+        "diciendo su número («Número 4: …»); el clímax es el número uno. Cada puesto, con un "
+        "dato concreto y por qué está en ese lugar.",
+    ),
+    "explicacion": (
+        "Explicación",
+        "Es una EXPLICACIÓN: parte de una pregunta que mucha gente se hace; explícalo paso a "
+        "paso con ejemplos y comparaciones de la vida diaria; desmonta un mito o error común; "
+        "el clímax es el «ajá» que lo aclara todo; termina con lo que el espectador puede "
+        "hacer o mirar distinto.",
+    ),
+    "relato": (
+        "Relato",
+        "Es un RELATO: cuéntalo como una historia con protagonista, lugar y momento "
+        "concretos, escenas y tensión creciente, como si el espectador estuviera allí "
+        "(sin inventar hechos: todo sale de la investigación). Cada sección termina en "
+        "suspense; el clímax es el desenlace.",
+    ),
+}
+
+
+def guess_format(topic: str) -> str:
+    """El formato que pide el tema dicho a JARVIS («top 10 de…», «explica por qué…»)."""
+    import re
+    import unicodedata
+
+    plain = unicodedata.normalize("NFD", topic.lower())
+    plain = "".join(ch for ch in plain if unicodedata.category(ch) != "Mn")
+    if re.search(r"\btop\b|\blos \d+\b|\blas \d+\b|\branking\b|\blista de\b", plain):
+        return "lista"
+    if re.search(r"^(?:explica|explicame|por que|como funciona)\b|\bexplicado\b", plain):
+        return "explicacion"
+    if re.search(r"^(?:relato|cuento|la historia de alguien)\b", plain):
+        return "relato"
+    return "auto"
+
+
+def format_info(key: str | None) -> dict:
+    """La «estructura» que impone un formato elegido; {} si es automático."""
+    if not key or key == "auto" or key not in FORMATS:
+        return {}
+    name, guide = FORMATS[key]
+    return {"key": f"formato_{key}", "name": name, "guide": guide}
+
+
 def default_params() -> dict:
     return {"tone": "Documental", "drama": "Medio", "technical": "Bajo", "structure": AUTO}
 

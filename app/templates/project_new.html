@@ -35,6 +35,11 @@
           {% for t in video_types %}<option {% if form.video_type == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
         </select>
       </label>
+      <label>Formato
+        <select name="video_format" title="Cómo se cuenta el vídeo">
+          {% for key, label in formats.items() %}<option value="{{ key }}" {% if form.video_format == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </label>
     </div>
     <fieldset>
       <legend>Nivel de automatización</legend>

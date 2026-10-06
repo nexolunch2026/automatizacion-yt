@@ -91,6 +91,7 @@ class Channel(Base):
     name: Mapped[str] = mapped_column(String(100))
     niche: Mapped[str] = mapped_column(String(200), default="")
     language: Mapped[str] = mapped_column(String(30), default="Español")
+    color: Mapped[str | None] = mapped_column(String(20), nullable=True)  # acento del canal
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
@@ -109,6 +110,8 @@ class Project(Base):
     duration: Mapped[str] = mapped_column(String(30))
     language: Mapped[str] = mapped_column(String(30))
     video_type: Mapped[str] = mapped_column(String(30))
+    # Formato del vídeo (top/lista, explicación, relato); vacío o "auto": según la ficha.
+    video_format: Mapped[str | None] = mapped_column(String(30), nullable=True)
     automation_mode: Mapped[str] = mapped_column(String(20))
     status: Mapped[str] = mapped_column(String(30), default="Idea")
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))

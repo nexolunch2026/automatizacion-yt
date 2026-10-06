@@ -625,7 +625,7 @@ def short_cover(
     """Rehace la portada de un Short con otro texto (al momento, sin volver a montarlo)."""
     from app.pipeline.shorts import make_cover
 
-    _project(db, project_id)
+    project = _project(db, project_id)
     row = _result_row(db, project_id, "shorts")
     shorts = (row.data if row else {}).get("shorts", [])
     if not 1 <= number <= len(shorts) or not text.strip():
@@ -645,7 +645,10 @@ def short_cover(
         rows = paragraph_table(script, {t["paragraph_id"]: t["seconds"] for t in voice["takes"]})
         start, end = short.get("paragraphs", [1, 1])
         ids = [r["id"] for r in rows[start - 1 : end]]
-    make_cover(jobs.media_map(folder, visuals), ids, text, folder / cover)
+    from app.pipeline import accent
+
+    with accent.use(project.channel.color):  # con el color del canal
+        make_cover(jobs.media_map(folder, visuals), ids, text, folder / cover)
     short.update(cover=cover, hook=text)
     row.data = data
     db.commit()

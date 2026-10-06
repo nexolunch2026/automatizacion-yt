@@ -36,6 +36,7 @@ from app.media import project_dir
 from app.models import DURATIONS, STAGES, Channel, Job, Project, User
 from app.pipeline.monetization import project_review, summary_text
 from app.pipeline.render import run_ffmpeg
+from app.pipeline.script import guess_format
 from app.providers.ai import GroundedText, ProviderError
 from app.settings_store import api_key_hint, get_setting, set_setting
 
@@ -795,6 +796,7 @@ def start_video(db: Session, topic: str, duration: str = "", mode: str = "asisti
         duration=duration if duration in DURATIONS else defaults["duration"],
         language=defaults["language"],
         video_type=defaults["video_type"],
+        video_format=guess_format(topic),
         automation_mode=mode,
         created_by=user.id,
     )

@@ -16,7 +16,8 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps, ImageStat
 from pydantic import BaseModel, Field
 
 from app.models import Project
-from app.pipeline.render import RED, TITLE_FONT, font
+from app.pipeline import accent
+from app.pipeline.render import TITLE_FONT, font
 from app.providers.ai import AIProvider, ProviderError
 
 LANDSCAPE = (1280, 720)
@@ -209,12 +210,14 @@ def _draw_words(draw, line: str, x: float, y: float, fnt, size: int, highlight: 
         hot = re.sub(r"[^\wáéíóúñ%]", "", word.lower()) in highlight
         if hot and box:
             pad = size * 0.08
-            draw.rectangle([x - pad, y + size * 0.06, x + width + pad, y + size * 0.98], fill=RED)
+            draw.rectangle(
+                [x - pad, y + size * 0.06, x + width + pad, y + size * 0.98], fill=accent.color()
+            )
             draw.text((x, y), word, font=fnt, fill=WHITE)
         else:
             draw.text((x + stroke, y + stroke), word, font=fnt, fill=(0, 0, 0))  # sombra
             draw.text(
-                (x, y), word, font=fnt, fill=RED if hot else WHITE,
+                (x, y), word, font=fnt, fill=accent.color() if hot else WHITE,
                 stroke_width=stroke, stroke_fill=(0, 0, 0),
             )  # fmt: skip
         x += width + space
@@ -252,12 +255,16 @@ def compose(
         for line in lines:
             _draw_words(draw, line, margin, y, fnt, fsize, marked, box=False)
             y += int(fsize * 0.92)
-        draw.rectangle([margin, y + h * 0.045, margin + w * 0.12, y + h * 0.06], fill=RED)
+        draw.rectangle(
+            [margin, y + h * 0.045, margin + w * 0.12, y + h * 0.06], fill=accent.color()
+        )
     elif layout == "bottom":
         fnt, fsize = _fit(draw, lines, w - margin * 2, int(h * 0.44), int(h * 0.3))
         block = int(fsize * 0.92) * len(lines)
         y = h - block - int(h * 0.07)
-        draw.rectangle([margin, y - h * 0.035, margin + w * 0.14, y - h * 0.018], fill=RED)
+        draw.rectangle(
+            [margin, y - h * 0.035, margin + w * 0.14, y - h * 0.018], fill=accent.color()
+        )
         for line in lines:
             _draw_words(draw, line, margin, y, fnt, fsize, marked, box=False)
             y += int(fsize * 0.92)
@@ -272,7 +279,7 @@ def compose(
             _draw_words(draw, line, (w - lw) / 2, y, fnt, fsize, marked, box=True)
             y += int(fsize * 0.92)
     # Marco fino rojo abajo: firma visual del canal en todas las miniaturas.
-    draw.rectangle([0, h - max(6, h // 120), w, h], fill=RED)
+    draw.rectangle([0, h - max(6, h // 120), w, h], fill=accent.color())
     rgb = image.convert("RGB")
     out.parent.mkdir(parents=True, exist_ok=True)
     for quality in (92, 85, 75, 65):

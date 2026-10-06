@@ -19,6 +19,7 @@ from app.models import (
     StageResult,
 )
 from app.pipeline.monetization import project_review
+from app.pipeline.script import FORMATS
 from app.settings_store import api_key_hint, get_setting
 from app.stages_web import SLUGS
 from app.templating import render
@@ -99,6 +100,7 @@ def channels_page(request: Request, db: DB, user: CurrentUser):
 
 def _channels_page(request: Request, db, channels, status_code: int = 200, **ctx):
     from app import niche
+    from app.pipeline import accent
 
     kits = {c.id: niche.kit_for(db, c) for c in channels}
     own = {
@@ -113,6 +115,7 @@ def _channels_page(request: Request, db, channels, status_code: int = 200, **ctx
         kits=kits,
         own=own,
         has_gemini=api_key_hint(db, "gemini") is not None,
+        palette={name: accent.css(name) for name in accent.PALETTE},
         **ctx,
     )
 
@@ -151,6 +154,15 @@ def change_niche(db: DB, user: CurrentUser, channel_id: int, niche: Annotated[st
     return _redirect(f"/canales#c-{channel_id}")
 
 
+@router.post("/canales/{channel_id}/color")
+def change_color(db: DB, user: CurrentUser, channel_id: int, color: Annotated[str, Form()] = ""):
+    from app.pipeline.accent import PALETTE
+
+    _channel(db, channel_id).color = color if color in PALETTE else None
+    db.commit()
+    return _redirect(f"/canales#c-{channel_id}")
+
+
 @router.post("/canales/{channel_id}/ficha")
 def make_niche_kit(request: Request, db: DB, user: CurrentUser, channel_id: int):
     """La IA crea (o rehace) la ficha del nicho del canal."""
@@ -178,6 +190,7 @@ def _project_form_context(db: DB) -> dict:
         "languages": LANGUAGES,
         "video_types": VIDEO_TYPES,
         "modes": AUTOMATION_MODES,
+        "formats": {k: v[0] for k, v in FORMATS.items()},
     }
 
 
@@ -201,6 +214,7 @@ def create_project(
     video_type: Annotated[str, Form()],
     automation_mode: Annotated[str, Form()],
     title: Annotated[str, Form()] = "",
+    video_format: Annotated[str, Form()] = "auto",
 ):
     form = {
         "channel_id": channel_id,
@@ -210,6 +224,7 @@ def create_project(
         "language": language,
         "video_type": video_type,
         "automation_mode": automation_mode,
+        "video_format": video_format if video_format in FORMATS else "auto",
     }
     error = None
     if not form["topic"]:
@@ -240,6 +255,7 @@ def create_project(
         duration=duration,
         language=language,
         video_type=video_type,
+        video_format=form["video_format"],
         automation_mode=automation_mode,
         created_by=user.id,
     )

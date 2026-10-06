@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.40: formatos de vídeo y color de cada canal
+
+- **Formato del vídeo** al crearlo: «Top / lista» (cuenta atrás con el número uno al
+  final), «Explicación» (una pregunta explicada paso a paso, con un mito desmontado),
+  «Relato» (contado como una historia con escenas y suspense) o automático (el documental
+  de siempre, con las estructuras de la ficha). La estrategia y el guion se adaptan.
+- JARVIS lo entiende solo: «hazme un vídeo top 10 de…» o «explica por qué…».
+- **Color del canal** en Canales (rojo, amarillo, naranja, verde, cian, azul, morado o
+  rosa): se usa en subtítulos, textos en pantalla, gráficos, miniaturas y Shorts. Tu
+  canal sigue en rojo.
+
 ## 2026-10-06 — Versión 0.39: sirve para cualquier nicho
 
 - **Ficha del nicho**: en 🧭 Canales cada canal tiene su ficha: cómo son sus vídeos, para

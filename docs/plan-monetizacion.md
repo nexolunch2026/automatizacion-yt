@@ -65,7 +65,7 @@ automatización sirve para ahorrar horas, no para sustituir tu criterio.
   sábado, y una tarea de aprendizaje de 30 minutos); «publico los jueves a las 18» para
   cambiar el día; el resumen de la mañana avisa de lo que toca publicar hoy.
 
-## Cualquier nicho (pedido de Simón) — fases 1 y 2 hechas en la versión 0.39.0
+## Cualquier nicho (pedido de Simón) — fases 1–3 hechas (versiones 0.39 y 0.40)
 
 - [x] **Fase 1 — Ficha del nicho**: cada canal tiene su ficha (formato, público, tono,
   4–5 estructuras de guion, sección final fija, consejos de títulos y miniaturas, riesgos).
@@ -73,8 +73,9 @@ automatización sirve para ahorrar horas, no para sustituir tu criterio.
   Guion, estrategia y miniaturas la usan.
 - [x] **Fase 2 — Ideas y noticias del nicho**: ideas, radar de noticias y dato curioso del
   día salen de la ficha; el banco de 36 historias solo para canales de marcas.
-- [ ] **Fase 3 — Formatos y estilo**: formatos de vídeo (top/lista, explicación, relato)
-  en la elección del vídeo y colores propios por canal (hoy todo rojo y negro).
+- [x] **Fase 3 — Formatos y estilo** (versión 0.40.0): formato del vídeo (top/lista,
+  explicación, relato o automático según la ficha; JARVIS lo deduce de «top 10…»,
+  «explica…») y color propio por canal en subtítulos, textos, gráficos, miniaturas y Shorts.
 - [ ] **Fase 4 — Probar con nichos muy distintos** con Gemini de verdad (misterios,
   finanzas personales, historia) y ajustar lo que salga raro.
 

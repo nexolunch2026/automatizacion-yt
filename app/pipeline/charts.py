@@ -20,10 +20,10 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 from pydantic import BaseModel, Field
 
 from app.models import Project
+from app.pipeline import accent
 from app.providers.ai import AIProvider, ProviderError
 
 KINDS = ("bars", "line", "counter")
-RED = (230, 57, 70)
 WHITE = (242, 238, 238)
 MUTED = (150, 156, 170)
 DARK = (8, 10, 16)
@@ -213,7 +213,7 @@ def draw_frame(spec: dict, size: tuple[int, int], t: float, base: Image.Image) -
     line_y = top + int(title_size * 1.05)
     draw.rectangle(
         [margin, line_y, margin + int(w * 0.12 * _ease(t * 2)), line_y + max(3, h // 180)],
-        fill=RED,
+        fill=accent.color(),
     )
     if spec["unit"] and spec["unit"] != "%" and spec["kind"] != "counter":
         unit_font = _font(int(unit_scale * 0.04), bold=True)
@@ -241,7 +241,7 @@ def _bars(draw, spec, area, p, scale):
         grow = max(0.0, min(1.0, (p - delay) / (1 - delay * 0.5))) if p < 1 else 1.0
         bar_h = (base_y - y0 - scale * 0.1) * pt["value"] / top_value * grow
         bx = x0 + i * (bar_w + gap)
-        color = RED if i == len(points) - 1 else WHITE
+        color = accent.color() if i == len(points) - 1 else WHITE
         draw.rectangle([bx, base_y - bar_h, bx + bar_w, base_y], fill=color)
         value = fmt(pt["value"] * grow) + (" %" if spec["unit"] == "%" else "")
         vw = draw.textlength(value, font=value_font)
@@ -281,7 +281,7 @@ def _line(draw, spec, area, p, scale):
             drawn.append((ax + (bx - ax) * f, ay + (by - ay) * f))
             break
     if len(drawn) > 1:
-        draw.line(drawn, fill=RED, width=max(4, int(scale * 0.012)), joint="curve")
+        draw.line(drawn, fill=accent.color(), width=max(4, int(scale * 0.012)), joint="curve")
     r = max(5, int(scale * 0.014))
     for i, (cx, cy) in enumerate(coords):
         lw = draw.textlength(points[i]["label"], font=label_font)
@@ -305,7 +305,7 @@ def _counter(draw, spec, area, p, scale):
         big = _font(size)
     tw = draw.textlength(text, font=big)
     cy = (y0 + y1) / 2 - size * 0.55
-    draw.text(((x0 + x1 - tw) / 2, cy), text, font=big, fill=RED)
+    draw.text(((x0 + x1 - tw) / 2, cy), text, font=big, fill=accent.color())
     under = spec["unit"] if spec["unit"] and spec["unit"] != "%" else point["label"]
     small = _font(int(scale * 0.06), bold=True)
     uw = draw.textlength(under.upper(), font=small)

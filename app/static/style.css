@@ -353,3 +353,11 @@ table.perf th { color: var(--muted); font-weight: 600; font-size: .8rem; }
 .ab-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin: 8px 0; }
 .ab-thumbs a { display: grid; gap: 4px; color: var(--text); text-decoration: none; }
 .ab-thumbs img { width: 100%; border-radius: 8px; border: 1px solid var(--line); }
+
+/* Color del canal */
+.color-picker { align-items: center; gap: .35rem; flex-wrap: wrap; }
+.swatch {
+  width: 1.6rem; height: 1.6rem; border-radius: 50%; padding: 0; cursor: pointer;
+  border: 2px solid transparent; box-shadow: 0 0 0 1px rgba(255, 255, 255, .25);
+}
+.swatch.chosen { border-color: #fff; box-shadow: 0 0 0 2px rgba(0, 0, 0, .6); }

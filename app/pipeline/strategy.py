@@ -37,6 +37,16 @@ class Strategy(BaseModel):
     concepts: list[Concept]
 
 
+def _format(project: Project) -> str:
+    from app.pipeline.script import FORMATS
+
+    key = getattr(project, "video_format", None)
+    if not key or key == "auto" or key not in FORMATS:
+        return ""
+    name, guide = FORMATS[key]
+    return f"Formato elegido: {name}. {guide} Los enfoques y títulos deben encajar con él.\n"
+
+
 BRAND_TIPS = """Lo que hacen los mejores canales de documentales de empresas:
 - Títulos de 60 caracteres como mucho, con la marca y lo más intrigante al principio
   (se cortan en el móvil). Crean una pregunta en la cabeza, no la responden.
@@ -50,7 +60,7 @@ def _prompt(project: Project, research: dict, tips: str = "") -> str:
 vídeo de tipo «{project.video_type}», duración «{project.duration}», en {project.language}.
 
 Idea del creador: {project.topic}
-
+{_format(project)}
 Para cada enfoque da: nombre, resumen, audiencia, promesa al espectador, una frase de
 gancho para los primeros segundos, 3 títulos (de estilos distintos: curiosidad,
 misterio, conflicto, historia, pregunta o transformación, con la razón de cada uno) y un

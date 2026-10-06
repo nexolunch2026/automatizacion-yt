@@ -25,6 +25,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
+from app.pipeline import accent
+
 PAUSE = 0.35  # la misma pausa que se deja entre párrafos al grabar la voz
 CROSSFADE = 0.4  # fundido entre escenas (segundos)
 
@@ -42,7 +44,7 @@ CAPTION_FONT_NAME = "Montserrat ExtraBold"
 
 # Colores de la marca
 WHITE = (238, 238, 242)
-RED = (230, 57, 70)
+RED = accent.RED  # el de siempre; cada canal puede tener otro (accent.color())
 DARK = (13, 14, 18)
 
 DEFAULT_STYLE = {
@@ -138,7 +140,8 @@ def text_card(text: str, size: tuple[int, int], path: Path) -> Path:
         y += line_h
     bar = int(w * 0.12)
     draw.rectangle(
-        [w / 2 - bar, y + h * 0.02, w / 2 + bar, y + h * 0.02 + max(h // 160, 2)], fill=RED
+        [w / 2 - bar, y + h * 0.02, w / 2 + bar, y + h * 0.02 + max(h // 160, 2)],
+        fill=accent.color(),
     )
     image.save(path)
     return path
@@ -163,7 +166,8 @@ def text_overlay(text: str, size: tuple[int, int], path: Path) -> Path:
     box_h = size + pad * 2
     draw.rectangle([x0, y0, x0 + tw + pad * 2, y0 + box_h], fill=(10, 10, 14, 215))
     draw.rectangle(
-        [x0, y0 + box_h, x0 + tw + pad * 2, y0 + box_h + max(h // 120, 2)], fill=RED + (255,)
+        [x0, y0 + box_h, x0 + tw + pad * 2, y0 + box_h + max(h // 120, 2)],
+        fill=accent.color() + (255,),
     )
     draw.text((x0 + pad, y0 + pad * 0.7), label, font=fnt, fill=WHITE + (255,))
     image.save(path)
@@ -192,7 +196,7 @@ def end_overlay(text: str, size: tuple[int, int], path: Path) -> Path:
     box_w = int(max(draw.textlength(line, font=fnt) for line in lines)) + pad * 2
     box_h = line_h * len(lines) + pad * 2
     x0, y0 = (w - box_w) // 2, int(h * 0.38) - box_h // 2
-    draw.rectangle([x0, y0, x0 + box_w, y0 + box_h], fill=RED + (235,))
+    draw.rectangle([x0, y0, x0 + box_w, y0 + box_h], fill=accent.color() + (235,))
     for k, line in enumerate(lines):
         tw = draw.textlength(line, font=fnt)
         draw.text(((w - tw) / 2, y0 + pad + k * line_h), line, font=fnt, fill=WHITE + (255,))
@@ -426,7 +430,7 @@ def build_ass(
             "",
         ]
     )
-    red = "&H004639E6&"  # RGB(230,57,70) en formato BGR de ASS
+    red = accent.ass()  # el color del canal, en formato BGR de ASS
     lines = []
     for text, start, end in segments:
         timed = word_times(text, start, end)

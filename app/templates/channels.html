@@ -33,6 +33,14 @@
     <div class="card" id="c-{{ c.id }}">
       <h3>{{ c.name }}</h3>
       <p class="muted small">{{ c.language }} · {{ c.projects|length }} vídeo(s)</p>
+      <form method="post" action="/canales/{{ c.id }}/color" class="row-actions color-picker">
+        <span class="small">🎨 Color del canal:</span>
+        {% for name, hex in palette.items() %}
+        <button name="color" value="{{ name }}" title="{{ name|capitalize }}" aria-label="Color {{ name }}"
+          class="swatch {% if (c.color or 'rojo') == name %}chosen{% endif %}" style="background: {{ hex }}"></button>
+        {% endfor %}
+      </form>
+      <p class="muted small">Se usa en subtítulos, textos en pantalla, gráficos, miniaturas y Shorts.</p>
       <form method="post" action="/canales/{{ c.id }}/nicho" class="row-actions">
         <input name="niche" value="{{ c.niche }}" placeholder="Nicho (vacío: el de tu perfil)" maxlength="200" style="flex:1;min-width:12rem">
         <button class="btn small secondary">Cambiar nicho</button>
