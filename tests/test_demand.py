@@ -111,3 +111,16 @@ def test_radar_without_fetch_uses_only_memory(logged_in, monkeypatch):
     with SessionLocal() as db:
         assert info.brand_radar(db, fetch=False) == []
         assert assistant._radar_hint(db) == ""
+
+
+def test_jarvis_answers_what_people_search(monkeypatch):
+    monkeypatch.setattr(
+        demand, "fetch", lambda term, language="es": [f"{term} historia", f"{term} documental"]
+    )
+    intent = assistant.quick_intent("¿Qué busca la gente sobre Nokia?")
+    assert intent.action == "demand" and intent.topic == "nokia"
+    text = assistant.demand_reply("nokia").text
+    assert "demanda 🌱 <b>baja</b>" in text and "• nokia documental" in text
+    assert assistant.quick_intent("tiene demanda el caso enron en youtube").topic == "el caso enron"
+    monkeypatch.setattr(demand, "fetch", lambda term, language="es": [])
+    assert "No veo búsquedas" in assistant.demand_reply("xyz").text

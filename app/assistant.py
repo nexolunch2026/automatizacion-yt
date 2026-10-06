@@ -214,6 +214,7 @@ class Intent(BaseModel):
         "publish_day",
         "learn_video",
         "yt_research",
+        "demand",
         "question",
         "remember",
         "memory",
@@ -411,6 +412,26 @@ RESEARCH = [
 ]
 
 
+DEMAND = re.compile(
+    r"^(?:que (?:busca|buscan|escribe) la gente|que se busca|que buscan|cuanta demanda tiene"
+    r"|tiene demanda|se busca)(?: en youtube)? (?:sobre |de |acerca de )?(.+?)(?: en youtube)?$"
+)
+
+
+def demand_reply(topic: str) -> Reply:
+    found = demand.check(topic)
+    if not found["count"]:
+        return Reply(
+            f"🔎 No veo búsquedas en YouTube sobre «{escape(topic)}» (o no hay internet). "
+            "Prueba con otras palabras, más cortas."
+        )
+    searches = "\n".join(f"• {escape(s)}" for s in demand.fetch(topic)[:8])
+    return Reply(
+        f"🔎 «{escape(topic)}»: demanda {found['icon']} <b>{found['level']}</b> en YouTube.\n"
+        f"La gente escribe:\n{searches}\n\nUsa esas palabras en el título y las etiquetas."
+    )
+
+
 def research_topic(bare: str) -> str:
     """«investiga en YouTube canales faceless» → «canales faceless»."""
     for pattern in RESEARCH:
@@ -461,6 +482,9 @@ def quick_intent(text: str) -> Intent | None:
     topic = research_topic(bare)
     if topic:
         return Intent(action="yt_research", topic=topic)
+    match = DEMAND.match(bare)
+    if match and len(match.group(1).strip()) >= 3:
+        return Intent(action="demand", topic=match.group(1).strip())
     shopping = daily_intent(text, norm, bare)
     if shopping:
         return shopping
@@ -645,6 +669,7 @@ def _ai_intent(db: Session, text: str, chat_id: int = 0) -> Intent:
 - next_step: pregunta qué hacer ahora, qué falta o cuál es el siguiente paso.
 - monetize: pregunta cuánto le falta para monetizar o para el Programa de Socios.
 - yt_research: pide investigar un tema VIENDO vídeos de YouTube (topic = el tema).
+- demand: pregunta qué busca la gente o si un tema tiene demanda en YouTube (topic).
 - review: pregunta si un vídeo se puede monetizar o pide revisarlo antes de subirlo
   (topic = de qué vídeo, si lo dice).
 - open: quiere abrir una página, app o proyecto, buscar algo o poner música
@@ -1191,6 +1216,8 @@ def _act(db: Session, intent: Intent, text: str, chat_id: int = 0) -> list[Reply
     if intent.action == "idea_bank":
         region = intent.topic if intent.topic in ("España", "Latinoamérica") else ""
         return bank_replies(db, region)
+    if intent.action == "demand" and intent.topic.strip():
+        return [demand_reply(intent.topic)]
     if intent.action == "yt_research" and intent.topic.strip():
         return [yt_research_reply(db, intent.topic)]
     if intent.action == "learn_video" and learning.find_link(intent.target):

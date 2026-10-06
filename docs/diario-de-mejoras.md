@@ -2,6 +2,12 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.45.1: pregúntale a JARVIS qué busca la gente
+
+- Dile a JARVIS **«¿qué busca la gente sobre Nokia?»** o **«¿tiene demanda el caso Enron?»**
+  y te dice la demanda en YouTube y las búsquedas reales, para usarlas en títulos y
+  etiquetas.
+
 ## 2026-10-06 — Versión 0.45: publicar con las palabras que busca la gente
 
 - En **Publicación** hay una tarjeta nueva, **«🔎 Lo que busca la gente»**: la búsqueda
