@@ -523,3 +523,25 @@ details > summary { cursor: pointer; }
   content: ""; position: absolute; inset: 0; margin: auto; width: 16px; height: 16px; border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, .5); border-top-color: #fff; animation: spin .7s linear infinite;
 }
+
+/* Mapa del guion */
+.script-map { margin: 8px 0 20px; }
+.map-bar { position: relative; display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--bg); gap: 2px; }
+.map-part { display: block; height: 100%; background: #3b4252; transition: filter .15s; }
+.map-part:hover { filter: brightness(1.4); }
+.map-part.kind-hook, .map-part.kind-promise { background: var(--accent); }
+.map-part.kind-intro { background: #ff9a5a; }
+.map-part.kind-development { background: #4c8dff; }
+.map-part.kind-climax { background: #b06bff; }
+.map-part.kind-conclusion, .map-part.kind-cta { background: var(--ok); }
+.map-weak {
+  position: absolute; top: 0; bottom: 0; pointer-events: none;
+  background: repeating-linear-gradient(45deg, rgba(255, 200, 87, .55) 0 6px, transparent 6px 12px);
+  outline: 1px solid #ffc857;
+}
+.map-list { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 0; margin: 10px 0 0; font-size: .82rem; }
+.map-list a { color: var(--muted); text-decoration: none; }
+.map-list a:hover { color: var(--text); }
+.map-time { font-variant-numeric: tabular-nums; color: var(--text); }
+.map-warning { color: #ffd98a; margin: 8px 0 0; }
+.script-section { scroll-margin-top: 80px; }

@@ -64,8 +64,26 @@
     <h2>{{ script.title }}</h2>
     <span class="muted small">{{ script.words }} palabras{% if script.target_words %} (objetivo ~{{ script.target_words }}){% endif %} · ~{{ script.minutes }} min de narración</span>
   </div>
+  {% if script_map and script_map.parts|length > 1 %}
+  <nav class="script-map" aria-label="Mapa del guion">
+    <div class="map-bar">
+      {% for part in script_map.parts %}
+      <a href="#s-{{ part.index }}" class="map-part kind-{{ part.kind }}" style="width: {{ part.pct }}%"
+         title="{{ part.time }} · {{ labels.get(part.kind, part.kind) }}: {{ part.title }}"></a>
+      {% endfor %}
+      {% if script_map.weak %}<span class="map-weak" style="left: {{ script_map.weak.left }}%; width: {{ script_map.weak.width }}%"
+        title="Tramo sin preguntas ni adelantos"></span>{% endif %}
+    </div>
+    <ol class="map-list">
+      {% for part in script_map.parts %}
+      <li><a href="#s-{{ part.index }}"><span class="map-time">{{ part.time }}</span> {{ labels.get(part.kind, part.kind) }}</a></li>
+      {% endfor %}
+    </ol>
+    {% if script_map.weak %}<p class="small map-warning">⚠️ De {{ script_map.weak.text }} no hay preguntas ni adelantos: la gente puede irse. Reescribe un párrafo de ese tramo con «Otra forma».</p>{% endif %}
+  </nav>
+  {% endif %}
   {% for section in script.sections %}
-  <section class="script-section">
+  <section class="script-section" id="s-{{ loop.index0 }}">
     <h3><span class="kind">{{ labels.get(section.kind, section.kind) }}</span> {{ section.title }}</h3>
     {% for p in section.paragraphs %}
     <div class="paragraph" id="p-{{ p.id }}">

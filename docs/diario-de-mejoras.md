@@ -2,6 +2,13 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.53: mapa del guion
+
+- Arriba del guion hay un **mapa de colores** con cada parte (gancho, desarrollo, clímax,
+  final…) y el **minuto** en que empieza. Pulsando una parte vas directo a ella.
+- Si hay un tramo largo **sin preguntas ni adelantos**, se marca a rayas amarillas en el
+  mapa y te dice el minuto para que lo arregles.
+
 ## 2026-10-06 — Versión 0.52: detalles profesionales
 
 - **Icono propio** en la pestaña del navegador y **títulos de pestaña** con el nombre del

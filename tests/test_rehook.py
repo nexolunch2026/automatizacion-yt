@@ -32,3 +32,20 @@ def test_well_spaced_rehooks_pass():
     assert end - start <= REHOOK_MAX_SECONDS
     check = next(c for c in _audience_checks({"script": s}) if c["key"] == "rehook")
     assert check["status"] == "ok"
+
+
+def test_script_map_marks_sections_and_the_weak_stretch():
+    from app.stages_web import script_map
+
+    s = script(
+        ("hook", [para(100, "?")]),
+        ("development", [para(250), para(250), para(100)]),
+        ("development", [para(150, "?")]),
+        ("conclusion", [para(100)]),
+    )
+    found = script_map(s)
+    assert [p["time"] for p in found["parts"]] == ["0:00", "0:40", "4:40", "5:40"]
+    assert round(sum(p["pct"] for p in found["parts"])) == 100
+    assert found["weak"]["text"] == "0:40–5:40"
+    calm = script(("development", [para(150, "?") for _ in range(6)]))
+    assert script_map(calm)["weak"] is None

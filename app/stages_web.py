@@ -124,7 +124,36 @@ def script_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         params=(script or {}).get("params") or default_params(),
         structures=_structures(db, project),
         format_label=FORMATS.get(project.video_format or "auto", ("",))[0],
+        script_map=script_map(script) if script else None,
     )
+
+
+def script_map(script: dict) -> dict:
+    """Mapa del guion: cada parte con su minuto y su ancho, y el tramo sin re-enganches."""
+    from app.pipeline.monetization import WORDS_PER_SECOND, _mmss, rehook_gap
+
+    parts, t = [], 0.0
+    for i, section in enumerate(script.get("sections", [])):
+        words = sum(len(p["text"].split()) for p in section["paragraphs"])
+        seconds = words / WORDS_PER_SECOND
+        parts.append(
+            {"index": i, "kind": section.get("kind", ""), "title": section.get("title", ""),
+             "start": t, "seconds": seconds}
+        )  # fmt: skip
+        t += seconds
+    total = t or 1
+    for part in parts:
+        part["pct"] = round(part["seconds"] / total * 100, 2)
+        part["time"] = _mmss(part["start"])
+    gap = rehook_gap(script)
+    weak = None
+    if gap and gap[1] - gap[0] > 120:
+        weak = {
+            "left": round(gap[0] / total * 100, 2),
+            "width": round((gap[1] - gap[0]) / total * 100, 2),
+            "text": f"{_mmss(gap[0])}–{_mmss(gap[1])}",
+        }
+    return {"parts": parts, "weak": weak}
 
 
 @router.get("/escenas")
