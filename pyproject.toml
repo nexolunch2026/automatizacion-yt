@@ -1,6 +1,6 @@
 [project]
 name = "faceless-studio"
-version = "0.35.0"
+version = "0.36.0"
 description = "Productora de vídeos faceless para YouTube"
 requires-python = ">=3.11"
 dependencies = [
@@ -29,6 +29,7 @@ package = false
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+extend-exclude = [".claude"]  # guías de ECC: sus ejemplos de código no son del programa
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

@@ -170,6 +170,36 @@ def text_overlay(text: str, size: tuple[int, int], path: Path) -> Path:
     return path
 
 
+END_TEXT_SECONDS = 3.0  # el cartel final de los Shorts se ve los últimos 3 s
+
+
+def end_overlay(text: str, size: tuple[int, int], path: Path) -> Path:
+    """Cartel final de un Short («la historia completa, en el canal»): centrado y en dos
+    líneas como mucho, por encima de los subtítulos."""
+    w, h = size
+    image = Image.new("RGBA", size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+    words = text.upper().split()
+    lines = [" ".join(words[: (len(words) + 1) // 2]), " ".join(words[(len(words) + 1) // 2 :])]
+    lines = [line for line in lines if line]
+    size = max(int(w * 0.085), 10)
+    fnt = font(size)
+    while max(draw.textlength(line, font=fnt) for line in lines) > w * 0.8 and size > 10:
+        size -= 2
+        fnt = font(size)
+    pad = int(size * 0.45)
+    line_h = int(size * 1.15)
+    box_w = int(max(draw.textlength(line, font=fnt) for line in lines)) + pad * 2
+    box_h = line_h * len(lines) + pad * 2
+    x0, y0 = (w - box_w) // 2, int(h * 0.38) - box_h // 2
+    draw.rectangle([x0, y0, x0 + box_w, y0 + box_h], fill=RED + (235,))
+    for k, line in enumerate(lines):
+        tw = draw.textlength(line, font=fnt)
+        draw.text(((w - tw) / 2, y0 + pad + k * line_h), line, font=fnt, fill=WHITE + (255,))
+    image.save(path)
+    return path
+
+
 # ---------------------------------------------------------------- planos y clips
 
 
@@ -209,6 +239,10 @@ def _encode(preset: str, crf: int, fps: int) -> list[str]:
         str(fps),
         "-an",
     ]
+
+
+def _end_start(seconds: float) -> float:
+    return max(seconds - END_TEXT_SECONDS, 0.3)
 
 
 def scene_clip(
@@ -260,8 +294,23 @@ def scene_clip(
         inputs += ["-loop", "1", "-i", str(overlay)]
         # En los Shorts el gancho sale desde el primer fotograma (sirve de portada).
         fade = "st=0:d=0.04" if scene.get("text_from_start") else "st=0.3:d=0.4"
-        chain += f";[1:v]format=rgba,fade=t=in:{fade}:alpha=1[o];[v0][o]overlay=0:0:shortest=1[v1]"
+        # Si hay cartel final, el gancho se quita justo antes para que no se pisen.
+        until = f":enable='lt(t,{_end_start(seconds):.3f})'" if scene.get("end_text") else ""
+        chain += (
+            f";[1:v]format=rgba,fade=t=in:{fade}:alpha=1[o];"
+            f"[v0][o]overlay=0:0:shortest=1{until}[v1]"
+        )
         last = "[v1]"
+    if scene.get("end_text"):  # cartel final de los Shorts: lleva al vídeo largo
+        card = end_overlay(scene["end_text"], size, workdir / f"final-{scene['number']}.png")
+        index = inputs.count("-i")
+        inputs += ["-loop", "1", "-i", str(card)]
+        start = _end_start(seconds)
+        chain += (
+            f";[{index}:v]format=rgba,fade=t=in:st={start:.3f}:d=0.25:alpha=1[e];"
+            f"{last}[e]overlay=0:0:shortest=1[v2]"
+        )
+        last = "[v2]"
     run_ffmpeg(
         [
             *inputs,

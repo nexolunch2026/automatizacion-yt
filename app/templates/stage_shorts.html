@@ -36,6 +36,24 @@
 </div>
 
 {% if data and data.note %}<div class="card"><p class="alert info">{{ data.note }}</p></div>{% endif %}
+{% if data and data.shorts %}
+<div class="card">
+  <h3>🔗 Llevar a la gente al documental</h3>
+  <p class="muted small">Cada Short termina con el cartel «La historia completa, en el canal».
+    Cuando publiques el vídeo largo, pega aquí su enlace: se añade a la descripción de todos los Shorts
+    y te preparo el comentario para fijar.</p>
+  <form method="post" action="/proyectos/{{ project.id }}/shorts/enlace" class="row-actions">
+    <input name="url" value="{{ data.long_url or '' }}" placeholder="https://youtu.be/…" title="Enlace del vídeo largo" style="flex:1;min-width:14rem">
+    <button class="btn small">{% if data.long_url %}Cambiar enlace{% else %}Guardar enlace{% endif %}</button>
+  </form>
+  {% if pinned %}
+  <div class="copy-row">
+    <span class="copy-text" id="short-pinned">{{ pinned }}</span>
+    <button class="btn small secondary" data-copy="short-pinned">Copiar comentario</button>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
 {% if data %}
 <div class="shorts">
   {% for s in data.shorts %}
@@ -76,6 +94,10 @@
   <ol class="steps">
     <li>En el móvil, abre YouTube → <strong>+</strong> → <strong>Subir un vídeo</strong> y elige el Short (o súbelo desde YouTube Studio en el ordenador).</li>
     <li>Pega el título y la descripción.</li>
+    <li><strong>Vídeo relacionado:</strong> en YouTube Studio, al editar el Short, busca «Vídeo relacionado»
+      y elige el documental. Sale un botón debajo del Short que lleva directo al vídeo largo:
+      es lo que más suscriptores y horas de visualización trae.</li>
+    <li>Cuando esté publicado, pega el <strong>comentario</strong> de arriba y fíjalo (⋮ → Fijar).</li>
     <li><strong>Portada:</strong> en la app de YouTube, antes de publicar, toca el lápiz de la portada
       («Editar portada» o «Miniatura»). Si te deja <strong>subir una imagen</strong>, elige la portada descargada;
       si solo deja elegir un fotograma del vídeo, escoge el del principio, donde sale el gancho.</li>

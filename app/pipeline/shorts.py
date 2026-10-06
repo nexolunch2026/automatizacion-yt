@@ -5,6 +5,10 @@
    Sin Gemini se eligen solos (los que tienen cifras, preguntas o el gancho del vídeo).
 2. Cada fragmento se vuelve a montar en vertical (no se recorta el vídeo horizontal):
    mismas imágenes con movimiento, la misma voz, subtítulos grandes y el gancho arriba.
+3. Cada Short empuja al documental: gancho desde el primer fotograma, final que deja la
+   intriga abierta, cartel «la historia completa, en el canal» los últimos 3 s y, cuando
+   Simón pega el enlace del vídeo largo, la descripción y el comentario fijado lo llevan.
+   En YouTube Studio además se elige ese vídeo como «Vídeo relacionado» del Short.
 """
 
 import re
@@ -21,6 +25,7 @@ from app.providers.voice import join_wavs
 MIN_SECONDS = 18
 MAX_SECONDS = 58
 TARGET_SECONDS = 40
+END_TEXT = "La historia completa, en el canal"
 
 
 class ShortPick(BaseModel):
@@ -107,10 +112,15 @@ def _prompt(project: Project, script: dict, rows: list[dict], count: int) -> str
 Del guion numerado elige {count} fragmentos para Shorts verticales:
 - Cada uno son párrafos SEGUIDOS que duren entre {MIN_SECONDS} y {MAX_SECONDS} segundos en total
   (mira los segundos de cada párrafo) y que se entiendan solos, sin ver el vídeo largo.
-- Que empiecen fuerte: un dato sorprendente, una cifra, un giro, una pregunta.
+- Los 2 primeros segundos deciden si la gente se queda: que el primer párrafo empiece
+  fuerte (un dato sorprendente, una cifra, un giro, una pregunta), nunca con contexto.
+- Que el último párrafo deje la intriga ABIERTA (qué pasó después, por qué cayó…): el
+  Short tiene que dar ganas de ver el documental completo, no contar el final.
 - Que no se solapen.
-- title: título del Short (máximo 60 caracteres), con curiosidad y honesto.
-- hook: 2–5 palabras que se verán grandes al empezar.
+- title: título del Short (máximo 60 caracteres), con curiosidad, honesto y sin
+  destripar el final.
+- hook: 2–5 palabras que se verán grandes desde el primer fotograma: una promesa o una
+  cifra («PERDIÓ 74.000 MILLONES», «NADIE LO VIO VENIR»), no el nombre de la marca solo.
 
 Vídeo: «{script.get("title") or project.title}»
 GUION:
@@ -225,6 +235,9 @@ def run_shorts(
         scenes[0]["on_screen_text"] = pick.hook.upper()  # el gancho, arriba, al empezar
         scenes[0]["text_from_start"] = True
         scenes[0].pop("chart", None)  # el primer plano es el gancho, no un gráfico
+        if len(scenes) > 1:
+            scenes[-1]["on_screen_text"] = ""  # que solo se vea el cartel final
+        scenes[-1]["end_text"] = END_TEXT  # los últimos segundos llevan al vídeo largo
         folder = out_root / f"short-{i}"
         folder.mkdir(parents=True, exist_ok=True)
         narration = folder / "narracion.wav"
@@ -258,8 +271,34 @@ def run_shorts(
                 "seconds": result["seconds"],
                 "paragraphs": [pick.start, pick.end],
                 "paragraph_ids": ids,
-                "description": f"{pick.title}\n\nEl documental completo, en el canal. {tags}",
+                "tags": tags,
+                "description": description(pick.title, tags),
             }
         )
     progress(100, "Shorts listos")
     return {"shorts": shorts, "quality": quality}
+
+
+def description(title: str, tags: str, long_url: str = "") -> str:
+    where = "El documental completo, en el canal."
+    if long_url:
+        where = f"▶ El documental completo: {long_url}"
+    return f"{title}\n\n{where}\n\n{tags}".strip()
+
+
+def pinned_comment(long_url: str) -> str:
+    return f"🎬 ¿Qué pasó después? La historia completa aquí 👉 {long_url}"
+
+
+def link_long_video(data: dict, long_url: str) -> dict:
+    """Pone (o quita, con "") el enlace del vídeo largo en todos los Shorts."""
+    data = {**data, "long_url": long_url}
+    shorts = []
+    for short in data.get("shorts", []):
+        # Shorts de versiones anteriores: los hashtags estaban al final de la descripción.
+        tags = short.get("tags") or " ".join(re.findall(r"#\w+", short.get("description", "")))
+        shorts.append(
+            {**short, "tags": tags, "description": description(short["title"], tags, long_url)}
+        )
+    data["shorts"] = shorts
+    return data

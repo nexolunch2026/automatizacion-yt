@@ -496,6 +496,11 @@ def _run_shorts(db: Session, project: Project, progress, params: dict) -> dict:
     )
     if ai is not None:
         remember_working_model(db, ai)
+    long_url = (get_result(db, project.id, "shorts") or {}).get("long_url")
+    if long_url:  # al rehacer los Shorts se conserva el enlace al vídeo largo
+        from app.pipeline.shorts import link_long_video
+
+        data = link_long_video(data, long_url)
     return data
 
 

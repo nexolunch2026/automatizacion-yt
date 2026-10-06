@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.36: Shorts que llevan al documental
+
+- **Cartel final** en cada Short: los últimos 3 segundos sale «LA HISTORIA COMPLETA, EN
+  EL CANAL» en grande, para que quien lo ve vaya al vídeo largo.
+- **Mejores fragmentos**: la IA elige trozos que empiezan fuerte en los 2 primeros
+  segundos y terminan con la intriga abierta (sin contar el final).
+- **Enlace del vídeo largo**: en la página de Shorts pegas el enlace del documental y se
+  añade a la descripción de todos los Shorts. También te deja listo el comentario para fijar.
+- **Vídeo relacionado**: la guía de subida explica cómo poner el documental como «Vídeo
+  relacionado» en YouTube Studio (sale un botón debajo del Short).
+- El Control de calidad avisa si a los Shorts les falta el enlace.
+
 ## 2026-10-03 — Versión 0.35: lista de la compra y cuentas
 
 - **Lista de la compra por voz**: «añade leche y azúcar a la lista de la compra», «¿qué

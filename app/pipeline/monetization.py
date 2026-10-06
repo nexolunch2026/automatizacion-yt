@@ -490,13 +490,19 @@ def _publish_checks(project: Project, results: dict, title: str) -> list[dict]:
         )
     )
     if project.duration != "Short":
-        has_shorts = bool((results.get("shorts") or {}).get("shorts"))
+        made = results.get("shorts") or {}
+        if not made.get("shorts"):
+            status, label = PENDING, "Sin Shorts"
+        elif made.get("long_url"):
+            status, label = OK, "Shorts preparados y enlazados al documental"
+        else:
+            status, label = OK, "Shorts preparados (falta pegar el enlace del vídeo largo)"
         checks.append(
             _check(
                 "shorts",
                 "publish",
-                OK if has_shorts else PENDING,
-                "Shorts preparados" if has_shorts else "Sin Shorts",
+                status,
+                label,
                 "Los Shorts traen suscriptores nuevos hacia el vídeo largo.",
                 link="shorts",
             )

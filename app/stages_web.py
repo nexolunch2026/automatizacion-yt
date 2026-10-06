@@ -598,7 +598,11 @@ def thumbnail_page(request: Request, db: DB, user: CurrentUser, project_id: int)
 
 @router.get("/shorts")
 def shorts_page(request: Request, db: DB, user: CurrentUser, project_id: int):
-    return _stage_page(request, db, _project(db, project_id), "shorts")
+    from app.pipeline.shorts import pinned_comment
+
+    long_url = (jobs.get_result(db, project_id, "shorts") or {}).get("long_url", "")
+    pinned = pinned_comment(long_url) if long_url else ""
+    return _stage_page(request, db, _project(db, project_id), "shorts", pinned=pinned)
 
 
 @router.get("/control")
@@ -637,6 +641,27 @@ def short_cover(
     make_cover(jobs.media_map(folder, visuals), ids, text, folder / cover)
     short.update(cover=cover, hook=text)
     row.data = data
+    db.commit()
+    return _redirect(f"/proyectos/{project_id}/shorts")
+
+
+@router.post("/shorts/enlace")
+def short_link(db: DB, user: CurrentUser, project_id: int, url: Annotated[str, Form()] = ""):
+    """Enlace del vídeo largo: va a la descripción y al comentario fijado de cada Short."""
+    from app.learning import find_link
+    from app.pipeline.shorts import link_long_video
+
+    _project(db, project_id)
+    row = _result_row(db, project_id, "shorts")
+    if not row or not row.data.get("shorts"):
+        raise HTTPException(404, "Primero hay que crear los Shorts")
+    long_url = ""
+    if url.strip():
+        found = find_link(url)
+        if not found:
+            raise HTTPException(400, "Eso no parece un enlace de un vídeo de YouTube.")
+        long_url = "https://youtu.be/" + found.rsplit("v=", 1)[1]
+    row.data = link_long_video(row.data, long_url)
     db.commit()
     return _redirect(f"/proyectos/{project_id}/shorts")
 
