@@ -31,6 +31,26 @@
 </div>
 
 {% if seo %}
+{% if seo.searches and seo.searches.keyword %}
+<div class="card" id="busquedas">
+  <h3>🔎 Lo que busca la gente</h3>
+  <p class="small">Búsqueda principal: <strong>{{ seo.searches.keyword }}</strong>
+    {% if seo.searches.suggestions %}— demanda {{ seo.searches.icon }} <strong>{{ seo.searches.level }}</strong> en YouTube{% endif %}</p>
+  {% if seo.searches.suggestions %}
+  <p class="small">La gente escribe: {% for s in seo.searches.suggestions %}<em>«{{ s }}»</em>{% if not loop.last %} · {% endif %}{% endfor %}.
+    Las más buscadas ya van primero en las etiquetas.</p>
+  {% else %}
+  <p class="muted small">No pude ver las búsquedas de YouTube (¿sin internet?). Las etiquetas son las de la IA.</p>
+  {% endif %}
+  {% if not seo.searches.title_has_keyword %}
+  <p class="alert info">El título no usa las palabras que busca la gente. Si puedes, mete «{{ seo.searches.keyword }}»
+    al principio del título o de la descripción sin perder la curiosidad.</p>
+  {% else %}
+  <p class="small status-done">✅ El título usa las palabras que se buscan.</p>
+  {% endif %}
+</div>
+{% endif %}
+
 <div class="card copy-block">
   <h3>Título</h3>
   {% for t in seo.titles %}

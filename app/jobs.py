@@ -334,15 +334,23 @@ def _run_publish(db: Session, project: Project, progress, params: dict) -> dict:
     research = get_result(db, project.id, "research") or {}
     visuals = get_result(db, project.id, "visuals") or {"items": {}}
     ai = get_ai_provider(db)
+    from app import demand
+    from app.music_rights import credit_line
+    from app.pipeline.monetization import last_render
+
+    music = last_render({"edit": get_result(db, project.id, "edit") or {}}).get("music")
+    credits = "\n\n".join(x for x in (credits_text(visuals), credit_line(db, music)) if x)
+    language = "en" if project.language.lower().startswith("ingl") else "es"
     data = run_seo(
         project,
         script,
         research,
         get_result(db, project.id, "voice"),
-        credits_text(visuals),
+        credits,
         any(e.get("ai") for e in visuals["items"].values()),
         ai,
         progress,
+        lookup=lambda term: demand.fetch(term, language),
     )
     remember_working_model(db, ai)
     return data

@@ -2,6 +2,15 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.45: publicar con las palabras que busca la gente
+
+- En **Publicación** hay una tarjeta nueva, **«🔎 Lo que busca la gente»**: la búsqueda
+  principal del vídeo, cuánta demanda tiene en YouTube y qué escribe la gente.
+- Esas búsquedas reales van **primero en las etiquetas**.
+- Si el título no usa esas palabras, te avisa para que las metas sin perder la intriga.
+- Arreglado: la **atribución de la música** (si la licencia la pide) ahora también va en la
+  descripción del vídeo.
+
 ## 2026-10-06 — Versión 0.44.2: detalle en la página del guion
 
 - En **Guion** se ve el formato del vídeo (por ejemplo «Top / lista») y el nombre de la

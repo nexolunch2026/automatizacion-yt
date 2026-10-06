@@ -32,6 +32,11 @@ class SeoDraft(BaseModel):
         description="Comentario fijado con una pregunta que invite a opinar"
     )
     category: str = Field(description="Categoría de YouTube sugerida (ej. Educación)")
+    keyword: str = Field(
+        default="",
+        description="La búsqueda principal: 2–4 palabras que la gente escribiría en YouTube "
+        "para encontrar este vídeo",
+    )
 
 
 def format_time(seconds: float) -> str:
@@ -141,6 +146,32 @@ def clean_hashtags(hashtags: list[str]) -> list[str]:
     return result
 
 
+def _words(text: str) -> set[str]:
+    import re
+    import unicodedata
+
+    plain = unicodedata.normalize("NFD", text.lower())
+    plain = "".join(ch for ch in plain if unicodedata.category(ch) != "Mn")
+    return {w for w in re.findall(r"\w+", plain) if len(w) > 3}
+
+
+def search_demand(keyword: str, title: str, lookup: Callable[[str], list[str]] | None) -> dict:
+    """Qué busca la gente sobre el tema y si el título usa esas palabras."""
+    from app import demand
+
+    keyword = " ".join(keyword.split())[:80]
+    suggestions = lookup(keyword) if lookup and keyword else []
+    found = demand.score(keyword, suggestions)
+    words = _words(keyword)
+    return {
+        "keyword": keyword,
+        "level": found["level"],
+        "icon": found["icon"],
+        "suggestions": [s for s in suggestions if words & _words(s)][:8],
+        "title_has_keyword": bool(words) and len(words & _words(title)) >= min(2, len(words)),
+    }
+
+
 def _prompt(project: Project, script: dict, research: dict, title: str) -> str:
     sections = "\n".join(
         f"- {s.get('title', '')}: " + " ".join(p["text"] for p in s["paragraphs"])[:300]
@@ -156,6 +187,7 @@ Prepara:
   Natural, sin repetir palabras clave a la fuerza.
 - 10–15 etiquetas, 3 hashtags y un comentario fijado con una pregunta que invite a opinar.
 - La categoría de YouTube más adecuada.
+- La búsqueda principal («keyword»): lo que alguien escribiría en YouTube para encontrarlo.
 Usa solo datos que aparezcan en el guion o la investigación.
 
 GUION (resumen por secciones):
@@ -174,13 +206,16 @@ def run_seo(
     has_ai_images: bool,
     ai: AIProvider,
     progress: Callable[[int, str], None],
+    lookup: Callable[[str], list[str]] | None = None,
 ) -> dict:
+    """`lookup`: lo que sugiere el buscador de YouTube para una búsqueda (o nada)."""
     progress(20, "Preparando título, descripción y etiquetas")
     title = script.get("title") or project.title
     draft = ai.generate_json(_prompt(project, script, research, title), SeoDraft)
     chapters = build_chapters(script, voice)
     hashtags = clean_hashtags(draft.hashtags)
     titles = [title] + [t.strip() for t in draft.titles if t.strip() and t.strip() != title]
+    searches = search_demand(draft.keyword or project.topic[:60] or title, title, lookup)
     progress(100, "Textos de publicación listos")
     return {
         "titles": [t[:100] for t in titles[:4]],
@@ -195,7 +230,9 @@ def run_seo(
         ),
         "chapters": [{"time": format_time(t), "title": name} for t, name in chapters],
         "chapters_exact": bool(voice),
-        "tags": clean_tags(draft.tags),
+        # Primero lo que la gente escribe de verdad en YouTube, luego las de la IA.
+        "tags": clean_tags(searches["suggestions"][:5] + draft.tags),
+        "searches": searches,
         "hashtags": hashtags,
         "pinned_comment": draft.pinned_comment.strip(),
         "category": draft.category.strip(),
