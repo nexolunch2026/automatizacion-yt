@@ -273,18 +273,23 @@ def news(db: Session) -> list[dict]:
     return cached("news:business", 1800, fetch) or []
 
 
-def brand_radar(db: Session) -> list[dict]:
+def brand_radar(db: Session, fetch: bool = True) -> list[dict]:
     """Titulares que sirven de ideas de vídeo en el nicho del canal (en marcas: empresas en
     problemas). El nombre se mantiene por compatibilidad."""
     from app import niche
 
     query = niche.main_kit(db).news_query.strip() or BRAND_RADAR
 
-    def fetch():
+    key = f"news:radar:{query}"
+    if not fetch:  # solo lo que ya hay en memoria
+        hit = _cache.get(key)
+        return hit[1] if hit and hit[1] else []
+
+    def download():
         url = "https://news.google.com/rss/search"
         return parse_news(_get(url, q=query + " when:7d", **news_region(db)).text, limit=8)
 
-    return cached(f"news:radar:{query}", 3600, fetch) or []
+    return cached(key, 3600, download) or []
 
 
 # ---------------------------------------------------------------- dólar y clima

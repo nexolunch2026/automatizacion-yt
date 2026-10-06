@@ -79,3 +79,35 @@ def test_ideas_are_sorted_by_demand(logged_in, ai, monkeypatch):  # noqa: F811
         assert first < text.index("La caída de Nokia")  # la que se busca, primero
         assert "📈 Demanda media en YouTube" in text and "«kodak error»" in text
         assert assistant._json_setting(db, "telegram_ideas", [])[0] == "El error de Kodak"
+
+
+def test_check_many_runs_in_parallel(monkeypatch):
+    import threading
+    import time
+
+    seen = set()
+
+    def slow(term, language="es"):
+        seen.add(threading.get_ident())
+        time.sleep(0.2)
+        return [f"{term} historia"]
+
+    monkeypatch.setattr(demand, "fetch", slow)
+    start = time.time()
+    found = demand.check_many(["nokia", "kodak", "enron", "blockbuster"])
+    assert time.time() - start < 0.6  # en paralelo, no 0,8 s
+    assert [f["count"] for f in found] == [1, 1, 1, 1] and len(seen) > 1
+    assert demand.check_many([]) == []
+
+
+def test_radar_without_fetch_uses_only_memory(logged_in, monkeypatch):
+    from app import info
+
+    def no_network(*args, **kwargs):
+        raise AssertionError("no debe ir a internet")
+
+    monkeypatch.setattr(info, "_get", no_network)
+    info._cache.clear()
+    with SessionLocal() as db:
+        assert info.brand_radar(db, fetch=False) == []
+        assert assistant._radar_hint(db) == ""

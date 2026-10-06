@@ -2,6 +2,13 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.44.1: «ideas» sigue siendo rápido
+
+- La comprobación de lo que se busca en YouTube se hace **a la vez para todas las ideas**
+  (antes, una detrás de otra) y no espera más de 3 segundos.
+- Las noticias del nicho para inspirar ideas se toman de lo ya descargado: JARVIS no se
+  queda esperando a internet.
+
 ## 2026-10-06 — Versión 0.44: ideas que la gente busca
 
 - Cuando le pides **«ideas»** a JARVIS, ahora comprueba qué se busca de verdad en YouTube

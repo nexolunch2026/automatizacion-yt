@@ -999,8 +999,8 @@ def _radar_hint(db: Session) -> str:
     """Noticias recientes del nicho, como inspiración para ideas con interés actual."""
     from app import info
 
-    try:
-        headlines = [n["title"] for n in info.brand_radar(db)[:5]]
+    try:  # solo lo ya descargado (la pantalla lo pide cada 2 min): sin esperar a internet
+        headlines = [n["title"] for n in info.brand_radar(db, fetch=False)[:5]]
     except Exception:  # noqa: BLE001 — las ideas no deben fallar por esto
         log.info("Sin radar para las ideas", exc_info=True)
         return ""
@@ -1047,12 +1047,8 @@ No repitas estos temas ya hechos: {"; ".join(done) or "ninguno"}"""
     jobs.remember_working_model(db, ai)
     if not ideas:
         return [Reply("No se me ocurrió nada bueno ahora. Prueba otra vez en un rato.")]
-    ranked = demand.rank(
-        [
-            {"idea": i, "demand": demand.check(i.keyword or i.topic, _lang_code(language))}
-            for i in ideas
-        ]
-    )
+    found = demand.check_many([i.keyword or i.topic for i in ideas], _lang_code(language))
+    ranked = demand.rank([{"idea": i, "demand": d} for i, d in zip(ideas, found, strict=True)])
     ideas = [x["idea"] for x in ranked]  # primero las que más se buscan
     _save_json(db, "telegram_ideas", [i.topic for i in ideas])
     lines = [

@@ -17,6 +17,7 @@ log = logging.getLogger(__name__)
 
 URL = "https://suggestqueries.google.com/complete/search"
 CACHE_SECONDS = 24 * 3600
+TIMEOUT = 3  # JARVIS no debe hacer esperar: si YouTube tarda, la idea va sin demanda
 _cache: dict[str, tuple[float, list[str]]] = {}
 LEVELS = [(8, "alta", "🔥"), (4, "media", "📈"), (1, "baja", "🌱")]
 
@@ -27,7 +28,7 @@ def _plain(text: str) -> str:
 
 
 def _download(term: str, language: str) -> str:
-    with httpx.Client(timeout=6, follow_redirects=True) as client:
+    with httpx.Client(timeout=TIMEOUT, follow_redirects=True) as client:
         r = client.get(URL, params={"client": "firefox", "ds": "yt", "hl": language, "q": term})
         r.raise_for_status()
         return r.text
@@ -64,6 +65,16 @@ def score(term: str, suggestions: list[str]) -> dict:
 
 def check(term: str, language: str = "es") -> dict:
     return score(term, fetch(term, language))
+
+
+def check_many(terms: list[str], language: str = "es") -> list[dict]:
+    """Varias a la vez (en paralelo): tarda lo que la más lenta, no la suma."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    if not terms:
+        return []
+    with ThreadPoolExecutor(max_workers=min(len(terms), 6)) as pool:
+        return list(pool.map(lambda t: check(t, language), terms))
 
 
 ORDER = {"alta": 0, "media": 1, "baja": 2, "sin datos": 3}
