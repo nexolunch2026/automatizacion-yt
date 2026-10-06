@@ -108,6 +108,13 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   pantalla y frase final que invite a ver el documental completo.
 - [ ] **Banco de ideas más grande**: llegar a 80 historias reales (sobre todo de España y
   Latinoamérica) y marcar las que ya se hicieron.
+- [ ] **Lo que pide tu audiencia**: con la clave de YouTube, leer los comentarios de tus
+  vídeos y sacar preguntas y temas que pide la gente (ideas nuevas y respuestas para el
+  comentario fijado), en Rendimiento y por JARVIS.
+- [ ] **Miniatura legible en el móvil**: comprobar el tamaño y el contraste del texto de
+  cada miniatura vista a 168 px de ancho y avisar si no se lee bien.
+- [ ] **Alertas de referencias**: JARVIS avisa por Telegram cuando un vídeo de tus canales de
+  referencia se dispara (más de ×3 su media), con el botón «Hacer mi versión».
 - [x] **Pantalla JARVIS** (0.42.0): panel «Esta semana» con el plan de la semana y el camino a
   la monetización (suscriptores, horas, fecha estimada y un consejo).
 - [x] **Títulos y etiquetas con búsquedas reales** (0.45.0): en Publicación, lo que la gente
