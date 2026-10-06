@@ -11,7 +11,7 @@ import random
 import re
 import unicodedata
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from html import escape
 from pathlib import Path
 from typing import Literal
@@ -1839,11 +1839,57 @@ def reminder_alerts(db: Session, now: datetime | None = None) -> list[Reply]:
     ]
 
 
+REFERENCE_CHECK_HOURS = 6
+REFERENCE_ALERT_RATIO = 3.0  # avisa cuando un vídeo de referencia va ×3 su media
+
+
+def reference_alerts(db: Session, now: datetime | None = None) -> list[Reply]:
+    """Cada pocas horas, avisa de los vídeos que se disparan en los canales de referencia
+    (una sola vez por vídeo)."""
+    from app import references
+
+    now = now or datetime.now()
+    if not linked_chats(db) or not references.handles(db):
+        return []
+    last = get_setting(db, "ref_alert_checked") or ""
+    if last and now - datetime.fromisoformat(last) < timedelta(hours=REFERENCE_CHECK_HOURS):
+        return []
+    set_setting(db, "ref_alert_checked", now.isoformat(timespec="minutes"))
+    seen = set(_json_setting(db, "ref_alerted", []))
+    try:
+        top = references.top_outliers(references.overview(db), limit=10)
+    except Exception:  # noqa: BLE001 — un fallo de red no debe parar a JARVIS
+        log.info("No se pudieron revisar las referencias", exc_info=True)
+        return []
+    fresh = [
+        v for v in top if (v["ratio"] or 0) >= REFERENCE_ALERT_RATIO and v["days"] <= 14
+        and v.get("id") not in seen
+    ][:3]  # fmt: skip
+    if not fresh:
+        return []
+    _save_json(db, "ref_alerted", [*seen, *(v.get("id") for v in fresh)][-200:])
+    _save_json(db, "telegram_ideas", [v["title"] for v in fresh])
+    lines = [
+        f"🔥 <b>{escape(v['title'])}</b> — {escape(v['channel'])}, ×{v['ratio']} su media "
+        f"en {round(v['days'])} días"
+        for v in fresh
+    ]
+    return [
+        Reply(
+            "🔭 <b>Se está disparando en tus referencias</b>\n\n"
+            + "\n".join(lines)
+            + "\n\n¿Hacemos tu versión? (con tu investigación y tu enfoque)",
+            buttons=[[(f"🎬 {n}", f"idea:{n - 1}") for n in range(1, len(fresh) + 1)]],
+        )
+    ]
+
+
 def tick(db: Session, now: datetime | None = None) -> list[Reply]:
     """Lo que JARVIS hace por su cuenta cada pocos segundos."""
     return [
         *notifications(db),
         *research_notices(db),
+        *reference_alerts(db, now),
         *reminder_alerts(db, now),
         *briefing(db, now),
         *autopilot_tick(db, now),

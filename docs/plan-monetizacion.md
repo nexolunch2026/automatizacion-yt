@@ -113,7 +113,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   comentario fijado), en Rendimiento y por JARVIS.
 - [ ] **Miniatura legible en el móvil**: comprobar el tamaño y el contraste del texto de
   cada miniatura vista a 168 px de ancho y avisar si no se lee bien.
-- [ ] **Alertas de referencias**: JARVIS avisa por Telegram cuando un vídeo de tus canales de
+- [x] **Alertas de referencias** (0.64.0): JARVIS avisa por Telegram cuando un vídeo de tus canales de
   referencia se dispara (más de ×3 su media), con el botón «Hacer mi versión».
 - [x] **Pantalla JARVIS** (0.42.0): panel «Esta semana» con el plan de la semana y el camino a
   la monetización (suscriptores, horas, fecha estimada y un consejo).

@@ -85,3 +85,29 @@ def test_jarvis_lists_reference_outliers(logged_in, monkeypatch):
         reply = assistant.references_reply(db)
         assert "Gran éxito" in reply.text and reply.buttons
         assert "Gran éxito" in assistant._references_hint(db)  # ya leído: sirve para ideas
+
+
+def test_jarvis_alerts_once_when_a_reference_takes_off(logged_in, monkeypatch):
+    from datetime import datetime as dt
+    from datetime import timedelta as td
+
+    from app import assistant
+    from app.assistant import Incoming
+
+    create_channel(logged_in)
+    info._cache.clear()
+    monkeypatch.setattr(
+        info,
+        "fetch_youtube_public",
+        lambda handle, limit=15: {"name": "Magnates", "latest": [
+            video("Normal", 1000, 5), video("Otro", 1100, 5), video("Se dispara", 40000, 4)]},
+    )  # fmt: skip
+    now = dt(2026, 10, 6, 9)
+    with SessionLocal() as db:
+        assert assistant.reference_alerts(db, now) == []  # sin Telegram ni referencias
+        assistant.handle(db, Incoming(chat_id=42, text=assistant.link_code(db)))
+        references.add(db, "@MagnatesMedia")
+        first = assistant.reference_alerts(db, now)
+        assert len(first) == 1 and "Se dispara" in first[0].text and first[0].buttons
+        assert assistant.reference_alerts(db, now + td(hours=1)) == []  # cada 6 horas
+        assert assistant.reference_alerts(db, now + td(hours=7)) == []  # ya avisado

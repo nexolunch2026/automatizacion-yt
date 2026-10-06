@@ -2,6 +2,12 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.64: aviso cuando algo se dispara en tus referencias
+
+- Si tienes Telegram conectado, JARVIS revisa tus **canales de referencia** cada 6 horas y
+  te avisa cuando un vídeo de las últimas 2 semanas va **más de ×3 su media**, con botones
+  para hacer tu versión. Cada vídeo se avisa una sola vez.
+
 ## 2026-10-06 — Versión 0.63: referencias en la pantalla de JARVIS
 
 - En la **pantalla de JARVIS**, la cinta de abajo enseña también los vídeos que destacan
