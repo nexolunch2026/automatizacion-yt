@@ -2,6 +2,14 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.55: así se verá en YouTube
+
+- En **Miniatura** hay una vista **«👀 Así se verá en YouTube»**: tus 3 miniaturas con el
+  título, la duración y el nombre de tu canal, igual que en la portada de YouTube.
+- Con el selector de **título** cambias el título de las tres a la vez para ver qué
+  combinación llama más. El título se corta a dos líneas como en el móvil.
+- El campo «En rojo» ahora se llama «Destacada», porque usa el color de tu canal.
+
 ## 2026-10-06 — Versión 0.54: lista para subir con casillas
 
 - En **Publicación**, la «Lista para subir el vídeo» tiene **casillas**: vas marcando cada

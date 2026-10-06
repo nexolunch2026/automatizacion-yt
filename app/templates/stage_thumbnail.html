@@ -52,14 +52,50 @@
   {% endfor %}
 </div>
 
+{% if not thumbs.portrait %}
+<div class="card" id="vista-youtube">
+  <div class="row">
+    <h3>👀 Así se verá en YouTube</h3>
+    <label class="inline-label">Título
+      <select id="yt-title">{% for t in preview.titles %}<option>{{ t }}</option>{% endfor %}</select>
+    </label>
+  </div>
+  <p class="muted small">Compara cada miniatura con cada título como los verá la gente en la portada de YouTube.
+    En el móvil el título se corta a las dos líneas: lo importante, al principio.</p>
+  <div class="yt-feed">
+    {% for v in thumbs.variants %}
+    <div class="yt-card">
+      <div class="yt-thumb">
+        <img src="/proyectos/{{ project.id }}/archivos/miniaturas/{{ v.file }}?v={{ job.id if job else 0 }}" alt="">
+        {% if preview.duration %}<span class="yt-duration">{{ preview.duration }}</span>{% endif %}
+      </div>
+      <div class="yt-info">
+        <span class="yt-avatar">{{ (preview.channel or 'C')[:1]|upper }}</span>
+        <div>
+          <p class="yt-title" data-yt-title>{{ preview.titles[0] }}</p>
+          <p class="yt-meta">{{ preview.channel or 'Tu canal' }}<br>0 visualizaciones · hace 1 hora</p>
+        </div>
+      </div>
+      <p class="muted small">Miniatura {{ loop.index }}{% if thumbs.selected == loop.index0 %} · <span class="status-done">elegida</span>{% endif %}</p>
+    </div>
+    {% endfor %}
+  </div>
+  <script>
+    document.getElementById("yt-title").addEventListener("change", (e) => {
+      document.querySelectorAll("[data-yt-title]").forEach((el) => { el.textContent = e.target.value; });
+    });
+  </script>
+</div>
+{% endif %}
+
 <div class="card form-card">
   <h3>Cambiar los textos</h3>
-  <p class="muted small">Escribe 2–4 palabras. En «rojo» pon la palabra que quieres destacar. Se rehacen con los mismos fondos.</p>
+  <p class="muted small">Escribe 2–4 palabras. En «Destacada» pon la palabra que quieres resaltar con el color del canal. Se rehacen con los mismos fondos.</p>
   <form method="post" action="/proyectos/{{ project.id }}/miniatura/textos" class="stack">
     {% for v in thumbs.variants %}
     <div class="row-fields">
       <label>Texto {{ loop.index }} <input name="text{{ loop.index }}" value="{{ v.text }}" maxlength="40"></label>
-      <label>En rojo <input name="highlight{{ loop.index }}" value="{{ v.highlight }}" maxlength="20"></label>
+      <label>Destacada (color del canal) <input name="highlight{{ loop.index }}" value="{{ v.highlight }}" maxlength="20"></label>
     </div>
     {% endfor %}
     <button class="btn secondary">Rehacer con estos textos</button>

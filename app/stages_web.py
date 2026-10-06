@@ -656,7 +656,25 @@ def publish_page(request: Request, db: DB, user: CurrentUser, project_id: int):
 
 @router.get("/miniatura")
 def thumbnail_page(request: Request, db: DB, user: CurrentUser, project_id: int):
-    return _stage_page(request, db, _project(db, project_id), "thumbnail")
+    project = _project(db, project_id)
+    return _stage_page(request, db, project, "thumbnail", preview=youtube_preview(db, project))
+
+
+def youtube_preview(db, project: Project) -> dict:
+    """Lo necesario para ver las miniaturas como en YouTube: títulos, duración y canal."""
+    from app import profile
+    from app.pipeline.monetization import last_render
+
+    seo = jobs.get_result(db, project.id, "publish") or {}
+    script = jobs.get_result(db, project.id, "script") or {}
+    titles = [t for t in seo.get("titles", []) if t] or [script.get("title") or project.title]
+    seconds = last_render({"edit": jobs.get_result(db, project.id, "edit") or {}}).get("seconds")
+    duration = ""
+    if seconds:
+        minutes, rest = divmod(int(round(float(seconds))), 60)
+        duration = f"{minutes}:{rest:02d}"
+    channel = profile.get(db)["channel"] or (project.channel.name if project.channel else "")
+    return {"titles": titles[:4], "duration": duration, "channel": channel}
 
 
 @router.get("/shorts")

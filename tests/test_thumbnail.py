@@ -138,3 +138,10 @@ def test_project_page_asks_to_pick_the_thumbnail(logged_in, monkeypatch):
     assert "Elegir la miniatura" in logged_in.get("/proyectos/1").text
     logged_in.post("/proyectos/1/miniatura/elegir", data={"index": 0})
     assert "Elegir la miniatura" not in logged_in.get("/proyectos/1").text
+
+
+def test_thumbnail_page_shows_youtube_preview(logged_in, monkeypatch):
+    make_video_project(logged_in, monkeypatch)
+    page = logged_in.get("/proyectos/1/miniatura").text
+    assert "Así se verá en YouTube" in page and 'id="yt-title"' in page
+    assert page.count('class="yt-card"') == 3 and "Destacada (color del canal)" in page
