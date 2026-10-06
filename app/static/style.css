@@ -610,3 +610,8 @@ details > summary { cursor: pointer; }
 .service.need { border-color: rgba(255, 77, 79, .45); }
 .service.need .service-state { color: #ffb3b4; }
 .form-card[id] { scroll-margin-top: 80px; }
+
+/* JARVIS: tarjetas de ajustes en dos columnas */
+.jarvis-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; align-items: start; }
+.jarvis-cards .form-card { max-width: none; margin: 0; }
+@media (max-width: 900px) { .jarvis-cards { grid-template-columns: 1fr; } }
