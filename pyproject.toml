@@ -1,6 +1,6 @@
 [project]
 name = "faceless-studio"
-version = "0.66.2"
+version = "0.67.0"
 description = "Productora de vídeos faceless para YouTube"
 requires-python = ">=3.11"
 dependencies = [

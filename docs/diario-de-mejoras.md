@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.67: lo que pide tu audiencia
+
+- En **Rendimiento** hay una tarjeta nueva, **«💬 Lo que pide tu audiencia»**: pulsa
+  «Leer comentarios» y JARVIS lee los comentarios de tus últimos 10 vídeos (con la clave
+  gratuita de YouTube) y te dice qué **temas te piden** (con botón «Hacer este vídeo»),
+  qué **preguntas se repiten**, qué gusta, qué molesta y un texto listo para el
+  **comentario fijado** del próximo vídeo.
+- Pregúntale a JARVIS **«¿qué pide mi audiencia?»** o **«lee mis comentarios»** y te lo
+  cuenta, con botones para empezar esos vídeos.
+- Cuando le pides **ideas**, JARVIS da prioridad a lo que pide tu audiencia.
+
 ## 2026-10-06 — Versión 0.66.2: la voz gratuita ya no puede apagar el programa
 
 - En algunos Windows (rutas con tilde, como «Simón», o dentro de OneDrive), la

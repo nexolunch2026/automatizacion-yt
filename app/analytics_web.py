@@ -3,11 +3,12 @@
 import json
 from typing import Annotated
 
+import httpx
 from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 
-from app import analytics, info, jobs
+from app import analytics, audience, info, jobs
 from app.auth import DB, CurrentUser
 from app.models import Project, Video
 from app.providers.ai import ProviderError
@@ -50,6 +51,7 @@ def performance_page(request: Request, db: DB, user: CurrentUser):
         subs=subs,
         subs_spark=sparkline(subs, 260, 48),
         insight=analytics.last_insight(db),
+        audience=audience.last_report(db),
         retention=analytics.retention_summary(rows),
         retention_notes=analytics.retention_notes(analytics.retention_summary(rows)),
         last=get_setting(db, "analytics_last"),
@@ -80,6 +82,19 @@ def analyze_now(db: DB, user: CurrentUser):
     except (ProviderError, ValueError) as exc:
         return _redirect(f"/rendimiento?error={exc}")
     return _redirect("/rendimiento#analisis")
+
+
+@router.post("/rendimiento/audiencia")
+def audience_now(db: DB, user: CurrentUser):
+    try:
+        ai = jobs.get_ai_provider(db)
+        audience.analyze(db, ai)
+        jobs.remember_working_model(db, ai)
+    except (ProviderError, ValueError, audience.NoKey) as exc:
+        return _redirect(f"/rendimiento?error={exc}#audiencia")
+    except httpx.HTTPError as exc:
+        return _redirect(f"/rendimiento?error=No pude leer los comentarios ({exc})#audiencia")
+    return _redirect("/rendimiento#audiencia")
 
 
 @router.post("/rendimiento/{video_id}")

@@ -1,0 +1,138 @@
+"""LO QUE PIDE TU AUDIENCIA: leer los comentarios de tus vídeos y sacar ideas.
+
+Con la clave gratuita de YouTube Data API se leen los comentarios más relevantes de los
+últimos vídeos del canal. Gemini los resume en: preguntas que se repiten, temas que la
+gente pide (ideas de vídeo con demanda real), lo que gusta, lo que molesta y un texto
+para el comentario fijado del próximo vídeo. Se guarda el último informe.
+"""
+
+import json
+from datetime import datetime
+
+import httpx
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.models import Video
+from app.settings_store import get_api_key, get_setting, set_setting
+
+KEY = "audience_report"
+API = "https://www.googleapis.com/youtube/v3/commentThreads"
+VIDEOS = 10  # últimos vídeos que se leen
+PER_VIDEO = 50  # comentarios por vídeo (los más relevantes)
+MAX_CHARS = 280  # cada comentario, recortado
+
+
+class Comment(BaseModel):
+    video: str
+    text: str
+    likes: int = 0
+
+
+class Report(BaseModel):
+    summary: str = Field(description="Qué dice la audiencia en 2–3 frases")
+    questions: list[str] = Field(description="Hasta 5 preguntas que la gente repite")
+    requests: list[str] = Field(
+        description="Hasta 5 temas de vídeo que la gente pide o que encajan con lo que pide, "
+        "escritos como tema de vídeo concreto"
+    )
+    liked: list[str] = Field(description="Hasta 3 cosas que gustan")
+    complaints: list[str] = Field(description="Hasta 3 quejas o cosas a mejorar")
+    pinned: str = Field(
+        description="Texto para el comentario fijado del próximo vídeo: responde a la "
+        "pregunta más repetida e invita a comentar con una pregunta concreta"
+    )
+
+
+class NoKey(Exception):
+    pass
+
+
+def _download(video_id: str, key: str, limit: int = PER_VIDEO) -> dict:
+    with httpx.Client(timeout=15) as client:
+        response = client.get(
+            API,
+            params={
+                "part": "snippet",
+                "videoId": video_id,
+                "maxResults": limit,
+                "order": "relevance",
+                "textFormat": "plainText",
+                "key": key,
+            },
+        )
+    if response.status_code == 403:  # comentarios desactivados en ese vídeo
+        return {"items": []}
+    response.raise_for_status()
+    return response.json()
+
+
+def comments_of(video_id: str, title: str, key: str) -> list[Comment]:
+    data = _download(video_id, key)
+    found = []
+    for item in data.get("items", []):
+        top = item.get("snippet", {}).get("topLevelComment", {}).get("snippet", {})
+        text = " ".join(str(top.get("textDisplay", "")).split())[:MAX_CHARS]
+        if text:
+            found.append(Comment(video=title, text=text, likes=int(top.get("likeCount", 0))))
+    return found
+
+
+def collect(db: Session, key: str) -> list[Comment]:
+    videos = db.scalars(select(Video).order_by(Video.published.desc()).limit(VIDEOS)).all()
+    comments: list[Comment] = []
+    for video in videos:
+        try:
+            comments += comments_of(video.video_id, video.title or video.video_id, key)
+        except httpx.HTTPError:
+            continue  # un vídeo que falla no para el resto
+    return sorted(comments, key=lambda c: c.likes, reverse=True)
+
+
+def prompt(about: str, comments: list[Comment]) -> str:
+    lines = "\n".join(f"- [{c.video}] ({c.likes} me gusta) {c.text}" for c in comments[:300])
+    return f"""Eres el analista de audiencia de {about}
+Estos son comentarios reales de sus vídeos (los más relevantes primero):
+{lines}
+
+Resume en español qué dice la audiencia: preguntas que se repiten, temas de vídeo que
+piden (o que encajan claramente con lo que piden), lo que gusta, lo que molesta, y un texto
+corto y cercano para el comentario fijado del próximo vídeo. Usa solo lo que dicen los
+comentarios: no inventes. Ignora el spam y los insultos."""
+
+
+def analyze(db: Session, ai, now: datetime | None = None) -> dict:
+    from app import profile
+
+    key = get_api_key(db, "youtube")
+    if not key:
+        raise NoKey("Hace falta la clave gratuita de YouTube para leer los comentarios.")
+    comments = collect(db, key)
+    if not comments:
+        raise ValueError("Aún no hay comentarios en tus vídeos (o no encontré tus vídeos).")
+    report = ai.generate_json(prompt(profile.about(db), comments), Report)
+    data = {
+        **report.model_dump(),
+        "comments": len(comments),
+        "date": (now or datetime.now()).strftime("%d/%m/%Y %H:%M"),
+    }
+    set_setting(db, KEY, json.dumps(data, ensure_ascii=False))
+    return data
+
+
+def last_report(db: Session) -> dict | None:
+    try:
+        return json.loads(get_setting(db, KEY) or "null")
+    except ValueError:
+        return None
+
+
+def ideas_hint(db: Session) -> str:
+    """Los temas que pide la audiencia, para orientar las ideas de vídeo."""
+    report = last_report(db)
+    if not report or not report.get("requests"):
+        return ""
+    return "Temas que PIDE la audiencia del canal en los comentarios (prioridad): " + " | ".join(
+        report["requests"][:5]
+    )

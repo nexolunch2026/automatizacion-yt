@@ -108,7 +108,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   pantalla y frase final que invite a ver el documental completo.
 - [ ] **Banco de ideas más grande**: llegar a 80 historias reales (sobre todo de España y
   Latinoamérica) y marcar las que ya se hicieron.
-- [ ] **Lo que pide tu audiencia**: con la clave de YouTube, leer los comentarios de tus
+- [x] **Lo que pide tu audiencia** (0.67.0): con la clave de YouTube, leer los comentarios de tus
   vídeos y sacar preguntas y temas que pide la gente (ideas nuevas y respuestas para el
   comentario fijado), en Rendimiento y por JARVIS.
 - [x] **Miniatura legible en el móvil** (0.65.0): comprobar el tamaño y el contraste del texto de

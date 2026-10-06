@@ -687,3 +687,10 @@ details > summary { cursor: pointer; }
 @media (max-width: 720px) { .ref-top li { grid-template-columns: minmax(0, 1fr); } .ref-top li > * { grid-column: 1 !important; grid-row: auto !important; } }
 
 .mobile-warn { color: #ffd98a; }
+
+/* Lo que pide tu audiencia */
+.plain-list { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 8px; }
+.plain-list li.row { justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.plain-list form { margin: 0; }
+.quote { border-left: 3px solid var(--accent, #ff4d4f); padding: 8px 12px; margin: 0 0 12px;
+  background: rgba(255, 255, 255, .04); border-radius: 0 8px 8px 0; }

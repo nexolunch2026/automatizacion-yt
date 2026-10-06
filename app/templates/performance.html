@@ -63,6 +63,44 @@
   </div>
 </div>
 
+<div class="card" id="audiencia">
+  <div class="row">
+    <h2>💬 Lo que pide tu audiencia</h2>
+    <form method="post" action="/rendimiento/audiencia"
+          onsubmit="this.querySelector('button').textContent = 'Leyendo comentarios…'">
+      <button class="btn small" {% if not rows or not has_key or not has_gemini %}disabled{% endif %}>Leer comentarios</button>
+    </form>
+  </div>
+  {% if not has_key %}
+  <p class="muted">Para leer los comentarios hace falta la clave gratuita de YouTube
+    (<a href="/jarvis#preferencias">JARVIS → Lo que JARVIS sabe de ti</a>).</p>
+  {% elif audience %}
+  <p>{{ audience.summary }}</p>
+  {% if audience.requests %}
+  <h3>🎬 Temas que te piden</h3>
+  <ul class="plain-list">
+    {% for t in audience.requests %}
+    <li class="row">{{ t }}
+      <form method="post" action="/rapido"><input type="hidden" name="topic" value="{{ t }}">
+        <button class="btn small secondary" title="Empieza un vídeo con este tema">Hacer este vídeo</button></form></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if audience.questions %}<h3>❓ Preguntas que se repiten</h3><ul>{% for x in audience.questions %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+  {% if audience.liked %}<h3>❤️ Lo que gusta</h3><ul>{% for x in audience.liked %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+  {% if audience.complaints %}<h3>🔧 Lo que molesta</h3><ul>{% for x in audience.complaints %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+  {% if audience.pinned %}
+  <h3>📌 Para el comentario fijado del próximo vídeo</h3>
+  <p class="quote">{{ audience.pinned }}</p>
+  {% endif %}
+  <p class="muted small">{{ audience.comments }} comentarios leídos el {{ audience.date }}.
+    Las ideas de JARVIS ya tienen en cuenta estos temas.</p>
+  {% else %}
+  <p class="muted">Pulsa «Leer comentarios» y JARVIS leerá los comentarios de tus últimos vídeos para decirte
+    qué temas te piden, qué preguntas se repiten y qué poner en el comentario fijado.</p>
+  {% endif %}
+</div>
+
 <div class="card">
   <h2>Vídeos</h2>
   {% if rows %}

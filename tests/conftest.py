@@ -99,6 +99,9 @@ def no_real_internet(monkeypatch):
         raise httpx.ConnectError("sin internet en las pruebas")
 
     monkeypatch.setattr(demand, "_download", offline)
+    from app import audience
+
+    monkeypatch.setattr(audience, "_download", lambda *a, **k: offline("", ""))
     voice = FakeVoice()
     monkeypatch.setattr(jobs, "get_voice_provider", lambda *args, **kwargs: voice)
     monkeypatch.setattr(jobs, "get_image_providers", lambda db: ImageChain([FakeImageMaker()]))

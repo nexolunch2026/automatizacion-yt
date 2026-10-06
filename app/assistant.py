@@ -16,6 +16,7 @@ from html import escape
 from pathlib import Path
 from typing import Literal
 
+import httpx
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -216,6 +217,7 @@ class Intent(BaseModel):
         "yt_research",
         "demand",
         "references",
+        "audience",
         "question",
         "remember",
         "memory",
@@ -450,6 +452,53 @@ def references_reply(db: Session) -> Reply:
     )
 
 
+AUDIENCE_WORDS = (
+    "que pide mi audiencia",
+    "que pide la audiencia",
+    "que pide mi publico",
+    "que dicen los comentarios",
+    "que dicen en los comentarios",
+    "comentarios",
+    "mis comentarios",
+    "lee los comentarios",
+    "lee mis comentarios",
+    "que me piden",
+)
+
+
+def audience_reply(db: Session, ai=None) -> Reply:
+    """Lo que pide la audiencia: el último informe, o uno nuevo si hay clave y Gemini."""
+    from app import audience
+
+    report = audience.last_report(db)
+    if ai is not None:
+        try:
+            report = audience.analyze(db, ai)
+        except audience.NoKey:
+            if not report:
+                return Reply(
+                    "💬 Para leer tus comentarios necesito la clave gratuita de YouTube. "
+                    "Ponla en JARVIS → «Lo que JARVIS sabe de ti»."
+                )
+        except (ProviderError, ValueError, httpx.HTTPError) as exc:
+            if not report:
+                return Reply(f"💬 No pude leer los comentarios: {escape(str(exc))}")
+    if not report:
+        return Reply("💬 Aún no he leído tus comentarios. Ve a Rendimiento → «Leer comentarios».")
+    lines = [f"💬 <b>Lo que pide tu audiencia</b> ({report['comments']} comentarios)\n"]
+    lines.append(escape(report["summary"]))
+    if report.get("questions"):
+        lines.append("\n❓ " + "\n❓ ".join(escape(q) for q in report["questions"][:3]))
+    requests = report.get("requests", [])[:5]
+    if requests:
+        lines.append("\n🎬 <b>Temas que te piden:</b>")
+        lines += [f"{n}. {escape(t)}" for n, t in enumerate(requests, 1)]
+        _save_json(db, "telegram_ideas", requests)
+        lines.append("\nPulsa un número para empezar ese vídeo.")
+    buttons = [[(f"🎬 {n}", f"idea:{n - 1}") for n in range(1, len(requests) + 1)]]
+    return Reply("\n".join(lines), buttons=buttons if requests else None)
+
+
 DEMAND = re.compile(
     r"^(?:que (?:busca|buscan|escribe) la gente|que se busca|que buscan|cuanta demanda tiene"
     r"|tiene demanda|se busca)(?: en youtube)? (?:sobre |de |acerca de )?(.+?)(?: en youtube)?$"
@@ -522,6 +571,8 @@ def quick_intent(text: str) -> Intent | None:
         return Intent(action="yt_research", topic=topic)
     if bare in REFERENCE_WORDS:
         return Intent(action="references")
+    if bare in AUDIENCE_WORDS:
+        return Intent(action="audience")
     match = DEMAND.match(bare)
     if match and len(match.group(1).strip()) >= 3:
         return Intent(action="demand", topic=match.group(1).strip())
@@ -1081,6 +1132,15 @@ def _references_hint(db: Session) -> str:
     )
 
 
+def _audience_hint(db: Session) -> str:
+    from app import audience
+
+    try:
+        return audience.ideas_hint(db)
+    except Exception:  # noqa: BLE001 — las ideas no deben fallar por esto
+        return ""
+
+
 def _radar_hint(db: Session) -> str:
     """Noticias recientes del nicho, como inspiración para ideas con interés actual."""
     from app import info
@@ -1122,6 +1182,7 @@ para que el canal no parezca hecho en serie: YouTube no monetiza el contenido re
 {_performance_hint(db)}
 {_radar_hint(db)}
 {_references_hint(db)}
+{_audience_hint(db)}
 Propón temas que la gente BUSQUE (en «keyword», lo que escribiría en YouTube).
 No repitas estos temas ya hechos: {"; ".join(done) or "ninguno"}"""
     try:
@@ -1280,6 +1341,12 @@ def _act(db: Session, intent: Intent, text: str, chat_id: int = 0) -> list[Reply
         return bank_replies(db, region)
     if intent.action == "references":
         return [references_reply(db)]
+    if intent.action == "audience":
+        try:
+            ai = jobs.get_ai_provider(db)
+        except ProviderError:
+            ai = None
+        return [audience_reply(db, ai)]
     if intent.action == "demand" and intent.topic.strip():
         return [demand_reply(intent.topic)]
     if intent.action == "yt_research" and intent.topic.strip():
