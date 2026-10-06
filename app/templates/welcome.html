@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% if first_time %}👋 Te damos la bienvenida a Faceless Studio{% else %}👤 Mi perfil{% endif %}</h1>
+    <p class="muted">Cuéntale al programa de qué va tu canal. Los guiones, JARVIS, las ideas y los
+      consejos se adaptan a esto. Todo se guarda solo en este ordenador.</p>
+  </div>
+</div>
+
+<div class="card form-card">
+  {% if saved %}<p class="alert ok">Perfil guardado.</p>{% endif %}
+  <form method="post" action="/bienvenida" class="stack">
+    <label>Tu nombre (así te llamará JARVIS)
+      <input name="owner" value="{{ p.owner }}" maxlength="40" placeholder="p. ej. Ana" autofocus>
+    </label>
+    <label>Nombre del canal
+      <input name="channel" value="{{ p.channel }}" maxlength="80" placeholder="p. ej. Historias que cambiaron todo">
+    </label>
+    <label>Usuario del canal en YouTube (si ya lo tienes)
+      <input name="handle" value="{{ handle }}" maxlength="120" placeholder="@TuCanal">
+    </label>
+    <label>¿De qué son tus vídeos?
+      <input name="niche" value="{{ p.niche }}" maxlength="160">
+      <span class="muted small">El programa está pensado para documentales narrados (marcas, empresas,
+        historia, misterios…). Escríbelo como «documentales sobre …».</span>
+    </label>
+    <label>País
+      <select name="country">{% for c in countries %}<option {% if c == p.country %}selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+    </label>
+    <button class="btn">Guardar</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Primeros pasos</h2>
+  <ol class="steps">
+    <li>{% if has_gemini %}✅{% else %}⬜{% endif %} Conecta <strong>Gemini</strong> (gratis) en
+      <a href="/configuracion">Configuración</a>: es la IA que investiga y escribe.</li>
+    <li>{% if has_channels %}✅{% else %}⬜{% endif %} Crea tu <a href="/canales">canal</a> dentro del programa.</li>
+    <li>⬜ Haz tu <a href="/proyectos/nuevo">primer vídeo</a>. Para la voz puedes empezar con la voz gratis y pasar a
+      ElevenLabs cuando quieras.</li>
+    <li>⬜ Opcional: conecta <a href="/jarvis">JARVIS</a> con Telegram para manejarlo desde el móvil.</li>
+  </ol>
+</div>
+
+<div class="card" id="compartir">
+  <h2>🤝 Pasárselo a otra persona</h2>
+  <p>Cada persona lo instala en <strong>su</strong> ordenador con Windows: tiene su propia base de datos, sus
+    vídeos y sus claves. No comparte nada contigo.</p>
+  <ol class="steps">
+    <li>En su ordenador, que pulse las teclas <strong>Windows + R</strong> (se abre la cajita «Ejecutar»).</li>
+    <li>Que pegue esta línea y pulse Enter (cuando pregunte, escribe <strong>S</strong>):
+      <div class="copy-row">
+        <code class="copy-text" id="install-line">powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/nexolunch2026/automatizacion-yt/claude/hola-5p4ttp/scripts/instalar.ps1 | iex"</code>
+        <button class="btn small secondary" data-copy="install-line">Copiar</button>
+      </div>
+    </li>
+    <li>El programa se abre solo. Crea su cuenta y rellena su perfil.</li>
+    <li>Necesitará su propia clave gratis de Gemini (aistudio.google.com). Telegram y ElevenLabs son opcionales.</li>
+  </ol>
+  <p class="muted small">Se actualiza con el mismo botón «Actualizar» que tú. Sus datos quedan en
+    su carpeta <code>FacelessStudio\datos</code>.</p>
+</div>
+<script>
+  document.querySelectorAll("[data-copy]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const text = document.getElementById(btn.dataset.copy).innerText;
+      try { await navigator.clipboard.writeText(text); } catch (e) {}
+      const old = btn.textContent; btn.textContent = "¡Copiado!";
+      setTimeout(() => btn.textContent = old, 1500);
+    });
+  });
+</script>
+{% endblock %}

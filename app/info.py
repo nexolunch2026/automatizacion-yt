@@ -25,7 +25,7 @@ from app.settings_store import get_api_key, get_setting, set_setting
 
 log = logging.getLogger(__name__)
 
-DEFAULT_CHANNEL = "@AnatomiaDeUnaMarca"
+DEFAULT_CHANNEL = ""  # cada instalación pone su canal (perfil o JARVIS)
 MONETIZATION_SUBS = 1000
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) FacelessStudio"}
 _cache: dict[str, tuple[float, object]] = {}
@@ -57,6 +57,8 @@ def _get(url: str, **params) -> httpx.Response:
 
 def channel_handle(db: Session) -> str:
     raw = (get_setting(db, "youtube_channel") or DEFAULT_CHANNEL).strip()
+    if not raw:
+        return ""
     match = re.search(r"(@[\w.\-]+)|(UC[\w-]{22})", raw)
     if match:
         return match.group(0)
@@ -65,6 +67,8 @@ def channel_handle(db: Session) -> str:
 
 def channel_url(db: Session) -> str:
     handle = channel_handle(db)
+    if not handle:  # sin canal configurado, Studio abre el canal de la cuenta de Google
+        return "https://studio.youtube.com"
     return f"https://www.youtube.com/{handle if handle.startswith('@') else 'channel/' + handle}"
 
 
@@ -209,6 +213,8 @@ def fetch_youtube_public(handle: str, limit: int = 5) -> dict:
 
 def youtube(db: Session) -> dict | None:
     handle = channel_handle(db)
+    if not handle:  # aún no ha dicho cuál es su canal
+        return None
     key = get_api_key(db, "youtube")
 
     def fetch():
@@ -224,7 +230,14 @@ def youtube(db: Session) -> dict | None:
 
 # ---------------------------------------------------------------- noticias
 
-NEWS_REGION = {"hl": "es-419", "gl": "CO", "ceid": "CO:es-419"}
+
+def news_region(db: Session) -> dict:
+    from app import profile
+
+    gl = profile.region(db)
+    return {"hl": "es-419", "gl": gl, "ceid": f"{gl}:es-419"}
+
+
 BRAND_RADAR = (
     '(quiebra OR "cierra tiendas" OR despidos OR crisis OR "en bancarrota" OR '
     '"deja de vender" OR "pierde mercado") empresa marca'
@@ -255,7 +268,7 @@ def parse_news(xml_text: str, limit: int = 8) -> list[dict]:
 def news(db: Session) -> list[dict]:
     def fetch():
         url = "https://news.google.com/rss/headlines/section/topic/BUSINESS"
-        return parse_news(_get(url, **NEWS_REGION).text)
+        return parse_news(_get(url, **news_region(db)).text)
 
     return cached("news:business", 1800, fetch) or []
 
@@ -265,7 +278,7 @@ def brand_radar(db: Session) -> list[dict]:
 
     def fetch():
         url = "https://news.google.com/rss/search"
-        return parse_news(_get(url, q=BRAND_RADAR + " when:7d", **NEWS_REGION).text, limit=8)
+        return parse_news(_get(url, q=BRAND_RADAR + " when:7d", **news_region(db)).text, limit=8)
 
     return cached("news:radar", 3600, fetch) or []
 

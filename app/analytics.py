@@ -285,8 +285,10 @@ def _prompt(db: Session, rows: list[dict]) -> str:
         )
     subs = json.loads(get_setting(db, "subs_history") or "[]")
     growth = f"Suscriptores: {subs[0][1]} → {subs[-1][1]} desde {subs[0][0]}." if subs else ""
-    return f"""Eres analista de YouTube para un canal nuevo de documentales sobre marcas
-(«Anatomía De Una Marca»). Con estos datos reales, di qué funciona y qué mejorar.
+    from app import profile
+
+    return f"""Eres analista de YouTube para {profile.about(db)}
+Es un canal nuevo. Con estos datos reales, di qué funciona y qué mejorar.
 Sé honesto y concreto; con pocos vídeos o pocos días, dilo y no saques conclusiones
 fuertes. No inventes datos que no estén aquí. En español, frases cortas.
 Referencias útiles: un CTR de 4–10 % es normal; si la gente ve menos del 30 %, el

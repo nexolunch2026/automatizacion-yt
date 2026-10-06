@@ -13,9 +13,18 @@ from app.jobs import Worker
 from app.telegram import TelegramBot
 
 
+def _migrate_profile() -> None:
+    from app import profile
+    from app.db import SessionLocal
+
+    with SessionLocal() as db:
+        profile.migrate(db)
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     init_db()
+    _migrate_profile()
     threads = [Worker(), TelegramBot()] if WORKER_ENABLED else []
     for thread in threads:
         thread.start()

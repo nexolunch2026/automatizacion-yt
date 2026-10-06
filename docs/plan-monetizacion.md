@@ -86,6 +86,8 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   subir/bajar volumen, poner y parar música, y avisos en pantalla.
 - [ ] **Guion más humano**: control de calidad de frases demasiado largas, repeticiones y
   palabras de relleno, con botón para reescribir solo esas frases.
+- [x] **Versión para compartir**: perfil por instalación (nombre, canal, nicho, país),
+  bienvenida para gente nueva y línea de instalación para pasar.
 - [x] **Investigar en YouTube**: buscar y ver varios vídeos de un tema y juntar lo
   aprendido en un informe (🎓 Aprender o «investiga en YouTube…» a JARVIS).
 - [x] **Shorts que llevan al vídeo largo**: gancho propio en los primeros 2 s, texto en

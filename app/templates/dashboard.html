@@ -8,6 +8,13 @@
   <a class="btn" href="/proyectos/nuevo">+ Nuevo vídeo</a>
 </div>
 
+{% if needs_profile %}
+<div class="card">
+  <p class="alert info">👋 Cuéntale al programa de qué va tu canal (nombre, nicho y país) para que
+    los guiones, JARVIS y los consejos se adapten a ti. <a class="btn small" href="/bienvenida">Completar mi perfil</a></p>
+</div>
+{% endif %}
+
 {% if not channels %}
 <div class="card empty">
   <h2>Empieza creando tu primer canal</h2>

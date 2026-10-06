@@ -7,7 +7,7 @@
    mismas imágenes con movimiento, la misma voz, subtítulos grandes y el gancho arriba.
 3. Cada Short empuja al documental: gancho desde el primer fotograma, final que deja la
    intriga abierta, cartel «la historia completa, en el canal» los últimos 3 s y, cuando
-   Simón pega el enlace del vídeo largo, la descripción y el comentario fijado lo llevan.
+   el creador pega el enlace del vídeo largo, la descripción y el comentario fijado lo llevan.
    En YouTube Studio además se elige ese vídeo como «Vídeo relacionado» del Short.
 """
 

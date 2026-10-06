@@ -228,7 +228,7 @@ def _run_script(db: Session, project: Project, progress, params: dict) -> dict:
         params["structure"] = pick_structure(recent_structures(db, project))
     from app.learning import script_rules
 
-    params["lessons"] = script_rules(db)  # lo aprendido de vídeos que Simón marcó
+    params["lessons"] = script_rules(db)  # lo aprendido de vídeos que el creador marcó
     ai = get_ai_provider(db)
     data = run_script(project, research, strategy, ai, params, progress)
     remember_working_model(db, ai)

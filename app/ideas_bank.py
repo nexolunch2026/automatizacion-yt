@@ -1,4 +1,4 @@
-"""Banco de ideas para «Anatomía De Una Marca».
+"""Banco de ideas para canales de documentales sobre marcas.
 
 Historias reales y comprobables, con formatos distintos (para que el canal no parezca
 hecho en serie) y de varias regiones (España, Latinoamérica y el resto del mundo). JARVIS

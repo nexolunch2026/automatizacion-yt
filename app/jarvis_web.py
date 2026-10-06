@@ -50,7 +50,7 @@ def _page(request: Request, db: DB, status_code: int = 200, **ctx):
         status=assistant.status_text(db),
         city=get_setting(db, "jarvis_city") or "",
         call_me=get_setting(db, "jarvis_name") or "",
-        youtube_channel=get_setting(db, "youtube_channel") or "@AnatomiaDeUnaMarca",
+        youtube_channel=get_setting(db, "youtube_channel") or "",
         youtube_hint=api_key_hint(db, "youtube"),
         currency=get_setting(db, "jarvis_currency") or "COP",
         **ctx,
@@ -264,7 +264,7 @@ def save_preferences(
 
     set_setting(db, "jarvis_city", city.strip()[:80])
     set_setting(db, "jarvis_name", call_me.strip()[:40])
-    set_setting(db, "youtube_channel", youtube_channel.strip()[:120] or info.DEFAULT_CHANNEL)
+    set_setting(db, "youtube_channel", youtube_channel.strip()[:120])
     if re.fullmatch(r"[A-Z]{3}", currency.strip().upper()):
         set_setting(db, "jarvis_currency", currency.strip().upper())
     if youtube_key.strip():

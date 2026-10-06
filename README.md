@@ -8,9 +8,19 @@ montaje del vídeo MP4 con subtítulos, textos de publicación (título, descrip
 capítulos, etiquetas), 3 miniaturas con el estilo del canal para elegir, Shorts verticales con los mejores momentos y gráficos animados con las cifras del guion**.
 La creación automática de los vídeos se irá añadiendo poco a poco.
 
+Cada ordenador tiene **su propia base de datos**: se le puede pasar a otra persona y tendrá
+sus propios vídeos, claves y perfil (ver «Pasárselo a otra persona», abajo).
+
 ---
 
 ## Cómo instalarlo en Windows (paso a paso)
+
+### Pasárselo a otra persona
+La otra persona hace los mismos pasos de abajo en **su** ordenador. Al crear su cuenta, el
+programa le pide su perfil (nombre, canal, de qué son sus vídeos y país) y lo adapta todo
+a ella. Necesita su propia clave gratis de Gemini. No comparte datos con nadie: todo
+queda en su carpeta `FacelessStudio\datos`. La línea para instalar también está en
+**Configuración → 👤 Mi perfil y compartir**.
 
 ### Paso 1 — Instalar (un solo paso, y deja todo ordenado)
 1. Si el programa está abierto, cierra la **ventana negra**.

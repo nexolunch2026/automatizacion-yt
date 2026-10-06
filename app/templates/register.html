@@ -4,7 +4,7 @@
 {% block content %}
 <div class="card narrow">
   <h1>Crear cuenta</h1>
-  <p class="muted">Solo se pueden crear dos cuentas: la tuya y la de tu amigo.</p>
+  <p class="muted">En cada ordenador se pueden crear dos cuentas. Todo se guarda en este ordenador: nadie más ve tus datos.</p>
   {% if error %}<p class="alert">{{ error }}</p>{% endif %}
   <form method="post" action="/registro" class="stack">
     <label>Usuario <input name="username" value="{{ username or '' }}" autocomplete="username" required autofocus></label>

@@ -23,7 +23,7 @@ import httpx
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app import learning
+from app import learning, profile
 from app.providers.ai import ProviderError
 from app.settings_store import get_api_key, get_setting, set_setting
 
@@ -245,16 +245,15 @@ def find_videos(db: Session, topic: str, ai, limit: int) -> list[dict]:
 # ---------------------------------------------------------------- investigar
 
 
-def report_prompt(topic: str, items: list[dict]) -> str:
+def report_prompt(topic: str, items: list[dict], about: str = "") -> str:
     notes = "\n\n".join(
         f"VÍDEO {i}: «{x['title']}» ({x.get('channel', '')})\n{x['summary']}\n"
         + "\n".join(f"- {g}" for g in x.get("good", []) + x.get("apply", []))
         + ("\nOjo: " + "; ".join(x["careful"]) if x.get("careful") else "")
         for i, x in enumerate(items, 1)
     )
-    return f"""Eres el asesor de «Anatomía De Una Marca», un canal de YouTube en español sin
-rostro (faceless) de documentales sobre marcas que suben y caen. Lo lleva Simón,
-principiante, con poco tiempo y presupuesto mínimo.
+    return f"""Eres el asesor de {about or "un canal de YouTube faceless."} Es principiante,
+con poco tiempo y presupuesto mínimo.
 
 Ha investigado en YouTube: «{topic}». Estas son las notas de cada vídeo visto:
 
@@ -292,7 +291,7 @@ def run(db: Session, report_id: str, ai) -> dict:
     if not watched:
         raise ProviderError("No pude ver ninguno de los vídeos encontrados. Prueba más tarde.")
     _update(db, report_id, message="Escribiendo el informe", videos=videos)
-    report = ai.generate_json(report_prompt(item["topic"], watched), Report)
+    report = ai.generate_json(report_prompt(item["topic"], watched, profile.about(db)), Report)
     return _update(
         db,
         report_id,

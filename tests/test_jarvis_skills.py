@@ -43,6 +43,16 @@ class Response:
         return self._data
 
 
+def _my_channel():
+    with SessionLocal() as db:
+        set_setting(db, "youtube_channel", "@AnatomiaDeUnaMarca")
+
+
+def test_channel_not_set_yet_points_to_profile(logged_in):
+    assert "Mi perfil" in say("¿cómo va el canal?")[0].text
+    assert say("abre mi canal")[0].action == "open:https://studio.youtube.com"
+
+
 @pytest.fixture
 def internet(monkeypatch):
     """Internet simulado: noticias, YouTube, dólar y clima."""
@@ -198,6 +208,7 @@ def test_news_and_radar_to_video(logged_in, ai, internet):
 
 
 def test_channel_without_key_reads_public_page(logged_in, internet):
+    _my_channel()
     text = say("¿cómo va el canal?")[0].text
     assert "1.200 suscriptores" in text and "120 % de los 1.000" not in text
     assert "La caída de Nokia" in text and "1.534 visitas" in text
@@ -205,6 +216,7 @@ def test_channel_without_key_reads_public_page(logged_in, internet):
 
 
 def test_channel_with_youtube_key(logged_in, internet):
+    _my_channel()
     with SessionLocal() as db:
         from app.settings_store import save_api_key
 
@@ -244,6 +256,7 @@ def test_fact_of_the_day_once_a_day(logged_in, ai, monkeypatch):
 
 
 def test_open_pages(logged_in, ai):
+    _my_channel()
     create_channel(logged_in)
     reply = say("abre YouTube Studio")[0]
     assert reply.action == "open:https://studio.youtube.com"
@@ -279,6 +292,7 @@ def test_conversation_memory_goes_to_the_ai(logged_in, ai, monkeypatch):
 
 
 def test_hud_world(logged_in, internet):
+    _my_channel()
     with SessionLocal() as db:
         set_setting(db, "jarvis_city", "Medellín")
     world = logged_in.get("/jarvis/hud/mundo").json()

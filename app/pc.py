@@ -1,6 +1,6 @@
 """JARVIS controla el ordenador (Windows): abrir carpetas y programas, volumen y música.
 
-El programa corre en el propio ordenador de Simón, así que puede pedirle cosas a Windows.
+El programa corre en el propio ordenador del creador, así que puede pedirle cosas a Windows.
 Nada peligroso: no apaga, no borra y no instala nada. Fuera de Windows (o en las pruebas)
 no se ejecuta nada: `RUN` se reemplaza.
 """

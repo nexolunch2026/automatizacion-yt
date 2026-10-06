@@ -108,4 +108,6 @@ def register(
     db.commit()
     request.session.clear()
     request.session["user_id"] = user.id
-    return _redirect("/")
+    from app import profile
+
+    return _redirect("/" if profile.is_set(db) else "/bienvenida")

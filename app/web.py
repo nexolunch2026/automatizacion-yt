@@ -5,7 +5,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app import jobs
+from app import jobs, profile
 from app.auth import DB, CurrentUser
 from app.media import delete_project_files
 from app.models import (
@@ -19,7 +19,7 @@ from app.models import (
     StageResult,
 )
 from app.pipeline.monetization import project_review
-from app.settings_store import api_key_hint
+from app.settings_store import api_key_hint, get_setting
 from app.stages_web import SLUGS
 from app.templating import render
 
@@ -45,8 +45,45 @@ def dashboard(request: Request, db: DB, user: CurrentUser, canal: int | None = N
         query = query.where(Project.channel_id == canal)
     projects = db.scalars(query).all()
     return render(
-        request, "dashboard.html", channels=channels, projects=projects, selected_channel=canal
+        request,
+        "dashboard.html",
+        channels=channels,
+        projects=projects,
+        selected_channel=canal,
+        needs_profile=not profile.is_set(db),
     )
+
+
+# ---------- Perfil (la primera vez: bienvenida) ----------
+
+
+@router.get("/bienvenida")
+def welcome_page(request: Request, db: DB, user: CurrentUser, guardado: int = 0):
+    return render(
+        request,
+        "welcome.html",
+        p=profile.get(db),
+        first_time=not profile.is_set(db),
+        handle=get_setting(db, "youtube_channel") or "",
+        countries=list(profile.COUNTRIES),
+        has_gemini=api_key_hint(db, "gemini") is not None,
+        has_channels=bool(db.scalar(select(Channel.id).limit(1))),
+        saved=bool(guardado),
+    )
+
+
+@router.post("/bienvenida")
+def save_profile(
+    db: DB,
+    user: CurrentUser,
+    owner: Annotated[str, Form()] = "",
+    channel: Annotated[str, Form()] = "",
+    handle: Annotated[str, Form()] = "",
+    niche: Annotated[str, Form()] = "",
+    country: Annotated[str, Form()] = "",
+):
+    profile.save(db, owner, channel, niche, country, handle)
+    return _redirect("/bienvenida?guardado=1")
 
 
 # ---------- Canales ----------

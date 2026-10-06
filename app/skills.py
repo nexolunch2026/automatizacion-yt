@@ -339,12 +339,19 @@ def channel_summary(db: Session) -> str:
 
 
 def _channel(db: Session, intent) -> list:
+    if not info.channel_handle(db):
+        return [
+            _r(
+                "📺 Aún no sé cuál es tu canal. Escribe tu usuario de YouTube (@TuCanal) en "
+                "👤 Mi perfil (en Configuración) y te digo cómo va."
+            )
+        ]
     data = info.youtube(db)
     if not data:
         return [
             _r(
                 "📺 No pude leer tu canal. Revisa en la página JARVIS que el canal esté bien "
-                "escrito (por ejemplo @AnatomiaDeUnaMarca) y que haya internet."
+                "escrito (por ejemplo @TuCanal) y que haya internet."
             )
         ]
     lines = [f"📺 <b>{escape(data.get('name') or 'Tu canal')}</b>"]

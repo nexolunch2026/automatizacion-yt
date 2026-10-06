@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import agenda, coach, daily, ideas_bank, jobs, learning, skills, yt_research
+from app import agenda, coach, daily, ideas_bank, jobs, learning, profile, skills, yt_research
 from app.media import project_dir
 from app.models import DURATIONS, STAGES, Channel, Job, Project, User
 from app.pipeline.monetization import project_review, summary_text
@@ -601,8 +601,8 @@ def info_cache_news(db: Session) -> list[dict]:
 
 def _ai_intent(db: Session, text: str, chat_id: int = 0) -> Intent:
     ai = jobs.get_ai_provider(db)
-    prompt = f"""Eres JARVIS, el asistente del estudio de YouTube «Faceless Studio» (canal de
-documentales sin rostro sobre marcas: «Anatomía De Una Marca»). Clasifica el mensaje:
+    prompt = f"""Eres JARVIS, el asistente del estudio de YouTube «Faceless Studio»:
+{profile.about(db)} Clasifica el mensaje:
 - new_video: quiere un vídeo nuevo (topic = el tema, duration si la dice).
 - status: pregunta cómo va la producción.
 - ideas: pide ideas o temas para vídeos.
@@ -1221,8 +1221,11 @@ def answer_question(db: Session, question: str, chat_id: int = 0) -> list[Reply]
     ai = jobs.get_ai_provider(db)
     facts = "\n".join(f"- {f}" for f in memory(db)) or "(nada todavía)"
     city = (get_setting(db, "jarvis_city") or "").strip()
-    where = f"Simón vive en {city} (Colombia salvo que diga otra cosa)." if city else ""
-    prompt = f"""Eres JARVIS, el asistente personal de Simón (como el de Iron Man): sabes de
+    name, country = profile.owner(db), profile.get(db)["country"]
+    where = f"{name or 'Esta persona'} vive en {city} ({country} salvo que diga otra cosa)."
+    where = where if city else ""
+    who = name or "quien te habla"
+    prompt = f"""Eres JARVIS, el asistente personal de {who} (como el de Iron Man): sabes de
 todo. Responde a su pregunta en español sencillo y útil: 2–6 frases, o pasos numerados si
 pregunta cómo hacer algo. Busca en Google lo que necesites para dar datos actuales y
 correctos; si no estás seguro, dilo. Tono: educado y preciso, con un toque de humor
@@ -1230,12 +1233,12 @@ británico; trátalo de «usted». {where}
 Si pregunta por planes (cine, restaurantes, eventos, sitios), sé CONCRETO: busca en su
 ciudad opciones reales de hoy, con nombres, horarios, precios y dónde, y recomienda una
 diciendo por qué. Nada de «revise la cartelera»: búscala tú (por ejemplo «cartelera
-Procinal Rionegro hoy», «Cinépolis San Nicolás Rionegro horarios», «estrenos cine Colombia
-esta semana»). Nunca digas que no puedes acceder: busca. Si no aparecen los horarios de
+cine {city or "mi ciudad"} hoy», «horarios cine {city or "mi ciudad"}», «estrenos cine
+{country} esta semana»). Nunca digas que no puedes acceder: busca. Si no aparecen los horarios de
 hoy, da al menos las películas en cartelera esta semana, recomienda una y di en qué web
 ver la hora exacta.
 
-LO QUE SABES DE SIMÓN:
+LO QUE SABES DE QUIEN TE HABLA:
 {facts}
 
 {_context(db, chat_id)}

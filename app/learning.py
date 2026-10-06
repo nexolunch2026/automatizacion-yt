@@ -1,7 +1,7 @@
 """APRENDER DE UN VÍDEO: Gemini ve un vídeo de YouTube y saca lo útil para el canal.
 
-Simón pega el enlace (en la página «Aprender» o por Telegram a JARVIS). Gemini lo ve desde
-su ordenador y devuelve lo bueno, cómo aplicarlo a «Anatomía De Una Marca» y lo que no
+El creador pega el enlace (en la página «Aprender» o por Telegram a JARVIS). Gemini lo ve
+desde su ordenador y devuelve lo bueno, cómo aplicarlo a su canal y lo que no
 conviene (por las normas de YouTube). Las lecciones marcadas con «Aplicar en mis guiones»
 se tienen en cuenta al escribir los guiones nuevos.
 """
@@ -45,10 +45,9 @@ def find_link(text: str) -> str | None:
     return f"https://www.youtube.com/watch?v={match.group(1)}" if match else None
 
 
-def prompt() -> str:
-    return """Mira este vídeo de YouTube entero. Eres el asesor de «Anatomía De Una Marca», un
-canal de YouTube en español sin rostro (faceless) de documentales sobre marcas y empresas
-que suben y caen. Lo lleva Simón, principiante, con poco tiempo y presupuesto mínimo, con un
+def prompt(about: str) -> str:
+    return f"""Mira este vídeo de YouTube entero. Eres el asesor de
+{about} Es principiante, con poco tiempo y presupuesto mínimo, y usa un
 programa que investiga, escribe el guion, pone voz, imágenes y monta el vídeo.
 
 Responde en español sencillo, sin jerga:
@@ -75,7 +74,9 @@ def _save(db: Session, items: list[dict]) -> None:
 
 def learn(db: Session, url: str, ai, now: datetime | None = None) -> dict:
     """Ve el vídeo con la IA y guarda la lección (la más nueva, la primera)."""
-    lesson = ai.watch_video(url, prompt(), Lesson)
+    from app import profile
+
+    lesson = ai.watch_video(url, prompt(profile.about(db)), Lesson)
     item = {
         "id": secrets.token_hex(4),
         "url": url,

@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.38: para compartir con otras personas
+
+- **Perfil**: nombre, canal, de qué son los vídeos y país. Los guiones, JARVIS, «Aprender»
+  y las cifras del canal lo usan en vez de llevar tu nombre escrito a fuego.
+- **Tú no tienes que hacer nada**: como ya tenías proyectos, tu perfil («Anatomía De Una
+  Marca», Colombia) se rellena solo. Puedes verlo en Configuración → 👤 Mi perfil.
+- **Para otra persona**: instala con la misma línea que tú. Al crear su cuenta le salen la
+  bienvenida y sus primeros pasos (Gemini, canal, primer vídeo). Tiene su propia base de
+  datos y sus propias claves: no ve nada tuyo ni tú lo suyo.
+- La línea para instalar se copia con un botón en «Mi perfil y compartir».
+- Las noticias y el radar de marcas salen del país de cada persona.
+
 ## 2026-10-06 — Versión 0.37: investigar en YouTube
 
 - **Investigar un tema viendo vídeos**: en 🎓 Aprender escribes un tema («monetizar un

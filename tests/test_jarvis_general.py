@@ -1,6 +1,6 @@
 import pytest
 
-from app import assistant
+from app import assistant, profile
 from app.assistant import Incoming, Intent, quick_intent
 from app.db import SessionLocal
 from app.providers.ai import GroundedText, ProviderError, Source
@@ -134,9 +134,11 @@ def test_questions_are_concrete_local_and_remember_the_talk(logged_in, ai, monke
     monkeypatch.setattr(JarvisAI, "grounded_research", research)
     with SessionLocal() as db:
         set_setting(db, "jarvis_city", "Rionegro")
+        profile.save(db, "Simón", "Anatomía De Una Marca", "", "Colombia")
         ask(db, "¿Qué película me recomiendas en el cine?")
         ask(db, "¿Y a qué hora es la siguiente función?")
     assert "Simón vive en Rionegro" in prompts[0] and "Nada de «revise la cartelera»" in prompts[0]
+    assert "cartelera\ncine Rionegro hoy" in prompts[0]
     assert "Creador: ¿Qué película me recomiendas en el cine?" in prompts[1]
 
 
