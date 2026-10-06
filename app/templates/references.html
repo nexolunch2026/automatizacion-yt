@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>🔭 Canales de referencia</h1>
+    <p class="muted">Lo que funciona en los canales de tu nicho. 🔥 marca los vídeos que van mucho mejor de lo
+      normal <strong>en ese canal</strong> (el doble de visitas por día o más): temas con interés demostrado
+      que puedes contar a tu manera, con tu investigación y tu enfoque.</p>
+  </div>
+  <a class="btn secondary" href="/rendimiento">← Rendimiento</a>
+</div>
+
+<form method="post" action="/referencias" class="card quick-start">
+  <label for="ref-channel"><strong>Añadir un canal</strong>
+    <span class="muted small">Su @ (por ejemplo @MagnatesMedia) o el enlace del canal. Hasta 8.</span></label>
+  <div class="quick-row">
+    <input id="ref-channel" name="channel" placeholder="@CanalDeReferencia" required maxlength="200">
+    <button class="btn">Añadir</button>
+  </div>
+  {% if error %}<p class="alert">Eso no parece un canal: escribe su @ o pega el enlace del canal.</p>{% endif %}
+  {% if not has_key %}<p class="muted small">Sin la clave gratuita de YouTube se leen sus últimos 15 vídeos. Con la clave
+    (en <a href="/jarvis#preferencias">JARVIS</a>) los datos son exactos.</p>{% endif %}
+</form>
+
+{% if top %}
+<div class="card">
+  <h2>🔥 Lo que más destaca ahora</h2>
+  <ul class="ref-top">
+    {% for v in top %}
+    <li>
+      <a href="{{ v.url }}" target="_blank" rel="noopener"><strong>{{ v.title }}</strong></a>
+      <span class="muted small">{{ v.channel }} · {{ '{:,}'.format(v.views).replace(',', '.') }} visitas · hace {{ v.days|round|int }} días</span>
+      <span class="badge ok">×{{ v.ratio }} su media</span>
+      <form method="post" action="/rapido"><input type="hidden" name="topic" value="{{ v.title }}">
+        <button class="btn small secondary" title="Empieza un vídeo con este tema (con tu propia investigación y enfoque)">Hacer mi versión</button></form>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% for c in channels %}
+<div class="card">
+  <div class="row">
+    <h3>{{ c.name }} <span class="muted small">{{ c.handle }}{% if c.subscribers %} · {{ '{:,}'.format(c.subscribers).replace(',', '.') }} suscriptores{% endif %}</span></h3>
+    <form method="post" action="/referencias/quitar"><input type="hidden" name="handle" value="{{ c.handle }}">
+      <button class="btn-link small">Quitar</button></form>
+  </div>
+  {% if c.error %}
+  <p class="muted">No pude leer este canal (¿está bien escrito? ¿hay internet?). Se reintenta al recargar.</p>
+  {% elif not c.videos %}
+  <p class="muted">Este canal no tiene vídeos públicos recientes.</p>
+  {% else %}
+  <div class="table-wrap">
+  <table class="perf">
+    <thead><tr><th>Vídeo</th><th>Visitas</th><th>Por día</th><th>Frente a su media</th></tr></thead>
+    <tbody>
+      {% for v in c.videos[:10] %}
+      <tr>
+        <td>{% if v.outlier %}🔥 {% endif %}<a href="{{ v.url }}" target="_blank" rel="noopener">{{ v.title }}</a>
+          <div class="muted small">hace {{ v.days|round|int }} días</div></td>
+        <td>{{ '{:,}'.format(v.views).replace(',', '.') }}</td>
+        <td>{{ '{:,.0f}'.format(v.per_day).replace(',', '.') }}</td>
+        <td>{% if v.ratio is not none %}<span class="{{ 'status-done' if v.ratio >= 2 else ('muted' if v.ratio >= 0.8 else 'status-failed') }}">×{{ v.ratio }}</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+</div>
+{% else %}
+<div class="card empty">
+  <h2>Añade 3–5 canales de tu nicho</h2>
+  <p class="muted">Por ejemplo, para documentales de marcas: @MagnatesMedia, @CompanyMan, @ModernMBA. Verás qué temas les están
+    funcionando mejor de lo normal.</p>
+</div>
+{% endfor %}
+{% endblock %}

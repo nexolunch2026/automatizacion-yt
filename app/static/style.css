@@ -676,3 +676,12 @@ details > summary { cursor: pointer; }
 .human-issues { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 6px; }
 .human-issues .issue { display: inline-block; margin-right: 6px; padding: 1px 8px; border-radius: 10px;
   background: rgba(255, 217, 138, .14); color: #ffd98a; }
+
+/* Canales de referencia */
+.ref-top { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.ref-top li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 12px; align-items: center;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255, 255, 255, .02); }
+.ref-top li > a, .ref-top li > .muted { grid-column: 1; }
+.ref-top li > .badge { grid-column: 2; grid-row: 1 / span 2; }
+.ref-top li > form { grid-column: 3; grid-row: 1 / span 2; margin: 0; }
+@media (max-width: 720px) { .ref-top li { grid-template-columns: minmax(0, 1fr); } .ref-top li > * { grid-column: 1 !important; grid-row: auto !important; } }

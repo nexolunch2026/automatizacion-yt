@@ -2,6 +2,16 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.61: canales de referencia
+
+- Nueva página **«🔭 Canales de referencia»** (botón en Rendimiento): pones el @ de 3–8
+  canales de tu nicho y ves sus últimos vídeos con las **visitas por día** frente a la
+  media de ese canal.
+- 🔥 marca los que van **el doble o más** de lo normal: temas con interés demostrado. Con
+  **«Hacer mi versión»** empiezas un vídeo sobre ese tema (con tu investigación y tu
+  enfoque, nunca copiando).
+- Gratis y sin clave (lee sus últimos 15 vídeos); con la clave de YouTube, datos exactos.
+
 ## 2026-10-06 — Versión 0.60: todo para subir, en un archivo
 
 - En **Publicación**, el botón **«📦 Descargar todo para subir»** baja un .zip con: el

@@ -186,6 +186,17 @@ def main() -> None:
     radar = info.brand_radar(db)
     print(f"   Radar de marcas: {len(radar)} -> {radar[0]['title'] if radar else 'AVISO: ninguno'}")
     print(f"   Dólar: {info.dollar(db) or 'AVISO: sin datos'}")
+    from app import references
+
+    try:
+        ref = references.channel("@MagnatesMedia", None)
+        best = ref["videos"][0] if ref["videos"] else None
+        print(
+            f"   Canal de referencia @MagnatesMedia: {len(ref['videos'])} vídeos"
+            + (f", el que más destaca: ×{best['ratio']} «{best['title']}»" if best else "")
+        )
+    except Exception as exc:  # noqa: BLE001 — solo aviso
+        print(f"   AVISO referencias: {exc}")
     from app import demand
 
     found = demand.check("historia de Nokia")

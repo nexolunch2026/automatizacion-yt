@@ -6,10 +6,13 @@
     <p class="muted">Cómo le va a cada vídeo y qué aprende JARVIS para el siguiente.
       {% if last %}Cifras leídas el {{ last[:16]|replace('T', ' a las ') }} (se actualizan solas cada 3 horas).{% endif %}</p>
   </div>
-  <form method="post" action="/rendimiento/actualizar"
-        onsubmit="this.querySelector('button').textContent = 'Leyendo YouTube…'">
-    <button class="btn secondary">Actualizar cifras ahora</button>
-  </form>
+  <div class="row-actions">
+    <a class="btn secondary" href="/referencias">🔭 Canales de referencia</a>
+    <form method="post" action="/rendimiento/actualizar"
+          onsubmit="this.querySelector('button').textContent = 'Leyendo YouTube…'">
+      <button class="btn secondary">Actualizar cifras ahora</button>
+    </form>
+  </div>
 </div>
 {% if error %}<p class="alert">{{ error }}</p>{% endif %}
 {% if not has_key %}

@@ -129,3 +129,38 @@ def link_youtube(db: DB, user: CurrentUser, project_id: int, url: Annotated[str,
     project.status = "Publicado"
     db.commit()
     return _redirect(f"/proyectos/{project_id}/publicacion")
+
+
+# ---------------------------------------------------------------- canales de referencia
+
+
+@router.get("/referencias")
+def references_page(request: Request, db: DB, user: CurrentUser):
+    from app import references
+
+    channels = references.overview(db)
+    return render(
+        request,
+        "references.html",
+        channels=channels,
+        top=references.top_outliers(channels),
+        has_key=api_key_hint(db, "youtube") is not None,
+        error=request.query_params.get("error"),
+    )
+
+
+@router.post("/referencias")
+def add_reference(db: DB, user: CurrentUser, channel: Annotated[str, Form()] = ""):
+    from app import references
+
+    if references.add(db, channel) is None:
+        return _redirect("/referencias?error=1")
+    return _redirect("/referencias")
+
+
+@router.post("/referencias/quitar")
+def remove_reference(db: DB, user: CurrentUser, handle: Annotated[str, Form()] = ""):
+    from app import references
+
+    references.remove(db, handle)
+    return _redirect("/referencias")
