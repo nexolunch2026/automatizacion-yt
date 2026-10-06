@@ -4,6 +4,29 @@
 {{ ui.header(project) }}
 {{ ui.tabs(project, 'overview', slugs, stages, results, jobs) }}
 
+{% if showcase %}
+<div class="card showcase">
+  <video controls preload="metadata" class="player" src="{{ showcase.video }}"
+    {% if showcase.thumb %}poster="{{ showcase.thumb }}"{% endif %}></video>
+  <div class="showcase-info">
+    <p class="muted small">{{ 'Vídeo final' if showcase.final else 'Vista previa' }} · {{ showcase.duration }}</p>
+    <h2>{{ showcase.title }}</h2>
+    {% if qc %}
+    {% set level = 'ok' if qc.score >= 85 else ('warn' if qc.score >= 60 else 'fail') %}
+    <a class="qc-gauge qc-{{ level }} small-gauge" style="--pct: {{ qc.score }}" href="/proyectos/{{ project.id }}/control"
+       title="Nota de monetización">
+      <span class="qc-score qc-{{ level }}">{{ qc.score }}</span>
+    </a>
+    <p class="muted small">Nota de calidad para monetizar</p>
+    {% endif %}
+    <div class="row-actions">
+      <a class="btn small" href="{{ showcase.video }}" download>Descargar MP4</a>
+      <a class="btn small secondary" href="/proyectos/{{ project.id }}/publicacion">Textos para subir</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {# Siguiente paso recomendado #}
 {% set research_job = jobs.get('research') %}
 {% set strategy = results.get('strategy') %}

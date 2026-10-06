@@ -57,6 +57,25 @@ def dashboard(request: Request, db: DB, user: CurrentUser, canal: int | None = N
     )
 
 
+def _showcase(db, project, results: dict) -> dict | None:
+    """El vídeo montado, la miniatura y el título elegido, para la cabecera del proyecto."""
+    from app.pipeline.monetization import last_render
+
+    render_ = last_render(results)
+    if not render_.get("file"):
+        return None
+    seo = results.get("publish") or {}
+    title = (seo.get("titles") or [None])[0] or (results.get("script") or {}).get("title")
+    minutes, seconds = divmod(int(round(float(render_.get("seconds") or 0))), 60)
+    return {
+        "video": f"/proyectos/{project.id}/archivos/{render_['file']}",
+        "thumb": _thumb_url(db, project.id),
+        "title": title or project.title,
+        "duration": f"{minutes}:{seconds:02d}",
+        "final": render_["file"].endswith("/video.mp4"),
+    }
+
+
 def _thumb_url(db, project_id: int) -> str | None:
     """La miniatura elegida (o la primera) para la tarjeta del proyecto."""
     thumb = jobs.get_result(db, project_id, "thumbnail") or {}
@@ -325,6 +344,7 @@ def project_detail(request: Request, db: DB, user: CurrentUser, project_id: int)
         has_gemini=api_key_hint(db, "gemini") is not None,
         qc=project_review(db, project) if "script" in results else None,
         usage=usage.project_usage(db, project_id),
+        showcase=_showcase(db, project, results),
         month_usage=usage.month_usage(db),
         stage_names=STAGES,
     )

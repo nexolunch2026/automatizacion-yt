@@ -145,3 +145,10 @@ def test_thumbnail_page_shows_youtube_preview(logged_in, monkeypatch):
     page = logged_in.get("/proyectos/1/miniatura").text
     assert "Así se verá en YouTube" in page and 'id="yt-title"' in page
     assert page.count('class="yt-card"') == 3 and "Destacada (color del canal)" in page
+
+
+def test_project_page_showcases_the_video(logged_in, monkeypatch):
+    make_video_project(logged_in, monkeypatch)
+    page = logged_in.get("/proyectos/1").text
+    assert 'class="card showcase"' in page and "Descargar MP4" in page
+    assert 'poster="/proyectos/1/archivos/miniaturas/' in page

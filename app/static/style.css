@@ -615,3 +615,12 @@ details > summary { cursor: pointer; }
 .jarvis-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; align-items: start; }
 .jarvis-cards .form-card { max-width: none; margin: 0; }
 @media (max-width: 900px) { .jarvis-cards { grid-template-columns: 1fr; } }
+
+/* Cabecera del proyecto con el vídeo */
+.showcase { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; align-items: start; }
+.showcase .player { margin: 0; aspect-ratio: 16 / 9; }
+.showcase-info h2 { font-size: 1.3rem; margin-bottom: 12px; }
+.small-gauge { width: 72px; height: 72px; text-decoration: none; margin: 4px 0; }
+.small-gauge::before { inset: 7px; }
+.small-gauge .qc-score { font-size: 1.8rem; }
+@media (max-width: 800px) { .showcase { grid-template-columns: 1fr; } }
