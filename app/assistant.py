@@ -20,13 +20,13 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import agenda, coach, daily, ideas_bank, jobs, learning, skills
+from app import agenda, coach, daily, ideas_bank, jobs, learning, skills, yt_research
 from app.media import project_dir
 from app.models import DURATIONS, STAGES, Channel, Job, Project, User
 from app.pipeline.monetization import project_review, summary_text
 from app.pipeline.render import run_ffmpeg
 from app.providers.ai import GroundedText, ProviderError
-from app.settings_store import get_setting, set_setting
+from app.settings_store import api_key_hint, get_setting, set_setting
 
 log = logging.getLogger(__name__)
 
@@ -200,6 +200,7 @@ class Intent(BaseModel):
         "week_plan",
         "publish_day",
         "learn_video",
+        "yt_research",
         "question",
         "remember",
         "memory",
@@ -384,6 +385,54 @@ def daily_intent(text: str, norm: str, bare: str) -> Intent | None:
     return None
 
 
+# «investiga…» siempre es investigar; «busca/mira…» solo si habla de vídeos sobre un tema
+# (así «busca en YouTube música lofi» sigue abriendo YouTube).
+STUDY = r"(?:investiga|investigame|averigua|aprende)(?: y (?:ve|mira|aprende))?"
+LOOK = rf"(?:{STUDY}|busca|buscame|mira|ve)"
+SOME = r"(?:(?:unos|algunos|los mejores|un par de|varios) )?"
+RESEARCH = [
+    re.compile(rf"^{STUDY} {SOME}(?:videos? )?(?:de |en )?youtube (?:sobre |de |acerca de )?(.+)$"),
+    re.compile(rf"^{LOOK} {SOME}videos? (?:de |en )youtube (?:sobre|de|acerca de) (.+)$"),
+    re.compile(rf"^{LOOK} {SOME}videos? (?:sobre|acerca de) (.+)$"),
+    re.compile(rf"^{STUDY} (?:sobre )?(.+?) en youtube$"),
+]
+
+
+def research_topic(bare: str) -> str:
+    """«investiga en YouTube canales faceless» → «canales faceless»."""
+    for pattern in RESEARCH:
+        match = pattern.match(bare)
+        if match:
+            topic = re.sub(r"\s+en youtube$", "", match.group(1)).strip(" .")
+            if len(topic) >= 3:
+                return topic
+    return ""
+
+
+def yt_research_reply(db: Session, topic: str) -> Reply:
+    if api_key_hint(db, "gemini") is None:
+        return Reply("Para ver vídeos necesito Gemini (gratis): conéctalo en Configuración.")
+    waiting = yt_research.busy(db)
+    item = yt_research.queue(db, topic)
+    when = "Cuando termine la que tengo en marcha, " if waiting else ""
+    return Reply(
+        f"🔎 {when}Busco en YouTube los {item['count']} mejores vídeos sobre "
+        f"«{escape(item['topic'])}», los veo y te hago un informe. Tardo unos minutos: "
+        "te aviso aquí (también queda en 🎓 Aprender)."
+    )
+
+
+def research_notices(db: Session) -> list[Reply]:
+    """Avisa de las investigaciones en YouTube que terminaron."""
+    if not linked_chats(db):
+        return []
+    replies = []
+    for item in yt_research.unnotified(db):
+        text = escape(yt_research.report_text(item))
+        replies.append(Reply(("🎓 " if item["status"] == "done" else "⚠️ ") + text))
+    return replies
+
+
 def quick_intent(text: str) -> Intent | None:
     """Órdenes habituales sin gastar IA."""
     wake = WAKE_WORD.match(normalize(text))
@@ -396,6 +445,9 @@ def quick_intent(text: str) -> Intent | None:
     link = learning.find_link(text)
     if link:
         return Intent(action="learn_video", target=link)
+    topic = research_topic(bare)
+    if topic:
+        return Intent(action="yt_research", topic=topic)
     shopping = daily_intent(text, norm, bare)
     if shopping:
         return shopping
@@ -579,6 +631,7 @@ documentales sin rostro sobre marcas: «Anatomía De Una Marca»). Clasifica el 
   tilde, p. ej. «jueves»; task = la hora en número si la dice).
 - next_step: pregunta qué hacer ahora, qué falta o cuál es el siguiente paso.
 - monetize: pregunta cuánto le falta para monetizar o para el Programa de Socios.
+- yt_research: pide investigar un tema VIENDO vídeos de YouTube (topic = el tema).
 - review: pregunta si un vídeo se puede monetizar o pide revisarlo antes de subirlo
   (topic = de qué vídeo, si lo dice).
 - open: quiere abrir una página, app o proyecto, buscar algo o poner música
@@ -642,7 +695,8 @@ def help_replies() -> list[Reply]:
             "<b>«sube el volumen»</b>, <b>«pausa»</b>, <b>«siguiente canción»</b>, "
             "<b>«bloquea el ordenador»</b>.\n"
             "🎓 <b>Mándame un enlace de YouTube</b> y lo veo: te digo lo bueno y cómo "
-            "aplicarlo a tu canal.\n"
+            "aplicarlo a tu canal. O <b>«investiga en YouTube canales faceless»</b>: "
+            "busco los mejores vídeos, los veo y te hago un informe.\n"
             "❓ <b>Pregúntame lo que sea</b> (cultura, noticias, deportes, cómo hacer algo…): "
             "lo busco en Google.\n"
             "🧠 <b>«recuerda que…»</b> y lo tendré siempre en cuenta; <b>«¿qué sabes de "
@@ -1078,6 +1132,8 @@ def _act(db: Session, intent: Intent, text: str, chat_id: int = 0) -> list[Reply
     if intent.action == "idea_bank":
         region = intent.topic if intent.topic in ("España", "Latinoamérica") else ""
         return bank_replies(db, region)
+    if intent.action == "yt_research" and intent.topic.strip():
+        return [yt_research_reply(db, intent.topic)]
     if intent.action == "learn_video" and learning.find_link(intent.target):
         return learn_video_replies(db, learning.find_link(intent.target))
     if intent.action == "week_plan":
@@ -1634,6 +1690,7 @@ def tick(db: Session, now: datetime | None = None) -> list[Reply]:
     """Lo que JARVIS hace por su cuenta cada pocos segundos."""
     return [
         *notifications(db),
+        *research_notices(db),
         *reminder_alerts(db, now),
         *briefing(db, now),
         *autopilot_tick(db, now),

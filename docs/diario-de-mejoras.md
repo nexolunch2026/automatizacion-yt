@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.37: investigar en YouTube
+
+- **Investigar un tema viendo vídeos**: en 🎓 Aprender escribes un tema («monetizar un
+  canal faceless») o le dices a JARVIS «investiga en YouTube canales faceless». El
+  programa busca los 3 vídeos más útiles (de 4 a 20 minutos), Gemini los ve uno por uno
+  y te junta lo que repiten los que saben: consejos, qué hacer en tu canal, lo que no
+  conviene e ideas de vídeo.
+- Lo hace **por detrás** (tarda unos minutos) y JARVIS te avisa por Telegram al terminar.
+- Cada vídeo visto queda también como lección: puedes marcarla para tus guiones.
+- Busca con la clave de YouTube si la tienes; si no, en la búsqueda pública de YouTube
+  o en Google. Comprueba que cada vídeo existe antes de verlo.
+
 ## 2026-10-06 — Versión 0.36: Shorts que llevan al documental
 
 - **Cartel final** en cada Short: los últimos 3 segundos sale «LA HISTORIA COMPLETA, EN

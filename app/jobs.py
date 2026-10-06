@@ -585,7 +585,10 @@ def latest_jobs(db: Session, project_id: int) -> dict[str, Job]:
 
 def recover_interrupted() -> None:
     """Las tareas que estaban en marcha cuando se cerró el programa vuelven a la cola."""
+    from app import yt_research
+
     with SessionLocal() as db:
+        yt_research.recover_interrupted(db)
         for job in db.scalars(select(Job).where(Job.status == "running")):
             job.status, job.message = "queued", "Reanudando tras un cierre"
         db.commit()
@@ -710,6 +713,18 @@ def _refresh_analytics() -> None:
         log.exception("Error guardando las cifras del canal")
 
 
+def _run_research() -> bool:
+    """Sin tareas de vídeo pendientes: investigaciones en YouTube que estén en cola."""
+    from app import yt_research
+
+    try:
+        with SessionLocal() as db:
+            return yt_research.process_next(db, get_ai_provider)
+    except Exception:  # noqa: BLE001 — nunca debe parar el trabajador
+        log.exception("Error investigando en YouTube")
+        return False
+
+
 _backup_tried = 0.0
 
 
@@ -749,6 +764,8 @@ class Worker(threading.Thread):
             except Exception:  # noqa: BLE001 — el trabajador nunca debe morir
                 log.exception("Error en el trabajador")
                 worked = False
+            if not worked:
+                worked = _run_research()
             if not worked:
                 _refresh_analytics()
                 _daily_backup()

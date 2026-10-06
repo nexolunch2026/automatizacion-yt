@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import RedirectResponse
 
-from app import jobs, learning
+from app import jobs, learning, yt_research
 from app.auth import DB, CurrentUser
 from app.providers.ai import ProviderError
 from app.settings_store import api_key_hint
@@ -20,6 +20,9 @@ def _page(request: Request, db: DB, status_code: int = 200, **ctx):
         "learning.html",
         status_code=status_code,
         lessons=learning.lessons(db),
+        reports=yt_research.reports(db),
+        working=yt_research.busy(db),
+        suggested=yt_research.SUGGESTED,
         has_gemini=api_key_hint(db, "gemini") is not None,
         **ctx,
     )
@@ -67,3 +70,21 @@ def toggle_lesson(db: DB, user: CurrentUser, lesson_id: str):
 def delete_lesson(db: DB, user: CurrentUser, lesson_id: str):
     learning.delete(db, lesson_id)
     return RedirectResponse("/aprender", status_code=303)
+
+
+@router.post("/aprender/investigar")
+def research(
+    db: DB,
+    user: CurrentUser,
+    topic: Annotated[str, Form()],
+    count: Annotated[int, Form()] = yt_research.DEFAULT_COUNT,
+):
+    if topic.strip():
+        yt_research.queue(db, topic, count)
+    return RedirectResponse("/aprender#investigar", status_code=303)
+
+
+@router.post("/aprender/investigacion/{report_id}/borrar")
+def delete_report(db: DB, user: CurrentUser, report_id: str):
+    yt_research.delete(db, report_id)
+    return RedirectResponse("/aprender#investigar", status_code=303)

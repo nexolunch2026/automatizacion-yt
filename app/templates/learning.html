@@ -2,7 +2,7 @@
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>🎓 Aprender de un vídeo</h1>
+    <h1>🎓 Aprender de YouTube</h1>
     <p class="muted">Pega el enlace de un vídeo de YouTube. Gemini lo ve entero y te dice lo bueno, cómo
       aplicarlo a tu canal y lo que no conviene.</p>
   </div>
@@ -22,6 +22,59 @@
   <p class="muted small">También puedes mandarle el enlace a JARVIS por Telegram. Funciona con vídeos públicos.
     Gemini gratis permite varias horas de vídeo al día.</p>
 </div>
+
+<div class="card form-card" id="investigar">
+  <h2>🔎 Investigar un tema en YouTube</h2>
+  <p class="muted small">Busco los vídeos más útiles (de 4 a 20 minutos), Gemini los ve uno por uno y te
+    junto lo que repiten los que saben en un informe. Tarda unos minutos y lo hace por detrás:
+    puedes seguir usando el programa. Cada vídeo visto queda también como lección abajo.</p>
+  <form method="post" action="/aprender/investigar" class="stack">
+    <label>Tema
+      <input name="topic" list="research-topics" placeholder="p. ej. monetizar un canal faceless" required maxlength="120">
+      <datalist id="research-topics">{% for t in suggested %}<option value="{{ t }}">{% endfor %}</datalist>
+    </label>
+    <label>Cuántos vídeos
+      <select name="count">{% for n in [2, 3, 4, 5] %}<option value="{{ n }}" {% if n == 3 %}selected{% endif %}>{{ n }}</option>{% endfor %}</select>
+    </label>
+    <button class="btn" {% if not has_gemini %}disabled{% endif %}>Investigar</button>
+  </form>
+  <p class="muted small">Ideas: {% for t in suggested %}<em>{{ t }}</em>{% if not loop.last %} · {% endif %}{% endfor %}.
+    También puedes decírselo a JARVIS: «investiga en YouTube canales faceless».</p>
+</div>
+
+{% for r in reports %}
+<div class="card lesson" id="r-{{ r.id }}">
+  <div class="row">
+    <div>
+      <h2>🔎 {{ r.topic }}</h2>
+      <p class="muted small">{{ r.date }} · {{ r.count }} vídeos</p>
+    </div>
+    {% if r.status == 'done' %}<span class="badge ok">Informe listo</span>
+    {% elif r.status == 'failed' %}<span class="badge">No se pudo</span>
+    {% else %}<span class="badge">⏳ {{ r.message }}</span>{% endif %}
+  </div>
+  {% if r.status == 'failed' %}<p class="alert">{{ r.message }}</p>{% endif %}
+  {% if r.status == 'done' %}
+  <p>{{ r.summary }}</p>
+  {% if r.top_tips %}<h3>✅ Lo que más se repite</h3><ul>{% for x in r.top_tips %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+  {% if r.apply %}<h3>👉 Para tu canal</h3><ul>{% for x in r.apply %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+  {% if r.careful %}<h3>⚠️ Lo que no conviene</h3><ul>{% for x in r.careful %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+  {% if r.ideas %}<h3>💡 Ideas de vídeo</h3><ul>{% for x in r.ideas %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+  {% endif %}
+  {% if r.videos %}
+  <h3>🎬 Vídeos</h3>
+  <ul>{% for v in r.videos %}<li><a href="{{ v.url }}" target="_blank" rel="noopener">{{ v.title or v.url }}</a>
+    {% if v.channel %}<span class="muted small">— {{ v.channel }}</span>{% endif %}
+    {% if v.lesson_id %}· <a href="#l-{{ v.lesson_id }}">ver lección</a>{% else %}<span class="muted small">(no se pudo ver)</span>{% endif %}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if r.status in ('done', 'failed') %}
+  <form method="post" action="/aprender/investigacion/{{ r.id }}/borrar" onsubmit="return confirm('¿Borrar este informe?')">
+    <button class="btn-link small">Borrar informe</button>
+  </form>
+  {% endif %}
+</div>
+{% endfor %}
+{% if working %}<script>setTimeout(() => location.reload(), 15000);</script>{% endif %}
 
 {% for l in lessons %}
 <div class="card lesson" id="l-{{ l.id }}">
