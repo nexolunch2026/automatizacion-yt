@@ -18,7 +18,9 @@
     <fieldset>
       <legend>Acabado</legend>
       <label class="radio"><input type="checkbox" name="subtitles" value="1" {% if style.subtitles %}checked{% endif %}>
-        Subtítulos animados en pantalla (la palabra que se dice se resalta en rojo)</label>
+        Subtítulos animados en pantalla (la palabra que se dice se resalta con el color del canal)</label>
+      <label class="radio"><input type="checkbox" name="callouts" value="1" {% if style.callouts %}checked{% endif %}>
+        Cifras animadas (cuando la voz dice un dato como «50 millones» o «1975», aparece grande en pantalla)</label>
       <label class="radio"><input type="checkbox" name="film_look" value="1" {% if style.film_look %}checked{% endif %}>
         Filtro de color (viñeta y tono de documental)</label>
       <div class="row-fields">

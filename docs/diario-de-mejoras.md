@@ -2,6 +2,14 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.47: cifras animadas
+
+- Otra idea de «AS Video Studio»: cuando la voz dice un dato importante («50 millones»,
+  «el 80 %», «1975»), **aparece grande en pantalla** justo en ese momento, con el color
+  del canal, y desaparece a los 2 segundos.
+- Lo detecta solo, sin gastar IA. Da más ritmo y ayuda a que la gente no se vaya.
+- Se puede quitar en **Vídeo → Acabado → «Cifras animadas»**.
+
 ## 2026-10-06 — Versión 0.46: el vídeo se rehace mucho más rápido
 
 - Idea sacada de «AS Video Studio»: al volver a montar el vídeo, **solo se rehacen las

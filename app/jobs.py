@@ -424,7 +424,7 @@ def render_style(db: Session, params: dict | None = None) -> dict:
 
     saved = get_setting(db, "render_style")
     style = {**DEFAULT_STYLE, **(json.loads(saved) if saved else {})}
-    for key in ("subtitles", "film_look", "look", "music", "music_volume"):
+    for key in ("subtitles", "film_look", "callouts", "look", "music", "music_volume"):
         if params and key in params:
             style[key] = params[key]
     if style["music"] not in ("", AUTO, *music_library()):

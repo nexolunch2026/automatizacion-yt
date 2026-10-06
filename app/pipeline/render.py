@@ -14,6 +14,7 @@ Acabado («paquete de calidad»):
 
 import math
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -53,6 +54,7 @@ DEFAULT_STYLE = {
     "look": "auto",
     "music": "",
     "music_volume": "media",
+    "callouts": True,  # cifras clave que aparecen animadas cuando se dicen
 }
 AUTO = "auto"
 # Acabados de color. Se turnan entre vídeos («auto») para que el canal no parezca hecho en
@@ -170,6 +172,62 @@ def text_overlay(text: str, size: tuple[int, int], path: Path) -> Path:
         fill=accent.color() + (255,),
     )
     draw.text((x0 + pad, y0 + pad * 0.7), label, font=fnt, fill=WHITE + (255,))
+    image.save(path)
+    return path
+
+
+# ---------------------------------------------------------------- cifras animadas
+
+UNITS = (
+    r"(?:%|por ciento|mil millones|millones|millón|mil|años|dólares|euros|pesos|personas|"
+    r"tiendas|empleados|clientes|usuarios|veces|kilómetros|toneladas)"
+)
+CALLOUT = re.compile(rf"(?<![\w.,])(\d[\d.,]*)(?:\s+de)?\s*({UNITS})?(?![\w])", re.IGNORECASE)
+CALLOUT_SECONDS = 2.4
+
+
+def find_callout(narration: str, seconds: float) -> dict | None:
+    """La cifra más llamativa del párrafo y en qué segundo se dice (aprox.)."""
+    best = None
+    for match in CALLOUT.finditer(narration):
+        number, unit = match.group(1).rstrip(".,"), match.group(2)
+        digits = sum(ch.isdigit() for ch in number)
+        if not unit and digits < 2:  # «3» suelto no dice nada; «1975» o «50 %» sí
+            continue
+        score = (2 if unit else 0) + min(digits, 4) / 4
+        if best is None or score > best[0]:
+            best = (score, match, number, unit)
+    if best is None or seconds < 2.5:
+        return None
+    _, match, number, unit = best
+    words_before = len(narration[: match.start()].split())
+    total = max(len(narration.split()), 1)
+    at = words_before / total * seconds - 0.4  # un poco antes: entra justo al decirlo
+    at = max(0.3, min(at, seconds - CALLOUT_SECONDS * 0.6))
+    text = f"{number} {unit}".strip() if unit else number
+    return {"text": text.replace("por ciento", "%").replace(" %", " %"), "at": round(at, 2)}
+
+
+def callout_overlay(text: str, size: tuple[int, int], path: Path) -> Path:
+    """La cifra, grande y con el color del canal, en una placa oscura en el centro."""
+    w, h = size
+    image = Image.new("RGBA", size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+    label = text.upper()
+    font_size = max(int(min(h * 0.16, w * 0.14)), 12)
+    fnt = font(font_size)
+    while draw.textlength(label, font=fnt) > w * 0.8 and font_size > 12:
+        font_size -= 2
+        fnt = font(font_size)
+    tw = draw.textlength(label, font=fnt)
+    pad = int(font_size * 0.35)
+    box_w, box_h = int(tw) + pad * 2, int(font_size * 1.15) + pad
+    x0, y0 = (w - box_w) // 2, int(h * 0.42) - box_h // 2
+    draw.rectangle([x0, y0, x0 + box_w, y0 + box_h], fill=(10, 10, 14, 200))
+    draw.rectangle(
+        [x0, y0 + box_h, x0 + box_w, y0 + box_h + max(h // 90, 3)], fill=accent.color() + (255,)
+    )
+    draw.text(((w - tw) / 2, y0 + pad * 0.45), label, font=fnt, fill=accent.color() + (255,))
     image.save(path)
     return path
 
@@ -305,6 +363,20 @@ def scene_clip(
             f"[v0][o]overlay=0:0:shortest=1{until}[v1]"
         )
         last = "[v1]"
+    if scene.get("callout"):  # la cifra sube y aparece justo cuando se dice
+        info = scene["callout"]
+        card = callout_overlay(info["text"], size, workdir / f"cifra-{scene['number']}.png")
+        index = inputs.count("-i")
+        inputs += ["-loop", "1", "-i", str(card)]
+        start = max(0.0, float(info["at"]))
+        end = min(start + CALLOUT_SECONDS, max(seconds - 0.3, start + 0.6))
+        rise = max(h // 30, 8)
+        chain += (
+            f";[{index}:v]format=rgba,fade=t=in:st={start:.3f}:d=0.25:alpha=1,"
+            f"fade=t=out:st={end - 0.3:.3f}:d=0.3:alpha=1[c];"
+            f"{last}[c]overlay=x=0:y='max(0,{rise}*(1-(t-{start:.3f})/0.3))':shortest=1[vc]"
+        )
+        last = "[vc]"
     if scene.get("end_text"):  # cartel final de los Shorts: lleva al vídeo largo
         card = end_overlay(scene["end_text"], size, workdir / f"final-{scene['number']}.png")
         index = inputs.count("-i")
@@ -618,6 +690,10 @@ def render_video(
         seconds = takes[pid] + (PAUSE if i < len(scenes) - 1 else 0)
         length = seconds + (CROSSFADE if i < len(scenes) - 1 else 0)
         visual = visuals.get(pid)
+        if style.get("callouts") and not scene.get("chart") and not scene.get("end_text"):
+            found = find_callout(scene.get("narration", ""), takes[pid])
+            if found and "callout" not in scene:
+                scene = {**scene, "callout": found}
         motion = first_motion(pid, previous_last)
         clip = workdir / f"escena-{i:03}.mp4"
         key = scene_key(scene, visual, length, (w, h), fps, crf, factor, motion)
