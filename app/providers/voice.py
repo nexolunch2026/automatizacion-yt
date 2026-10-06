@@ -102,9 +102,16 @@ class PiperVoices:
     def _voice(self, voice: str):
         if voice not in self._loaded:
             from piper import PiperVoice
+            from piper.phonemize_espeak import ESPEAK_DATA_DIR
+
+            from app.providers import piper_safe
 
             self.ensure_downloaded(voice)
-            self._loaded[voice] = PiperVoice.load(self._model_path(voice))
+            espeak_dir = piper_safe.data_dir(ESPEAK_DATA_DIR)
+            piper_safe.check(espeak_dir)  # si espeak-ng se cae, que no apague el programa
+            self._loaded[voice] = PiperVoice.load(
+                self._model_path(voice), espeak_data_dir=espeak_dir
+            )
         return self._loaded[voice]
 
     def synthesize(self, text: str, voice: str, speed: str) -> bytes:

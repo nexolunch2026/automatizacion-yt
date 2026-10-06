@@ -2,6 +2,16 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.66.2: la voz gratuita ya no puede apagar el programa
+
+- En algunos Windows (rutas con tilde, como «Simón», o dentro de OneDrive), la
+  pronunciación de **Piper** (espeak-ng) no encontraba sus archivos y **cerraba el
+  programa entero**. Si había un vídeo a medias en el paso de voz, se cerraba nada más
+  abrirlo («Error processing file … phontab»).
+- Ahora esos archivos se copian a una carpeta con ruta sencilla, y Piper se prueba
+  antes en un proceso aparte: si aun así fallara, solo falla la voz con un mensaje claro
+  y el programa sigue encendido.
+
 ## 2026-10-06 — Versión 0.66.1: el navegador espera a que el programa esté listo
 
 - Antes, Iniciar abría el navegador a los 2 segundos aunque el programa aún no hubiera
