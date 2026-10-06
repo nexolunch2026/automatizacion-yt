@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {% set sections = {'/jarvis': 'JARVIS', '/rendimiento': 'Rendimiento', '/aprender': 'Aprender',
+  {% set sections = {'/jarvis': 'JARVIS', '/semana': 'Semana', '/rendimiento': 'Rendimiento', '/aprender': 'Aprender',
      '/canales': 'Canales', '/configuracion': 'Configuración', '/bienvenida': 'Mi perfil'} %}
   {% set here = request.url.path %}
   <title>{% block title %}{% if project is defined and project %}{{ project.title }} · {% else %}{% for prefix, name in sections.items() if here.startswith(prefix) %}{{ name }} · {% endfor %}{% endif %}Faceless Studio{% endblock %}</title>
@@ -19,6 +19,7 @@
     <nav>
       <a href="/" class="{{ 'active' if path == '/' or path.startswith('/proyectos') }}">🎬 Proyectos</a>
       <a href="/jarvis" class="nav-jarvis {{ 'active' if path.startswith('/jarvis') }}">🤖 JARVIS</a>
+      <a href="/semana" class="{{ 'active' if path.startswith('/semana') }}">📅 Semana</a>
       <a href="/rendimiento" class="{{ 'active' if path.startswith('/rendimiento') }}">📈 Rendimiento</a>
       <a href="/aprender" class="{{ 'active' if path.startswith('/aprender') }}">🎓 Aprender</a>
       <a href="/canales" class="{{ 'active' if path.startswith('/canales') }}">🧭 Canales</a>

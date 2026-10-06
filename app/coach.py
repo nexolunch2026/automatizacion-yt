@@ -355,3 +355,37 @@ def today_text(db: Session, now: datetime | None = None) -> str:
     if plan["today_short"]:
         lines.append(f"📱 Hoy toca un Short: «{plan['today_short']}».")
     return "\n".join(lines)
+
+
+def week_days(db: Session, now: datetime | None = None) -> list[dict]:
+    """Los próximos 7 días, cada uno con lo que toca: vídeo largo, Short y aprendizaje."""
+    from app.agenda import WEEKDAYS
+
+    now = now or datetime.now()
+    plan = weekly_plan(db, now)
+    shorts = dict(plan["shorts"])  # «miércoles (hoy)» → título
+    days = []
+    for offset in range(7):
+        date = now + timedelta(days=offset)
+        weekday = date.weekday()
+        name = WEEKDAYS[weekday] + (" (hoy)" if offset == 0 else "")
+        items = []
+        if weekday == plan["publish_day"]:
+            if plan["ready"]:
+                items.append(
+                    {
+                        "kind": "long",
+                        "text": f"Subir «{plan['ready']}» a las {plan['publish_hour']}:00",
+                    }
+                )
+            else:
+                items.append({"kind": "long", "text": plan["long"]})
+        if name in shorts:
+            items.append({"kind": "short", "text": f"Short: «{shorts[name]}»"})
+        elif weekday in SHORTS_DAYS:
+            items.append({"kind": "short", "text": "Short (aún no hay ninguno preparado)"})
+        items.append({"kind": "learn", "text": LEARNING[weekday]})
+        days.append(
+            {"name": name, "date": date.strftime("%d/%m"), "today": offset == 0, "items": items}
+        )
+    return days

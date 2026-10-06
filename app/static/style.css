@@ -573,3 +573,16 @@ details > summary { cursor: pointer; }
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .yt-meta { margin: 0; font-size: .82rem; color: #aaa; line-height: 1.4; }
+
+/* Semana */
+.week-slot { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+.week-slot select { width: auto; }
+.week { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.day { margin: 0; padding: 14px; }
+.day.today { border-color: rgba(255, 77, 79, .55); box-shadow: 0 0 0 1px rgba(255, 77, 79, .25), var(--shadow); }
+.day-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.day ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.day-item { display: flex; gap: 8px; font-size: .88rem; padding: 6px 8px; border-radius: 8px; background: rgba(255, 255, 255, .025); }
+.day-item.long { background: rgba(255, 77, 79, .12); border: 1px solid rgba(255, 77, 79, .35); }
+.day-item.short { background: rgba(76, 141, 255, .1); }
+.day-item.learn { color: var(--muted); font-size: .8rem; }

@@ -351,3 +351,36 @@ def delete_project(db: DB, user: CurrentUser, project_id: int):
     db.commit()
     delete_project_files(project_id)
     return _redirect("/")
+
+
+# ---------- Semana ----------
+
+
+@router.get("/semana")
+def week_page(request: Request, db: DB, user: CurrentUser):
+    from app import coach
+    from app.agenda import WEEKDAYS
+
+    day, hour = coach.publish_slot(db)
+    return render(
+        request,
+        "week.html",
+        days=coach.week_days(db),
+        plan=coach.weekly_plan(db),
+        weekdays=WEEKDAYS,
+        publish_day=day,
+        publish_hour=hour,
+    )
+
+
+@router.post("/semana")
+def save_week(
+    db: DB,
+    user: CurrentUser,
+    day: Annotated[int, Form()],
+    hour: Annotated[int, Form()],
+):
+    from app import coach
+
+    coach.set_publish_slot(db, day, hour)
+    return _redirect("/semana")

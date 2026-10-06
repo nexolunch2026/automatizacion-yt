@@ -2,6 +2,13 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.56: tu semana en un calendario
+
+- Nueva página **«📅 Semana»** (en el menú de arriba): los próximos 7 días con lo que toca
+  cada uno: 🎬 el vídeo largo (o qué te falta para tenerlo), 📱 los Shorts y 📚 los 30
+  minutos para aprender. Hoy aparece marcado.
+- Desde ahí cambias el **día y la hora** de tu vídeo largo semanal.
+
 ## 2026-10-06 — Versión 0.55: así se verá en YouTube
 
 - En **Miniatura** hay una vista **«👀 Así se verá en YouTube»**: tus 3 miniaturas con el

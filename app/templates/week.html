@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>📅 Tu semana</h1>
+    <p class="muted">Publicar siempre el mismo día y a la misma hora es lo que más premia el algoritmo.
+      Un vídeo largo por semana y 3 Shorts que lleven a él.</p>
+  </div>
+  <form method="post" action="/semana" class="week-slot">
+    <label>Día del vídeo largo
+      <select name="day">{% for d in weekdays %}<option value="{{ loop.index0 }}" {% if loop.index0 == publish_day %}selected{% endif %}>{{ d|capitalize }}</option>{% endfor %}</select>
+    </label>
+    <label>Hora
+      <select name="hour">{% for h in range(6, 24) %}<option value="{{ h }}" {% if h == publish_hour %}selected{% endif %}>{{ h }}:00</option>{% endfor %}</select>
+    </label>
+    <button class="btn small">Guardar</button>
+  </form>
+</div>
+
+<div class="week">
+  {% for d in days %}
+  <div class="card day {{ 'today' if d.today }}">
+    <div class="day-head"><strong>{{ d.name|capitalize }}</strong><span class="muted small">{{ d.date }}</span></div>
+    <ul>
+      {% for item in d['items'] %}
+      <li class="day-item {{ item.kind }}">
+        <span class="day-icon">{{ {'long': '🎬', 'short': '📱', 'learn': '📚'}[item.kind] }}</span>
+        <span>{{ item.text }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <h3>Esta semana</h3>
+  <p>🎬 {{ plan.long }}</p>
+  <p class="muted small">También se lo puedes preguntar a JARVIS: «plan de la semana» o «publico los sábados a las 6».</p>
+</div>
+{% endblock %}
