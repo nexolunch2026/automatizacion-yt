@@ -26,6 +26,7 @@ from app.pipeline.script import (
     with_stats,
 )
 from app.pipeline.storyboard import paragraphs_of, stale_scenes
+from app.pipeline.visuals import opal_text
 from app.pipeline.voice import pending_characters, take_key
 from app.providers.ai import ProviderError
 from app.providers.voice import ELEVEN_MODELS, SPEEDS, VOICE_IDS, VOICES, ElevenLabsVoices
@@ -284,8 +285,13 @@ def visuals_page(request: Request, db: DB, user: CurrentUser, project_id: int):
     project = _project(db, project_id)
     board = jobs.get_result(db, project_id, "storyboard") or {}
     visuals = jobs.get_result(db, project_id, "visuals") or {}
+    portrait = jobs.is_portrait(project)
     rows = [
-        {"scene": scene, "visual": visuals.get("items", {}).get(scene["paragraph_id"])}
+        {
+            "scene": scene,
+            "visual": visuals.get("items", {}).get(scene["paragraph_id"]),
+            "opal": opal_text(scene, board.get("visual_bible"), portrait),
+        }
         for scene in board.get("scenes", [])
     ]
     return _stage_page(
@@ -442,6 +448,62 @@ async def upload_visual(
     except ValueError as exc:
         raise HTTPException(400, f"El archivo {exc}") from exc
     _save_visual_items(db, project_id, {paragraph_id: _uploaded_entry(filename, bool(is_ai))})
+    return _redirect(f"/proyectos/{project_id}/visuales#escena-{paragraph_id}")
+
+
+MAX_CLIP = 300 * 1024 * 1024
+CLIP_TYPES = {".mp4", ".mov", ".webm", ".m4v"}
+
+
+@router.post("/visuales/clip/{paragraph_id}")
+async def upload_clip(
+    db: DB,
+    user: CurrentUser,
+    project_id: int,
+    paragraph_id: str,
+    clip: Annotated[UploadFile, File()],
+):
+    """Usa un clip de vídeo propio para una escena (por ejemplo, hecho con Veo en Opal)."""
+    import secrets
+
+    from app.pipeline.visuals import _poster
+
+    _project(db, project_id)
+    board = jobs.get_result(db, project_id, "storyboard")
+    scene = next(
+        (s for s in (board or {}).get("scenes", []) if s["paragraph_id"] == paragraph_id), None
+    )
+    if scene is None:
+        raise HTTPException(404, "Escena no encontrada")
+    ext = Path(clip.filename or "").suffix.lower()
+    if ext not in CLIP_TYPES:
+        raise HTTPException(400, "Ese archivo no es un vídeo (sube un .mp4, .mov o .webm).")
+    folder = project_dir(project_id) / "visuales"
+    folder.mkdir(parents=True, exist_ok=True)
+    filename = f"{scene['number']:03}-clip-{secrets.token_hex(3)}{ext}"
+    size = 0
+    with (folder / filename).open("wb") as out:
+        while chunk := await clip.read(1024 * 1024):
+            size += len(chunk)
+            if size > MAX_CLIP:
+                out.close()
+                (folder / filename).unlink(missing_ok=True)
+                raise HTTPException(400, "El vídeo es demasiado grande (máximo 300 MB).")
+            out.write(chunk)
+    entry = {
+        "kind": "video",
+        "file": filename,
+        "provider": "manual",
+        "id": filename,
+        "author": "",
+        "license": "Clip generado con IA (Veo, en Google Opal o Flow)",
+        "page_url": "",
+        "query": "",
+        "ai": True,
+        "uploaded": True,
+        "poster": _poster(folder / filename),
+    }
+    _save_visual_items(db, project_id, {paragraph_id: entry})
     return _redirect(f"/proyectos/{project_id}/visuales#escena-{paragraph_id}")
 
 

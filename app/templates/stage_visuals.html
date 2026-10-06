@@ -94,7 +94,7 @@
     </div>
     <p class="small narration">«{{ s.narration|truncate(140) }}»</p>
     {% if v and v.uploaded %}
-      <p class="muted small">{{ v.license }}</p>
+      <p class="muted small">{{ v.license }}{% if v.kind == 'video' %} · pasa el ratón por encima para verlo{% endif %}</p>
     {% elif v and v.ai %}
       <p class="muted small">Imagen generada con IA · {{ v.license.replace('Imagen generada con IA ', '') }}</p>
     {% elif v and v.provider %}
@@ -125,6 +125,21 @@
       </form>
     </details>
     <details class="para-tools">
+      <summary>🎬 Clip con Veo (Google Opal)</summary>
+      <p class="muted small">1. Copia el texto y pégalo en tu app de Opal (o en Flow). 2. Descarga el
+        vídeo. 3. Súbelo aquí. Úsalo en 2–4 escenas clave, sobre todo el gancho.</p>
+      <pre class="copy-text opal-text" id="opal-{{ s.paragraph_id }}">{{ row.opal }}</pre>
+      <button class="btn small secondary" type="button" data-copy="opal-{{ s.paragraph_id }}">Copiar para Opal</button>
+      <form method="post" action="/proyectos/{{ project.id }}/visuales/clip/{{ s.paragraph_id }}"
+            enctype="multipart/form-data" class="stack"
+            onsubmit="this.querySelector('button').textContent='Subiendo el vídeo…'">
+        <input type="file" name="clip" accept="video/*" required>
+        <button class="btn small">Usar este clip en la escena</button>
+      </form>
+      <p class="muted small">Al subir clips de IA que parezcan reales, marca en YouTube «Contenido alterado
+        o sintético». El control de calidad te lo recordará.</p>
+    </details>
+    <details class="para-tools">
       <summary>Editar prompt de la imagen</summary>
       <form method="post" action="/proyectos/{{ project.id }}/visuales/ia/{{ s.paragraph_id }}" class="stack">
         <textarea name="prompt" rows="3">{{ s.image_prompt }}</textarea>
@@ -138,6 +153,19 @@
 <div class="next-inline">
   <a class="btn" href="/proyectos/{{ project.id }}/video">Siguiente: montar el vídeo →</a>
 </div>
+<script>
+  document.querySelectorAll("[data-copy]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const text = document.getElementById(btn.dataset.copy).innerText;
+      try { await navigator.clipboard.writeText(text); } catch (e) {
+        const area = document.createElement("textarea"); area.value = text;
+        document.body.appendChild(area); area.select(); document.execCommand("copy"); area.remove();
+      }
+      const old = btn.textContent; btn.textContent = "¡Copiado!";
+      setTimeout(() => (btn.textContent = old), 1500);
+    });
+  });
+</script>
 {% endif %}
 {{ ui.live_updates(project, jobs) }}
 {% endblock %}

@@ -199,6 +199,25 @@ def _poster(video: Path) -> str | None:
     return poster.name if poster.exists() else None
 
 
+def opal_text(scene: dict, bible: dict | None, portrait: bool) -> str:
+    """Lo que hay que pegar en la app de Google Opal (o en Flow) para que Veo haga el
+    clip de esta escena. Sin personas reales, logotipos ni texto: así no hay problemas
+    de derechos ni de «contenido engañoso»."""
+    bible = bible or {}
+    shape = "vertical 9:16 (Short)" if portrait else "horizontal 16:9"
+    parts = [
+        f"Escena: {scene.get('visual') or scene.get('narration', '')}",
+        f"Época y lugar: {bible['era']}" if bible.get("era") else "",
+        f"Estilo: {bible['style']}" if bible.get("style") else "",
+        f"Colores: {bible['palette']}" if bible.get("palette") else "",
+        f"Cámara: {scene['motion']}" if scene.get("motion") else "",
+        f"Ambiente: {scene['music_mood']}" if scene.get("music_mood") else "",
+        f"Formato: {shape}, 8 segundos, estilo documental cinematográfico.",
+        "Sin personas reales reconocibles, sin logotipos de marcas y sin texto en pantalla.",
+    ]
+    return "\n".join(p for p in parts if p)
+
+
 def credits_text(visuals: dict) -> str:
     """Créditos para la descripción del vídeo (no obligatorios, pero recomendables)."""
     lines = []

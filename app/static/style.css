@@ -353,3 +353,6 @@ table.perf th { color: var(--muted); font-weight: 600; font-size: .8rem; }
 .ab-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin: 8px 0; }
 .ab-thumbs a { display: grid; gap: 4px; color: var(--text); text-decoration: none; }
 .ab-thumbs img { width: 100%; border-radius: 8px; border: 1px solid var(--line); }
+
+/* Clip con Veo (Opal) */
+.opal-text { white-space: pre-wrap; font-size: .8rem; background: var(--bg); padding: 8px; border-radius: 8px; border: 1px solid var(--line); }
