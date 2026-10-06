@@ -9,7 +9,7 @@ from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
 from sqlalchemy import select
 
-from app import jobs
+from app import jobs, music_rights
 from app.auth import DB, CurrentUser
 from app.media import MUSIC_DIR, MUSIC_EXTENSIONS, music_library, project_dir, safe_path
 from app.models import LEVELS, SCRIPT_TONES, STAGES, Project, StageResult
@@ -548,6 +548,28 @@ def delete_music(db: DB, user: CurrentUser, project_id: int, name: Annotated[str
     _project(db, project_id)
     if name in music_library():
         (MUSIC_DIR / name).unlink(missing_ok=True)
+        from app.music_rights import forget
+
+        forget(db, name)
+    return _redirect(f"/proyectos/{project_id}/video#musica")
+
+
+@router.post("/musica/licencia")
+def music_license(
+    db: DB,
+    user: CurrentUser,
+    project_id: int,
+    name: Annotated[str, Form()],
+    source: Annotated[str, Form()] = "",
+    credit: Annotated[str, Form()] = "",
+):
+    """Apunta de dónde salió una canción (lo usa el control de calidad y los créditos)."""
+    from app.music_rights import save
+
+    _project(db, project_id)
+    if name not in music_library():
+        raise HTTPException(404, "Canción no encontrada")
+    save(db, name, source, credit)
     return _redirect(f"/proyectos/{project_id}/video#musica")
 
 
@@ -571,6 +593,9 @@ def video_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         "edit",
         style=jobs.render_style(db),
         library=music_library(),
+        licenses=music_rights.licenses(db),
+        sources={k: v[0] for k, v in music_rights.SOURCES.items()},
+        license_status={n: music_rights.status(i) for n, i in music_rights.licenses(db).items()},
         music_volumes=list(MUSIC_VOLUMES),
         looks=LOOKS,
         has_ai_images=any(e.get("ai") for e in visuals.get("items", {}).values()),

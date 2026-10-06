@@ -310,7 +310,7 @@ def _original_checks(results: dict, others: list[str], structures: list[str]) ->
     return checks
 
 
-def _rights_checks(results: dict) -> list[dict]:
+def _rights_checks(results: dict, music_licenses: dict | None = None) -> list[dict]:
     checks = []
     visuals = results.get("visuals")
     items = list((visuals or {}).get("items", {}).values())
@@ -369,17 +369,40 @@ def _rights_checks(results: dict) -> list[dict]:
 
     music = last_render(results).get("music")
     if music:
-        checks.append(
-            _check(
-                "music",
-                "rights",
-                WARN,
-                f"Música: {music}",
-                "Solo es segura la música de la Biblioteca de audio de YouTube o con licencia.",
-                "Si no sabes de dónde salió, cámbiala antes de subir.",
-                "video",
+        from app.music_rights import SOURCES, status
+
+        info = (music_licenses or {}).get(music)
+        state = status(info)
+        if state == "ok":
+            source = SOURCES[info["source"]][0]
+            checks.append(
+                _check("music", "rights", OK, f"Música con licencia: {music}", f"Origen: {source}.")
             )
-        )
+        elif state == "credit":
+            checks.append(
+                _check(
+                    "music",
+                    "rights",
+                    WARN,
+                    f"Música: {music} (falta la atribución)",
+                    "Las licencias CC BY obligan a citar al autor en la descripción.",
+                    "En Vídeo → Biblioteca de música, escribe el texto de atribución.",
+                    "video",
+                )
+            )
+        else:
+            checks.append(
+                _check(
+                    "music",
+                    "rights",
+                    WARN,
+                    f"Música: {music}",
+                    "Solo es segura la música de la Biblioteca de audio de YouTube o con licencia.",
+                    "En Vídeo → Biblioteca de música, apunta de dónde salió; si no lo sabes, "
+                    "cámbiala antes de subir.",
+                    "video",
+                )
+            )
     return checks
 
 
@@ -525,6 +548,7 @@ def review(
     other_scripts: list[str],
     recent_structures: list[str] | None = None,
     recent_styles: list[dict] | None = None,
+    music_licenses: dict | None = None,
 ) -> dict:
     """Revisa el proyecto. `other_scripts` son los guiones de los demás vídeos del canal y
     `recent_structures` sus estructuras, del vídeo más nuevo al más viejo."""
@@ -533,7 +557,7 @@ def review(
         _ads_checks(project, results, title)
         + _original_checks(results, other_scripts, recent_structures or [])
         + _look_check(results, recent_styles or [])
-        + _rights_checks(results)
+        + _rights_checks(results, music_licenses)
         + _audience_checks(results)
         + _publish_checks(project, results, title)
     )
@@ -586,7 +610,9 @@ def project_review(db: Session, project: Project) -> dict:
     )
     styles = [style for r in edits if (style := last_render({"edit": r.data}).get("style"))]
     texts = [script_text(r.data) for r in others]
-    return review(project, results, texts, structures, styles)
+    from app.music_rights import licenses
+
+    return review(project, results, texts, structures, styles, licenses(db))
 
 
 def summary_text(qc: dict) -> str:

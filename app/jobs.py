@@ -551,7 +551,12 @@ def _run_edit(db: Session, project: Project, progress, params: dict) -> dict:
         music=music_path(style["music"]),
     )
     try:  # los créditos no deben hacer fallar el montaje
-        (folder / "video" / "creditos.txt").write_text(credits_text(visuals), encoding="utf-8")
+        from app.music_rights import credit_line
+
+        credits = "\n\n".join(
+            x for x in (credits_text(visuals), credit_line(db, style["music"])) if x
+        )
+        (folder / "video" / "creditos.txt").write_text(credits, encoding="utf-8")
     except OSError:
         log.warning("No se pudo escribir creditos.txt", exc_info=True)
     import json

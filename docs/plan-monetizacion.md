@@ -114,8 +114,8 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   lo que mejor te ha funcionado en Rendimiento.
 - [x] **Retención con datos** (0.41.0): en Rendimiento, apuntar el % de gente que sigue a los
   30 s y a la mitad (de YouTube Studio) y que el próximo guion refuerce esas partes.
-- [ ] **Biblioteca de música** con su licencia guardada, para que el control de calidad
-  la dé por buena.
+- [x] **Biblioteca de música** (0.43.0) con su licencia guardada, para que el control de
+  calidad la dé por buena y la atribución vaya sola a los créditos.
 
 En pausa hasta que Simón lo pida (no hacer por la noche): **clips con Veo desde Google
 Opal** (texto para copiar en cada escena y «Subir clip» en Visuales). Ya está empezado en la

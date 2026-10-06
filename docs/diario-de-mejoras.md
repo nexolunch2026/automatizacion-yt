@@ -2,6 +2,15 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.43: música con licencia apuntada
+
+- En **Vídeo → Biblioteca de música**, cada canción tiene «¿De dónde salió?»: Biblioteca
+  de audio de YouTube, Pixabay, comprada, Creative Commons con atribución, hecha por ti…
+- Con el origen apuntado, el **Control de calidad** la da por buena (ya no avisa siempre).
+- Si la licencia pide citar al autor, escribes la atribución una vez y se añade sola a
+  los **créditos** del vídeo (para pegarlos en la descripción).
+- Al lado de cada canción ves si está ✅ con licencia, ⚠️ falta atribución o ❓ sin apuntar.
+
 ## 2026-10-06 — Versión 0.42: la pantalla de JARVIS muestra tu semana
 
 - Nuevo panel **«ESTA SEMANA»** en la pantalla de JARVIS: qué vídeo subir (o terminar) y

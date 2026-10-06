@@ -78,13 +78,29 @@
     <strong>libre de derechos para YouTube</strong>, por ejemplo de la <strong>Biblioteca de audio de
     YouTube</strong> (YouTube Studio → Biblioteca de audio: gratis y apta para canales monetizados) o
     de <a href="https://pixabay.com/music/" target="_blank" rel="noopener">Pixabay Music</a>.
-    Para documentales de misterio van bien géneros como «Cinematic», «Ambient» o «Dramatic».</p>
+    Para documentales de misterio van bien géneros como «Cinematic», «Ambient» o «Dramatic».
+    Apunta <strong>de dónde salió</strong> cada canción: el control de calidad lo usa y la atribución
+    se añade sola a los créditos del vídeo.</p>
   {% if library %}
   <ul class="songs">
     {% for song in library %}
     <li>
-      <span>{{ song }}</span>
+      <span>{{ song }}
+        {% set st = license_status.get(song, 'unknown') %}
+        {% if st == 'ok' %}<span class="badge ok">✅ con licencia</span>
+        {% elif st == 'credit' %}<span class="badge">⚠️ falta atribución</span>
+        {% else %}<span class="badge">❓ origen sin apuntar</span>{% endif %}</span>
       <audio controls preload="none" src="/proyectos/{{ project.id }}/musica/{{ song|urlencode }}"></audio>
+      {% set lic = licenses.get(song, {}) %}
+      <form method="post" action="/proyectos/{{ project.id }}/musica/licencia" class="row-actions license-form">
+        <input type="hidden" name="name" value="{{ song }}">
+        <select name="source" title="¿De dónde salió?">
+          <option value="">¿De dónde salió?</option>
+          {% for key, label in sources.items() %}<option value="{{ key }}" {% if lic.source == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <input name="credit" value="{{ lic.credit or '' }}" maxlength="300" placeholder="Atribución (si la pide): «Canción» de Autor, CC BY 4.0">
+        <button class="btn small secondary">Guardar</button>
+      </form>
       <form method="post" action="/proyectos/{{ project.id }}/musica/borrar" onsubmit="return confirm('¿Quitar esta canción?')">
         <input type="hidden" name="name" value="{{ song }}"><button class="btn-link danger-link">Quitar</button>
       </form>
