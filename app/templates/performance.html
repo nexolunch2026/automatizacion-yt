@@ -66,7 +66,7 @@
   <table class="perf">
     <thead><tr>
       <th>Vídeo</th><th>Visitas</th><th>Por día</th><th>48 h</th><th>Me gusta</th><th>Coment.</th><th>Evolución</th>
-      <th title="Cópialos de YouTube Studio → Estadísticas del vídeo">CTR % · Visto %</th>
+      <th title="Cópialos de YouTube Studio → Estadísticas del vídeo">CTR % · Visto % · Sigue a los 30 s % · Sigue a la mitad %</th>
     </tr></thead>
     <tbody>
     {% for r in rows %}
@@ -75,7 +75,8 @@
         <div class="muted small">{{ r.published }} · {{ r.age }}
           {% if r.vs_average is not none and rows|length > 1 %}·
           <span class="{{ 'status-done' if r.vs_average >= 100 else 'status-failed' }}">{{ r.vs_average }} % de la media</span>{% endif %}
-          {% if r.project %}· <a href="/proyectos/{{ r.project_id }}">proyecto</a>{% endif %}</div></td>
+          {% if r.project %}· <a href="/proyectos/{{ r.project_id }}">proyecto</a>{% endif %}</div>
+        {% for d in r.diagnosis %}<div class="small status-failed">⚠️ {{ d.text }}</div>{% endfor %}</td>
       <td><strong>{{ '{:,}'.format(r.views).replace(',', '.') }}</strong></td>
       <td>{{ r.views_per_day }}</td>
       <td>{{ r.views_48h if r.views_48h is not none else '—' }}</td>
@@ -86,6 +87,8 @@
         <form method="post" action="/rendimiento/{{ r.video_id }}" class="perf-form">
           <input name="ctr" value="{{ r.ctr if r.ctr is not none else '' }}" placeholder="CTR" inputmode="decimal">
           <input name="retention" value="{{ r.retention if r.retention is not none else '' }}" placeholder="Visto" inputmode="decimal">
+          <input name="retention_30s" value="{{ r.retention_30s if r.retention_30s is not none else '' }}" placeholder="30 s" title="% que sigue viendo a los 30 segundos" inputmode="decimal">
+          <input name="retention_mid" value="{{ r.retention_mid if r.retention_mid is not none else '' }}" placeholder="Mitad" title="% que sigue a la mitad del vídeo" inputmode="decimal">
           <select name="project_id" title="Proyecto de este vídeo">
             <option value="">(sin proyecto)</option>
             {% for p in projects %}<option value="{{ p.id }}" {% if p.id == r.project_id %}selected{% endif %}>{{ p.title[:40] }}</option>{% endfor %}
@@ -99,7 +102,25 @@
   </table>
   </div>
   <p class="muted small">CTR = de cada 100 personas que ven la miniatura, cuántas hacen clic. «Visto %» = porcentaje medio del vídeo que ve la gente.
-    Los encuentras en YouTube Studio → el vídeo → Estadísticas. Con ellos el análisis es mucho mejor.</p>
+    «30 s» y «Mitad»: en la gráfica de retención, el % de gente que sigue viendo a los 30 segundos y a la mitad del vídeo
+    (pasa el ratón por la línea). Los encuentras en YouTube Studio → el vídeo → Estadísticas → Interacción.</p>
+  <div class="card inner" id="retencion">
+    <h3>📉 Retención: lo que harán los próximos guiones</h3>
+    {% if retention.videos %}
+    <p class="small">Con {{ retention.videos }} vídeo(s) con datos:
+      {% if retention.hook is not none %}a los 30 s sigue el <strong>{{ retention.hook }} %</strong>{% endif %}
+      {% if retention.keep is not none %}· llega a la mitad el <strong>{{ (retention.keep * 100)|round|int }} %</strong> de esos{% endif %}
+      {% if retention.average is not none %}· se ve de media el <strong>{{ retention.average }} %</strong>{% endif %}.</p>
+    {% if retention_notes %}
+    <ul>{% for line in retention_notes.split('\n') %}<li>{{ line }}</li>{% endfor %}</ul>
+    <p class="muted small">El próximo guion lo tendrá en cuenta solo.</p>
+    {% else %}
+    <p class="small status-done">✅ Buena retención: los guiones siguen igual.</p>
+    {% endif %}
+    {% else %}
+    <p class="muted small">Apunta el «30 s» y «Mitad» de tus vídeos y el próximo guion reforzará la parte donde se va la gente.</p>
+    {% endif %}
+  </div>
   {% else %}
   <p class="muted">Todavía no hay datos. Pulsa «Actualizar cifras ahora» (tu canal tiene que tener al menos un vídeo público).</p>
   {% endif %}

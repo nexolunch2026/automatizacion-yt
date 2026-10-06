@@ -177,6 +177,11 @@ def _structure(params: dict) -> str:
     return f"\nEstructura narrativa: {name}. {guide}"
 
 
+def _retention(params: dict) -> str:
+    notes = (params.get("retention_notes") or "").strip()
+    return f"\nLo que dicen los datos de retención del canal:\n{notes}" if notes else ""
+
+
 def _niche(params: dict) -> str:
     notes = (params.get("niche_notes") or "").strip()
     return f"\n{notes}" if notes else ""
@@ -236,7 +241,7 @@ Enfoque: {concept["angle"]} — {concept["summary"]}
 Promesa al espectador: {concept["promise"]}
 Gancho sugerido: {concept["hook"]}
 Audiencia: {concept["audience"]}
-{_style(params)}{_niche(params)}{_structure(params)}{_lessons(params)}"""
+{_style(params)}{_niche(params)}{_structure(params)}{_lessons(params)}{_retention(params)}"""
 
 
 RULES = """Reglas:

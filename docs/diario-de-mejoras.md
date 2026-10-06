@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.41: el guion aprende de la retención
+
+- En **📈 Rendimiento**, cada vídeo tiene dos casillas nuevas: «30 s» (cuánta gente sigue
+  viendo a los 30 segundos) y «Mitad» (cuánta sigue a la mitad). Salen en YouTube Studio →
+  el vídeo → Estadísticas → Interacción, pasando el ratón por la gráfica.
+- El programa te dice dónde se va la gente: «el gancho pierde gente», «el desarrollo se
+  hace largo» o «falta ritmo».
+- **El próximo guion lo refuerza solo**: gancho más directo, giros cada 60–90 segundos o
+  más ritmo, según lo que digan tus datos. Lo ves en la tarjeta «📉 Retención».
+- El análisis de JARVIS también usa estos datos.
+
 ## 2026-10-06 — Versión 0.40: formatos de vídeo y color de cada canal
 
 - **Formato del vídeo** al crearlo: «Top / lista» (cuenta atrás con el número uno al

@@ -50,6 +50,8 @@ def performance_page(request: Request, db: DB, user: CurrentUser):
         subs=subs,
         subs_spark=sparkline(subs, 260, 48),
         insight=analytics.last_insight(db),
+        retention=analytics.retention_summary(rows),
+        retention_notes=analytics.retention_notes(analytics.retention_summary(rows)),
         last=get_setting(db, "analytics_last"),
         has_key=api_key_hint(db, "youtube") is not None,
         has_gemini=api_key_hint(db, "gemini") is not None,
@@ -87,6 +89,8 @@ def save_video_data(
     video_id: str,
     ctr: Annotated[str, Form()] = "",
     retention: Annotated[str, Form()] = "",
+    retention_30s: Annotated[str, Form()] = "",
+    retention_mid: Annotated[str, Form()] = "",
     project_id: Annotated[str, Form()] = "",
 ):
     video = db.get(Video, video_id)
@@ -103,6 +107,8 @@ def save_video_data(
 
     video.ctr = number(ctr)
     video.retention = number(retention)
+    video.retention_30s = number(retention_30s)
+    video.retention_mid = number(retention_mid)
     video.project_id = (
         int(project_id) if project_id.isdigit() and db.get(Project, int(project_id)) else None
     )

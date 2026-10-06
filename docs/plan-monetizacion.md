@@ -111,8 +111,8 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [ ] **Pantalla JARVIS**: panel con el plan de la semana y la nota de monetización.
 - [ ] **Ideas con demanda real**: cruzar el radar de marcas con lo que más se busca y con
   lo que mejor te ha funcionado en Rendimiento.
-- [ ] **Retención con datos**: en Rendimiento, apuntar el % de gente que sigue al minuto 1
-  y a la mitad (de YouTube Studio) y que el próximo guion refuerce esas partes.
+- [x] **Retención con datos** (0.41.0): en Rendimiento, apuntar el % de gente que sigue a los
+  30 s y a la mitad (de YouTube Studio) y que el próximo guion refuerce esas partes.
 - [ ] **Biblioteca de música** con su licencia guardada, para que el control de calidad
   la dé por buena.
 

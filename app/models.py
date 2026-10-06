@@ -187,6 +187,8 @@ class Video(Base):
     project_id: Mapped[int | None] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"))
     ctr: Mapped[float | None]  # % de clics en la miniatura (lo copias de YouTube Studio)
     retention: Mapped[float | None]  # % medio visto (también de YouTube Studio)
+    retention_30s: Mapped[float | None]  # % que sigue viendo a los 30 s (gráfica de retención)
+    retention_mid: Mapped[float | None]  # % que sigue a la mitad del vídeo
     milestones: Mapped[str | None] = mapped_column(String(200))  # hitos ya avisados
 
 

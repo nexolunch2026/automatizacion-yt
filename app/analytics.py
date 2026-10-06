@@ -239,6 +239,9 @@ def video_rows(db: Session, now: datetime | None = None) -> list[dict]:
                 "views_48h": _views_at(stats, published + timedelta(hours=48)),
                 "ctr": video.ctr,
                 "retention": video.retention,
+                "retention_30s": video.retention_30s,
+                "retention_mid": video.retention_mid,
+                "channel_id": project.channel_id if project else None,
                 "project_id": project.id if project else None,
                 "project": project.title if project else None,
                 "topic": project.topic if project else None,
@@ -252,7 +255,104 @@ def video_rows(db: Session, now: datetime | None = None) -> list[dict]:
         average = sum(r["views_per_day"] for r in rows) / len(rows)
         for r in rows:
             r["vs_average"] = round(r["views_per_day"] / average * 100) if average else None
+            r["diagnosis"] = retention_diagnosis(r)
     return rows
+
+
+# ---------------------------------------------------------------- retención
+
+# Referencias para documentales largos (aproximadas: cada nicho es distinto).
+HOOK_OK = 60  # % que sigue a los 30 s; por debajo, el gancho pierde a mucha gente
+MIDDLE_KEEP = 0.6  # de los que pasan los 30 s, al menos el 60 % debería llegar a la mitad
+AVERAGE_OK = 35  # % medio visto; por debajo, el vídeo en conjunto se hace largo
+
+
+def retention_diagnosis(row: dict) -> list[dict]:
+    """Qué parte del vídeo pierde gente, con los datos de retención que haya."""
+    found = []
+    hook, mid, average = row.get("retention_30s"), row.get("retention_mid"), row.get("retention")
+    if hook is not None and hook < HOOK_OK:
+        found.append(
+            {
+                "part": "hook",
+                "text": f"Solo el {hook:g} % sigue a los 30 s: el gancho pierde gente.",
+            }
+        )
+    if hook and mid is not None and mid / hook < MIDDLE_KEEP:
+        found.append(
+            {
+                "part": "middle",
+                "text": f"De {hook:g} % a los 30 s baja a {mid:g} % a la mitad: el desarrollo "
+                "se hace largo.",
+            }
+        )
+    if average is not None and average < AVERAGE_OK and not found:
+        found.append(
+            {"part": "overall", "text": f"Se ve de media el {average:g} %: falta ritmo en general."}
+        )
+    return found
+
+
+def _mean(values: list[float]) -> float | None:
+    return round(sum(values) / len(values), 1) if values else None
+
+
+def retention_summary(rows: list[dict], channel_id: int | None = None, limit: int = 5) -> dict:
+    """Lo que dicen los datos de retención de los últimos vídeos (del canal, si se da)."""
+    rows = [
+        r
+        for r in rows
+        if (channel_id is None or r.get("channel_id") in (channel_id, None))
+        and any(r.get(k) is not None for k in ("retention_30s", "retention_mid", "retention"))
+    ][:limit]
+    hooks = [r["retention_30s"] for r in rows if r.get("retention_30s") is not None]
+    keeps = [
+        r["retention_mid"] / r["retention_30s"]
+        for r in rows
+        if r.get("retention_30s") and r.get("retention_mid") is not None
+    ]
+    averages = [r["retention"] for r in rows if r.get("retention") is not None]
+    hook, keep, average = _mean(hooks), _mean(keeps), _mean(averages)
+    weak = []
+    if hook is not None and hook < HOOK_OK:
+        weak.append("hook")
+    if keep is not None and keep < MIDDLE_KEEP:
+        weak.append("middle")
+    if average is not None and average < AVERAGE_OK and not weak:
+        weak.append("overall")
+    return {"videos": len(rows), "hook": hook, "keep": keep, "average": average, "weak": weak}
+
+
+RETENTION_FIXES = {
+    "hook": "En los últimos vídeos, mucha gente se va en los primeros 30 segundos "
+    "({hook:g} % sigue). Refuerza el GANCHO: empieza en el momento de más tensión con una "
+    "frase corta, di en los primeros 10 s qué está en juego y promete algo que solo se "
+    "descubre al final. Nada de contexto ni presentaciones antes de los 30 s.",
+    "middle": "En los últimos vídeos, la gente se va a mitad del vídeo (de cada 100 que pasan "
+    "los 30 s, unos {keep_pct:g} llegan a la mitad). Refuerza el DESARROLLO: un giro o dato "
+    "sorprendente cada 60–90 s, cada sección cierra con una pregunta abierta y recuerda a "
+    "mitad de vídeo la promesa del gancho.",
+    "overall": "En los últimos vídeos se ve de media solo el {average:g} %. Más RITMO: frases "
+    "más cortas, quita lo que no haga avanzar la historia y adelanta lo más interesante.",
+}
+
+
+def retention_notes(summary: dict) -> str:
+    """Instrucciones para el próximo guion según los datos (vacío si no hay problema)."""
+    values = {
+        "hook": summary.get("hook") or 0,
+        "keep_pct": round((summary.get("keep") or 0) * 100),
+        "average": summary.get("average") or 0,
+    }
+    return "\n".join(RETENTION_FIXES[part].format(**values) for part in summary.get("weak", []))
+
+
+def channel_retention_notes(db: Session, channel_id: int | None) -> str:
+    try:
+        return retention_notes(retention_summary(video_rows(db), channel_id))
+    except Exception:  # noqa: BLE001 — un dato raro no puede parar un guion
+        log.exception("No se pudieron leer los datos de retención")
+        return ""
 
 
 # ---------------------------------------------------------------- análisis con IA
@@ -274,6 +374,10 @@ def _prompt(db: Session, rows: list[dict]) -> str:
             extra.append(f"CTR {r['ctr']} %")
         if r["retention"] is not None:
             extra.append(f"visto en promedio {r['retention']} %")
+        if r.get("retention_30s") is not None:
+            extra.append(f"sigue a los 30 s el {r['retention_30s']} %")
+        if r.get("retention_mid") is not None:
+            extra.append(f"sigue a la mitad el {r['retention_mid']} %")
         if r["views_48h"] is not None:
             extra.append(f"{r['views_48h']} visitas en 48 h")
         lines.append(

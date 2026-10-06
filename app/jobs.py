@@ -244,6 +244,10 @@ def _run_script(db: Session, project: Project, progress, params: dict) -> dict:
     params["closing"] = niche.closing_guide(kit)
     params["niche_notes"] = niche.script_notes(kit)
     params["lessons"] = script_rules(db)  # lo aprendido de vídeos que el creador marcó
+    from app.analytics import channel_retention_notes
+
+    # Si los datos dicen que se pierde gente en el gancho o a mitad, se refuerza esa parte.
+    params["retention_notes"] = channel_retention_notes(db, project.channel_id)
     data = run_script(project, research, strategy, ai, params, progress)
     remember_working_model(db, ai)
     return data
