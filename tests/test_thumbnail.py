@@ -152,3 +152,18 @@ def test_project_page_showcases_the_video(logged_in, monkeypatch):
     page = logged_in.get("/proyectos/1").text
     assert 'class="card showcase"' in page and "Descargar MP4" in page
     assert 'poster="/proyectos/1/archivos/miniaturas/' in page
+
+
+def test_mobile_check():
+    assert thumbnail.mobile_check("El fin de Enron", 0.3) == {"ok": True, "px": 28, "problems": []}
+    small = thumbnail.mobile_check("La increíble historia de cómo una empresa desapareció", 0.08)
+    assert not small["ok"] and len(small["problems"]) == 2
+    assert thumbnail.mobile_check("Nadie lo vio", 0.08, portrait=True)["ok"]  # Short: más alto
+
+
+def test_thumbnail_page_shows_mobile_legibility(logged_in, monkeypatch):
+    make_video_project(logged_in, monkeypatch)
+    with SessionLocal() as db:
+        variants = jobs.get_result(db, 1, "thumbnail")["variants"]
+    assert all("mobile" in v for v in variants)
+    assert "Se lee bien en pequeño" in logged_in.get("/proyectos/1/miniatura").text

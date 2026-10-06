@@ -111,7 +111,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [ ] **Lo que pide tu audiencia**: con la clave de YouTube, leer los comentarios de tus
   vídeos y sacar preguntas y temas que pide la gente (ideas nuevas y respuestas para el
   comentario fijado), en Rendimiento y por JARVIS.
-- [ ] **Miniatura legible en el móvil**: comprobar el tamaño y el contraste del texto de
+- [x] **Miniatura legible en el móvil** (0.65.0): comprobar el tamaño y el contraste del texto de
   cada miniatura vista a 168 px de ancho y avisar si no se lee bien.
 - [x] **Alertas de referencias** (0.64.0): JARVIS avisa por Telegram cuando un vídeo de tus canales de
   referencia se dispara (más de ×3 su media), con el botón «Hacer mi versión».

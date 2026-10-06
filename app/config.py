@@ -51,4 +51,4 @@ SECRET_KEY = _load_or_create("secret.key", lambda: secrets.token_urlsafe(48))
 ENCRYPTION_KEY = _load_or_create("encryption.key", _fernet_key)
 
 # Se muestra en la pantalla para saber qué versión está abierta.
-VERSION = "0.64.0"
+VERSION = "0.65.0"

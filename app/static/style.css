@@ -685,3 +685,5 @@ details > summary { cursor: pointer; }
 .ref-top li > .badge { grid-column: 2; grid-row: 1 / span 2; }
 .ref-top li > form { grid-column: 3; grid-row: 1 / span 2; margin: 0; }
 @media (max-width: 720px) { .ref-top li { grid-template-columns: minmax(0, 1fr); } .ref-top li > * { grid-column: 1 !important; grid-row: auto !important; } }
+
+.mobile-warn { color: #ffd98a; }

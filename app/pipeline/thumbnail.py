@@ -230,7 +230,10 @@ def compose(
     layout: str,
     size: tuple[int, int],
     out: Path,
+    info: dict | None = None,
 ) -> Path:
+    """Dibuja la miniatura. Si se pasa `info`, apunta el tamaño de la letra (para saber
+    si se lee en pequeño)."""
     w, h = size
     portrait = h > w
     if portrait and layout == "left":
@@ -278,6 +281,8 @@ def compose(
             lw = draw.textlength(line, font=fnt)
             _draw_words(draw, line, (w - lw) / 2, y, fnt, fsize, marked, box=True)
             y += int(fsize * 0.92)
+    if info is not None:
+        info.update(font_ratio=fsize / h, lines=len(lines))
     # Marco fino rojo abajo: firma visual del canal en todas las miniaturas.
     draw.rectangle([0, h - max(6, h // 120), w, h], fill=accent.color())
     rgb = image.convert("RGB")
@@ -287,6 +292,26 @@ def compose(
         if out.stat().st_size <= MAX_BYTES:
             break
     return out
+
+
+# ---------------------------------------------------------------- se lee en pequeño
+
+SMALL_HEIGHT = 94  # alto de la miniatura en pequeño (168 px de ancho: búsqueda y laterales)
+MIN_LETTER_PX = 12  # por debajo, el texto no se lee de un vistazo
+MAX_WORDS = 5
+
+
+def mobile_check(text: str, font_ratio: float, portrait: bool = False) -> dict:
+    """¿Se lee el texto de la miniatura cuando se ve pequeña? Letra y número de palabras."""
+    height = 168 if portrait else SMALL_HEIGHT  # los Shorts se ven en vertical
+    px = round(font_ratio * height)
+    words = len(text.split())
+    problems = []
+    if font_ratio and px < MIN_LETTER_PX:
+        problems.append(f"letra de {px} px en pequeño: acorta el texto")
+    if words > MAX_WORDS:
+        problems.append(f"{words} palabras: mejor 2–4")
+    return {"ok": not problems, "px": px, "problems": problems}
 
 
 # ---------------------------------------------------------------- etapa completa
@@ -339,7 +364,8 @@ def run_thumbnail(
         progress(65 + i * 10, f"Componiendo la miniatura {i + 1} de 3")
         background = backgrounds[i % len(backgrounds)]
         name = f"miniatura-{i + 1}.jpg"
-        compose(background, text.text, text.highlight, layout, size, out_folder / name)
+        drawn: dict = {}
+        compose(background, text.text, text.highlight, layout, size, out_folder / name, drawn)
         variants.append(
             {
                 "file": name,
@@ -347,6 +373,7 @@ def run_thumbnail(
                 "highlight": text.highlight,
                 "layout": layout,
                 "source": sources[i % len(sources)],
+                "mobile": mobile_check(text.text, drawn.get("font_ratio", 0), portrait),
             }
         )
     progress(100, "Miniaturas listas")

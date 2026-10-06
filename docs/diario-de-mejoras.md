@@ -2,6 +2,12 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.65: ¿se lee la miniatura en pequeño?
+
+- En **Miniatura**, cada una dice **«📱 Se lee bien en pequeño»** o te avisa si la letra
+  queda demasiado pequeña cuando YouTube la enseña reducida (búsquedas y vídeos
+  sugeridos) o si tiene demasiadas palabras (mejor 2–4).
+
 ## 2026-10-06 — Versión 0.64: aviso cuando algo se dispara en tus referencias
 
 - Si tienes Telegram conectado, JARVIS revisa tus **canales de referencia** cada 6 horas y

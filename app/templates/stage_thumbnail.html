@@ -37,6 +37,10 @@
       <span class="muted small">En el móvil</span>
     </div>
     <p><strong>«{{ v.text }}»</strong> <span class="muted small">· fondo: {{ v.source }}</span></p>
+    {% if v.mobile %}
+    <p class="small {{ 'status-done' if v.mobile.ok else 'mobile-warn' }}">📱
+      {% if v.mobile.ok %}Se lee bien en pequeño{% else %}{{ v.mobile.problems|join(' · ') }}{% endif %}</p>
+    {% endif %}
     <div class="row-actions">
       {% if thumbs.selected == loop.index0 %}
       <span class="badge ok">✓ Elegida</span>
