@@ -255,8 +255,10 @@ def _original_checks(results: dict, others: list[str], structures: list[str]) ->
     from app.pipeline.script import STRUCTURES
 
     structure = (script.get("params") or {}).get("structure")
-    if structure in STRUCTURES:
-        name = STRUCTURES[structure][0]
+    name = script.get("structure_name") or (
+        STRUCTURES[structure][0] if structure in STRUCTURES else ""
+    )
+    if structure and name:
         repeated = bool(structures) and structures[0] == structure
         checks.append(
             _check(

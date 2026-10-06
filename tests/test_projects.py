@@ -76,3 +76,13 @@ def test_delete_project(logged_in):
     r = logged_in.post("/proyectos/1/borrar")
     assert r.status_code == 200
     assert logged_in.get("/proyectos/1").status_code == 404
+
+
+def brand_channel(channel_id=1):
+    """Pone el canal en el nicho de marcas (la ficha de siempre: «La lección de la marca»)."""
+    from app.db import SessionLocal
+    from app.models import Channel
+
+    with SessionLocal() as db:
+        db.get(Channel, channel_id).niche = "historias de marcas y empresas"
+        db.commit()

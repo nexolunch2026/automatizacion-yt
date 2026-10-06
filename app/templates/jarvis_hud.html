@@ -17,7 +17,7 @@
       </div>
       <div class="title-box">
         <div class="title">J.A.R.V.I.S.</div>
-        <div class="label">FACELESS STUDIO · ANATOMÍA DE UNA MARCA</div>
+        <div class="label">FACELESS STUDIO{% if channel_name %} · {{ channel_name|upper }}{% endif %}</div>
       </div>
       <div class="weather-box">
         <div id="weather"><div class="label">CLIMA</div><div class="muted small">Pon tu ciudad en la página JARVIS</div></div>
@@ -71,7 +71,7 @@
       </div>
     </section>
 
-    <div class="ticker" id="ticker" title="Noticias de negocios y radar de marcas">
+    <div class="ticker" id="ticker" title="Noticias y radar de tu nicho">
       <span class="ticker-label">📡 RADAR</span>
       <div class="ticker-window"><div class="ticker-track" id="ticker-track">Cargando noticias…</div></div>
     </div>

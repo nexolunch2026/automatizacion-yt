@@ -120,7 +120,7 @@ Del guion numerado elige {count} fragmentos para Shorts verticales:
 - title: título del Short (máximo 60 caracteres), con curiosidad, honesto y sin
   destripar el final.
 - hook: 2–5 palabras que se verán grandes desde el primer fotograma: una promesa o una
-  cifra («PERDIÓ 74.000 MILLONES», «NADIE LO VIO VENIR»), no el nombre de la marca solo.
+  cifra («PERDIÓ 74.000 MILLONES», «NADIE LO VIO VENIR»), no solo el nombre del tema.
 
 Vídeo: «{script.get("title") or project.title}»
 GUION:

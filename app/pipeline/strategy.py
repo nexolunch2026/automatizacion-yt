@@ -37,7 +37,15 @@ class Strategy(BaseModel):
     concepts: list[Concept]
 
 
-def _prompt(project: Project, research: dict) -> str:
+BRAND_TIPS = """Lo que hacen los mejores canales de documentales de empresas:
+- Títulos de 60 caracteres como mucho, con la marca y lo más intrigante al principio
+  (se cortan en el móvil). Crean una pregunta en la cabeza, no la responden.
+- La miniatura y el título son un equipo: el texto de la miniatura (2–4 palabras) añade
+  algo que el título no dice; nunca lo repite. Muestra la emoción o el resultado.
+- El gancho entra directo en el momento de más tensión de la historia, sin presentaciones."""
+
+
+def _prompt(project: Project, research: dict, tips: str = "") -> str:
     return f"""Eres estratega de contenido de YouTube. Propón 3 enfoques DISTINTOS para un
 vídeo de tipo «{project.video_type}», duración «{project.duration}», en {project.language}.
 
@@ -50,21 +58,20 @@ concepto de miniatura.
 
 Reglas: basa todo en la investigación; los títulos deben ser atractivos pero honestos
 (nada que el vídeo no cumpla); no inventes cifras de CTR ni de visitas.
-Lo que hacen los mejores canales de documentales de empresas:
-- Títulos de 60 caracteres como mucho, con la marca y lo más intrigante al principio
-  (se cortan en el móvil). Crean una pregunta en la cabeza, no la responden.
-- La miniatura y el título son un equipo: el texto de la miniatura (2–4 palabras) añade
-  algo que el título no dice; nunca lo repite. Muestra la emoción o el resultado.
-- El gancho entra directo en el momento de más tensión de la historia, sin presentaciones.
+{tips or BRAND_TIPS}
 
 INVESTIGACIÓN:
 {research_summary(research)}"""
 
 
 def run_strategy(
-    project: Project, research: dict, ai: AIProvider, progress: Callable[[int, str], None]
+    project: Project,
+    research: dict,
+    ai: AIProvider,
+    progress: Callable[[int, str], None],
+    tips: str = "",
 ) -> dict:
     progress(20, "Pensando enfoques y títulos")
-    strategy = ai.generate_json(_prompt(project, research), Strategy)
+    strategy = ai.generate_json(_prompt(project, research, tips), Strategy)
     progress(100, "Propuestas listas")
     return {"concepts": [c.model_dump() for c in strategy.concepts[:3]], "selected": None}

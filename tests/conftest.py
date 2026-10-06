@@ -71,6 +71,21 @@ def fresh_model_list():
 
 
 @pytest.fixture(autouse=True)
+def niche_kit_without_ai(monkeypatch, request):
+    """Las IA falsas de cada test no saben crear la ficha del nicho: usan la general.
+    Las pruebas del nicho (test_niche.py) prueban la de verdad."""
+    if request.module.__name__.endswith("test_niche"):
+        return
+    from app import niche
+    from app.providers.ai import ProviderError
+
+    def no_kit(db, channel, ai):
+        raise ProviderError("sin ficha en las pruebas")
+
+    monkeypatch.setattr(niche, "generate", no_kit)
+
+
+@pytest.fixture(autouse=True)
 def no_real_internet(monkeypatch):
     """Ningún test llama a Wikipedia ni descarga voces de verdad."""
     from app import jobs

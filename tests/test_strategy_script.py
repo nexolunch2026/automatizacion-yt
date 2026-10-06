@@ -61,13 +61,18 @@ def test_write_script_with_tone(logged_in, ai):
 
     data = script_data()
     assert data["title"] == "Título 1-2"
-    assert data["params"] == {
+    params = data["params"]
+    assert {k: params[k] for k in ("tone", "drama", "technical", "structure", "lessons")} == {
         "tone": "Misterioso",
         "drama": "Alto",
         "technical": "Bajo",
         "structure": "cronologia",  # automática: la primera que nunca se ha usado
         "lessons": [],  # nada marcado en «Aprender»
     }
+    # Lo propio del nicho del canal («casos raros»: la ficha general sin IA).
+    assert "«La idea clave»" in params["closing"] and "casos raros" in params["niche_notes"]
+    assert params["structure_info"]["name"] == "Cronológica"
+    assert data["structure_name"] == "Cronológica"
     # 5–10 min: gancho, promesa, intro, 3 de desarrollo, clímax, conclusión y llamada.
     assert [s["kind"] for s in data["sections"]] == [
         "hook",

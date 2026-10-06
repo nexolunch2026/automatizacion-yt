@@ -73,6 +73,10 @@ NEWS_WORDS = (
 RADAR_WORDS = (
     "radar",
     "radar de marcas",
+    "radar del nicho",
+    "radar de mi nicho",
+    "noticias del nicho",
+    "noticias de mi nicho",
     "marcas en crisis",
     "noticias de marcas",
     "que marcas estan en problemas",
@@ -315,7 +319,7 @@ def _news(db: Session, intent) -> list:
 def _radar(db: Session, intent) -> list:
     replies = _headlines(
         info.brand_radar(db),
-        "📡 <b>Radar de marcas</b> (empresas en apuros esta semana)",
+        "📡 <b>Radar de tu nicho</b> (noticias de esta semana que dan ideas)",
         "jarvis_radar",
         db,
     )

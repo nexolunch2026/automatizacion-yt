@@ -94,7 +94,27 @@ def channels_page(request: Request, db: DB, user: CurrentUser):
     channels = db.scalars(
         select(Channel).options(selectinload(Channel.projects)).order_by(Channel.name)
     ).all()
-    return render(request, "channels.html", channels=channels, languages=LANGUAGES)
+    return _channels_page(request, db, channels)
+
+
+def _channels_page(request: Request, db, channels, status_code: int = 200, **ctx):
+    from app import niche
+
+    kits = {c.id: niche.kit_for(db, c) for c in channels}
+    own = {
+        c.id: niche.has_own_kit(db, c) or niche.is_brands(niche.niche_of(db, c)) for c in channels
+    }
+    return render(
+        request,
+        "channels.html",
+        status_code=status_code,
+        channels=channels,
+        languages=LANGUAGES,
+        kits=kits,
+        own=own,
+        has_gemini=api_key_hint(db, "gemini") is not None,
+        **ctx,
+    )
 
 
 @router.post("/canales")
@@ -109,19 +129,43 @@ def create_channel(
     name = name.strip()
     if not name or language not in LANGUAGES:
         channels = db.scalars(select(Channel).order_by(Channel.name)).all()
-        return render(
-            request,
-            "channels.html",
-            status_code=400,
-            channels=channels,
-            languages=LANGUAGES,
-            error="Escribe un nombre para el canal.",
-        )
+        return _channels_page(request, db, channels, 400, error="Escribe un nombre para el canal.")
     db.add(
         Channel(name=name[:100], niche=niche.strip()[:200], language=language, created_by=user.id)
     )
     db.commit()
     return _redirect("/canales")
+
+
+def _channel(db, channel_id: int) -> Channel:
+    channel = db.get(Channel, channel_id)
+    if channel is None:
+        raise HTTPException(404, "Ese canal no existe")
+    return channel
+
+
+@router.post("/canales/{channel_id}/nicho")
+def change_niche(db: DB, user: CurrentUser, channel_id: int, niche: Annotated[str, Form()] = ""):
+    _channel(db, channel_id).niche = " ".join(niche.split())[:200]
+    db.commit()
+    return _redirect(f"/canales#c-{channel_id}")
+
+
+@router.post("/canales/{channel_id}/ficha")
+def make_niche_kit(request: Request, db: DB, user: CurrentUser, channel_id: int):
+    """La IA crea (o rehace) la ficha del nicho del canal."""
+    from app import niche
+    from app.providers.ai import ProviderError
+
+    channel = _channel(db, channel_id)
+    try:
+        ai = jobs.get_ai_provider(db)
+        niche.generate(db, channel, ai)
+        jobs.remember_working_model(db, ai)
+    except ProviderError as exc:
+        channels = db.scalars(select(Channel).order_by(Channel.name)).all()
+        return _channels_page(request, db, channels, 400, error=f"No se pudo crear la ficha: {exc}")
+    return _redirect(f"/canales#c-{channel_id}")
 
 
 # ---------- Proyectos ----------

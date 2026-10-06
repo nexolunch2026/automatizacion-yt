@@ -17,7 +17,7 @@
     {% if error %}<p class="alert">{{ error }}</p>{% endif %}
     <form method="post" action="/canales" class="stack">
       <label>Nombre <input name="name" placeholder="Ej.: Misterios Sin Resolver" required></label>
-      <label>Nicho o tema <input name="niche" placeholder="Ej.: empresas y casos misteriosos"></label>
+      <label>Nicho o tema <input name="niche" placeholder="Ej.: misterios sin resolver, finanzas personales, historia…"></label>
       <label>Idioma
         <select name="language">
           {% for l in languages %}<option>{{ l }}</option>{% endfor %}
@@ -29,9 +29,34 @@
 
   <div>
     {% for c in channels %}
-    <div class="card">
+    {% set kit = kits[c.id] %}
+    <div class="card" id="c-{{ c.id }}">
       <h3>{{ c.name }}</h3>
-      <p class="muted small">{{ c.niche or 'Sin nicho definido' }} · {{ c.language }} · {{ c.projects|length }} vídeo(s)</p>
+      <p class="muted small">{{ c.language }} · {{ c.projects|length }} vídeo(s)</p>
+      <form method="post" action="/canales/{{ c.id }}/nicho" class="row-actions">
+        <input name="niche" value="{{ c.niche }}" placeholder="Nicho (vacío: el de tu perfil)" maxlength="200" style="flex:1;min-width:12rem">
+        <button class="btn small secondary">Cambiar nicho</button>
+      </form>
+      <details {% if not own[c.id] %}open{% endif %}>
+        <summary><strong>🧭 Ficha del nicho</strong> — {{ kit.niche }}
+          {% if own[c.id] %}<span class="badge ok">a medida</span>{% else %}<span class="badge">general</span>{% endif %}</summary>
+        {% if not own[c.id] %}
+        <p class="muted small">Ahora usa una ficha general. Pide a la IA la ficha de tu nicho: estructuras de guion,
+          tono, títulos, miniaturas, ideas y noticias pensadas para él. (Si no, se crea sola con el primer vídeo.)</p>
+        {% endif %}
+        <p><strong>Vídeos:</strong> {{ kit.video_format }}<br><strong>Público:</strong> {{ kit.audience }}<br>
+          <strong>Tono:</strong> {{ kit.tone }}</p>
+        <p><strong>Estructuras de guion</strong> (se turnan entre vídeos):</p>
+        <ul>{% for st in kit.structures %}<li><strong>{{ st.name }}</strong>: {{ st.guide }}</li>{% endfor %}</ul>
+        <p><strong>Sección final fija:</strong> «{{ kit.closing_name }}» — {{ kit.closing_guide }}</p>
+        {% if kit.title_tips %}<p><strong>Títulos:</strong></p><ul>{% for t in kit.title_tips %}<li>{{ t }}</li>{% endfor %}</ul>{% endif %}
+        {% if kit.thumbnail_tips %}<p><strong>Miniaturas:</strong></p><ul>{% for t in kit.thumbnail_tips %}<li>{{ t }}</li>{% endfor %}</ul>{% endif %}
+        {% if kit.avoid %}<p><strong>⚠️ Cuidado en este nicho:</strong></p><ul>{% for t in kit.avoid %}<li>{{ t }}</li>{% endfor %}</ul>{% endif %}
+        <form method="post" action="/canales/{{ c.id }}/ficha" onsubmit="this.querySelector('button').textContent='Creando la ficha… (unos segundos)'">
+          <button class="btn small" {% if not has_gemini %}disabled title="Conecta Gemini en Configuración"{% endif %}>
+            {% if own[c.id] %}Rehacer ficha con IA{% else %}✨ Crear la ficha de mi nicho con IA{% endif %}</button>
+        </form>
+      </details>
     </div>
     {% else %}
     <p class="muted">Aún no hay canales.</p>

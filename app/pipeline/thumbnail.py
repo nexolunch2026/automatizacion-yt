@@ -43,7 +43,8 @@ def _prompt(project: Project, strategy: dict, script: dict) -> str:
     if strategy and strategy.get("selected"):
         concept = strategy["concepts"][strategy["selected"]["concept"]]
     thumb = concept.get("thumbnail", {})
-    return f"""Eres experto en miniaturas de YouTube para documentales de marcas.
+    niche = getattr(getattr(project, "channel", None), "niche", "") or "documentales"
+    return f"""Eres experto en miniaturas de YouTube para canales de {niche}.
 Vídeo: «{script.get("title") or project.title}». Idioma: {project.language}.
 Idea de miniatura de la estrategia: {thumb.get("concept", "")} — texto sugerido:
 «{thumb.get("text", "")}». Gancho del vídeo: {concept.get("hook", "")}

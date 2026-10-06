@@ -26,7 +26,7 @@ from app.pipeline.render import (
     render_video,
 )
 from app.pipeline.research import run_research
-from app.pipeline.script import STRUCTURES, default_params, pick_structure, run_script
+from app.pipeline.script import default_params, pick_structure, run_script
 from app.pipeline.seo import run_seo
 from app.pipeline.storyboard import run_storyboard
 from app.pipeline.strategy import run_strategy
@@ -209,9 +209,12 @@ def _run_research(db: Session, project: Project, progress, params: dict) -> dict
 
 
 def _run_strategy(db: Session, project: Project, progress, params: dict) -> dict:
+    from app import niche
+
     research = _require(db, project, "research", "Primero hay que investigar el tema.")
     ai = get_ai_provider(db)
-    data = run_strategy(project, research, ai, progress)
+    kit = niche.ensure(db, project.channel, ai)
+    data = run_strategy(project, research, ai, progress, niche.strategy_tips(kit))
     remember_working_model(db, ai)
     if project.automation_mode == "automatico" and data["concepts"]:
         data["selected"] = {"concept": 0, "title": 0, "auto": True}
@@ -224,12 +227,19 @@ def _run_script(db: Session, project: Project, progress, params: dict) -> dict:
     if not strategy.get("selected"):
         raise ProviderError("Primero elige uno de los enfoques en la página de Estrategia.")
     params = {**default_params(), **(params or {})}
-    if params["structure"] not in STRUCTURES:  # automática: la que hace más que no se usa
-        params["structure"] = pick_structure(recent_structures(db, project))
+    from app import niche
     from app.learning import script_rules
 
-    params["lessons"] = script_rules(db)  # lo aprendido de vídeos que el creador marcó
     ai = get_ai_provider(db)
+    kit = niche.ensure(db, project.channel, ai)  # lo propio del nicho del canal
+    keys = [s.key for s in kit.structures]
+    if params["structure"] not in keys:  # automática: la que hace más que no se usa
+        params["structure"] = pick_structure(recent_structures(db, project), keys)
+    chosen = niche.structure(kit, params["structure"])
+    params["structure_info"] = chosen.model_dump() if chosen else {}
+    params["closing"] = niche.closing_guide(kit)
+    params["niche_notes"] = niche.script_notes(kit)
+    params["lessons"] = script_rules(db)  # lo aprendido de vídeos que el creador marcó
     data = run_script(project, research, strategy, ai, params, progress)
     remember_working_model(db, ai)
     return data
@@ -713,7 +723,7 @@ def _refresh_analytics() -> None:
         log.exception("Error guardando las cifras del canal")
 
 
-def _run_research() -> bool:
+def _run_yt_research() -> bool:
     """Sin tareas de vídeo pendientes: investigaciones en YouTube que estén en cola."""
     from app import yt_research
 
@@ -765,7 +775,7 @@ class Worker(threading.Thread):
                 log.exception("Error en el trabajador")
                 worked = False
             if not worked:
-                worked = _run_research()
+                worked = _run_yt_research()
             if not worked:
                 _refresh_analytics()
                 _daily_backup()

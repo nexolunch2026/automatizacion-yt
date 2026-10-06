@@ -31,7 +31,10 @@ def test_pick_structure_prefers_unused_then_oldest():
 
 
 def test_second_video_gets_a_different_structure(with_script):  # noqa: F811
+    from tests.test_projects import brand_channel
+
     assert result("script")["params"]["structure"] == "cronologia"
+    brand_channel()
     with_script.post("/proyectos/nuevo", data=project_data(automation_mode="manual"))
     with_script.post("/proyectos/2/etapas/research")
     run_all()
@@ -68,6 +71,9 @@ def test_script_prompt_includes_the_structure(logged_in, ai, monkeypatch):  # no
 
     monkeypatch.setattr(ai, "generate_json", spy)
     make_project(logged_in, "manual")
+    from tests.test_projects import brand_channel
+
+    brand_channel()
     for stage in ("research", "strategy"):
         logged_in.post(f"/proyectos/1/etapas/{stage}")
         run_all()

@@ -49,6 +49,9 @@ def test_understands_bank_phrases(text, region):
 
 def test_bank_idea_becomes_a_video(logged_in, ai):  # noqa: F811
     make_project(logged_in, "manual")
+    from tests.test_projects import brand_channel
+
+    brand_channel()  # el banco de historias es de marcas
     with SessionLocal() as db:
         reply = assistant.handle(db, Incoming(chat_id=1, text="ideas de España"), trusted=True)[0]
         assert "Banco de historias — España" in reply.text and "🪝" in reply.text
@@ -61,6 +64,9 @@ def test_bank_idea_becomes_a_video(logged_in, ai):  # noqa: F811
 
 def test_ideas_fall_back_to_the_bank_when_gemini_fails(logged_in, ai, monkeypatch):  # noqa: F811
     create_channel(logged_in)
+    from tests.test_projects import brand_channel
+
+    brand_channel()
 
     def broken(self, prompt, schema):
         if schema is IdeaList:
@@ -83,6 +89,9 @@ def test_best_practices_reach_the_prompts(logged_in, ai, monkeypatch):  # noqa: 
 
     monkeypatch.setattr(ai, "generate_json", spy)
     make_project(logged_in, "manual")
+    from tests.test_projects import brand_channel
+
+    brand_channel()
     for stage in ("research", "strategy"):
         logged_in.post(f"/proyectos/1/etapas/{stage}")
         run_all()

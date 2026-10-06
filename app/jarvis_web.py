@@ -183,7 +183,14 @@ def save_pilot(
 
 @router.get("/hud")
 def hud(request: Request, db: DB, user: CurrentUser):
-    return render(request, "jarvis_hud.html", call_me=get_setting(db, "jarvis_name") or "")
+    from app import profile
+
+    return render(
+        request,
+        "jarvis_hud.html",
+        call_me=get_setting(db, "jarvis_name") or "",
+        channel_name=profile.get(db)["channel"],
+    )
 
 
 @router.get("/hud/datos")

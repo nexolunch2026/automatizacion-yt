@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.39: sirve para cualquier nicho
+
+- **Ficha del nicho**: en 🧭 Canales cada canal tiene su ficha: cómo son sus vídeos, para
+  quién, el tono, 4–5 estructuras de guion, su sección final fija (en tu canal sigue
+  siendo «La lección de la marca»), consejos de títulos y miniaturas y los riesgos del
+  nicho con YouTube. La crea la IA con un botón (o sola con el primer vídeo).
+- **Guion, estrategia y miniaturas** usan la ficha del canal: un canal de finanzas o de
+  misterios ya no recibe consejos de marcas.
+- **Ideas, radar de noticias y dato curioso** salen del nicho de cada canal.
+- Se puede **cambiar el nicho** de un canal en Canales.
+- **Tu canal no cambia**: al ser de marcas usa la ficha de siempre y el banco de historias.
+
 ## 2026-10-06 — Versión 0.38: para compartir con otras personas
 
 - **Perfil**: nombre, canal, de qué son los vídeos y país. Los guiones, JARVIS, «Aprender»

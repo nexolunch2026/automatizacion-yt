@@ -2,10 +2,10 @@
 
 - Tu canal de YouTube: suscriptores, visitas y últimos vídeos (con la clave gratuita de
   YouTube es exacto; sin clave se usa la página pública y su RSS).
-- Noticias de negocios y un «radar de marcas» (empresas en crisis, cierres, quiebras…),
-  que son ideas de vídeo para un canal como «Anatomía de una marca». Google Noticias RSS.
+- Noticias de negocios y un «radar del nicho» (noticias que sirven de ideas de vídeo
+  para el nicho del canal; en marcas: empresas en crisis, cierres…). Google Noticias RSS.
 - Dólar del día (open.er-api.com) y pronóstico de 3 días (Open-Meteo).
-- Dato curioso del día sobre marcas (Gemini, uno al día).
+- Dato curioso del día sobre el nicho del canal (Gemini, uno al día).
 
 Cada consulta se guarda unos minutos en memoria para no repetir peticiones.
 """
@@ -274,13 +274,17 @@ def news(db: Session) -> list[dict]:
 
 
 def brand_radar(db: Session) -> list[dict]:
-    """Titulares de marcas y empresas en problemas: material para vídeos."""
+    """Titulares que sirven de ideas de vídeo en el nicho del canal (en marcas: empresas en
+    problemas). El nombre se mantiene por compatibilidad."""
+    from app import niche
+
+    query = niche.main_kit(db).news_query.strip() or BRAND_RADAR
 
     def fetch():
         url = "https://news.google.com/rss/search"
-        return parse_news(_get(url, q=BRAND_RADAR + " when:7d", **news_region(db)).text, limit=8)
+        return parse_news(_get(url, q=query + " when:7d", **news_region(db)).text, limit=8)
 
-    return cached("news:radar", 3600, fetch) or []
+    return cached(f"news:radar:{query}", 3600, fetch) or []
 
 
 # ---------------------------------------------------------------- dólar y clima
@@ -343,7 +347,7 @@ def forecast(db: Session) -> list[dict]:
 
 
 def fact_of_day(db: Session, now: datetime | None = None, generate: bool = True) -> str:
-    """Un dato curioso sobre marcas, uno al día (Gemini)."""
+    """Un dato curioso sobre el nicho del canal, uno al día (Gemini)."""
     from pydantic import BaseModel
 
     today = (now or datetime.now()).strftime("%Y-%m-%d")
@@ -360,12 +364,14 @@ def fact_of_day(db: Session, now: datetime | None = None, generate: bool = True)
     from app.providers.ai import ProviderError
 
     try:
+        from app import niche
+
+        topic = niche.main_kit(db).fact_topic
         ai = jobs.get_ai_provider(db)
         fact = ai.generate_json(
-            "Cuenta UN dato curioso, real y verificable sobre la historia de una marca o "
-            "empresa conocida (su origen, un error famoso, un giro inesperado). Máximo dos "
-            "frases, en español, tono ameno. No inventes nada; si dudas de una cifra, no la "
-            "pongas.",
+            f"Cuenta UN dato curioso, real y verificable sobre {topic} (un origen, un error "
+            "famoso, un giro inesperado). Máximo dos frases, en español, tono ameno. No "
+            "inventes nada; si dudas de una cifra, no la pongas.",
             Fact,
         ).fact.strip()
         jobs.remember_working_model(db, ai)

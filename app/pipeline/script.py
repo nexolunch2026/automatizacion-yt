@@ -78,14 +78,14 @@ def default_params() -> dict:
     return {"tone": "Documental", "drama": "Medio", "technical": "Bajo", "structure": AUTO}
 
 
-def pick_structure(recent: list[str]) -> str:
+def pick_structure(recent: list[str], keys: list[str] | None = None) -> str:
     """La estructura que hace más tiempo que no se usa (`recent`: de la más nueva a la más
-    vieja). Las que nunca se han usado van primero."""
+    vieja). Las que nunca se han usado van primero. `keys`: las de la ficha del nicho."""
 
     def last_used(key: str) -> int:
         return recent.index(key) if key in recent else len(recent) + 1
 
-    return max(STRUCTURES, key=last_used)
+    return max(keys or list(STRUCTURES), key=last_used)
 
 
 def _style(params: dict) -> str:
@@ -106,12 +106,28 @@ def _lessons(params: dict) -> str:
     )
 
 
+def structure_name(params: dict) -> str:
+    info = params.get("structure_info") or {}
+    if info.get("name"):
+        return info["name"]
+    key = params.get("structure")
+    return STRUCTURES[key][0] if key in STRUCTURES else ""
+
+
 def _structure(params: dict) -> str:
+    info = params.get("structure_info") or {}  # la de la ficha del nicho
+    if info.get("name"):
+        return f"\nEstructura narrativa: {info['name']}. {info.get('guide', '')}"
     key = params.get("structure")
     if key not in STRUCTURES:
         return ""
     name, guide = STRUCTURES[key]
     return f"\nEstructura narrativa: {name}. {guide}"
+
+
+def _niche(params: dict) -> str:
+    notes = (params.get("niche_notes") or "").strip()
+    return f"\n{notes}" if notes else ""
 
 
 class OutlineSection(BaseModel):
@@ -168,7 +184,7 @@ Enfoque: {concept["angle"]} — {concept["summary"]}
 Promesa al espectador: {concept["promise"]}
 Gancho sugerido: {concept["hook"]}
 Audiencia: {concept["audience"]}
-{_style(params)}{_structure(params)}{_lessons(params)}"""
+{_style(params)}{_niche(params)}{_structure(params)}{_lessons(params)}"""
 
 
 RULES = """Reglas:
@@ -225,8 +241,19 @@ INVESTIGACIÓN:
 {research_summary(research)}"""
 
 
+def section_guides(params: dict) -> dict:
+    """Las guías de cada parte; la conclusión, con la sección fija del nicho si la hay."""
+    closing = (params.get("closing") or "").strip()
+    return {**SECTION_GUIDES, **({"conclusion": closing} if closing else {})}
+
+
 def _section_prompt(
-    brief: str, outline: list[dict], index: int, previous_text: str, research: dict
+    brief: str,
+    outline: list[dict],
+    index: int,
+    previous_text: str,
+    research: dict,
+    guides: dict | None = None,
 ) -> str:
     section = outline[index]
     overview = "\n".join(
@@ -241,7 +268,7 @@ Estás escribiendo el guion por partes. Esquema completo (la flecha marca la par
 
 ESCRIBE AHORA SOLO la sección {index + 1}: «{section["label"]}: {section["title"]}».
 Ideas a cubrir: {"; ".join(section["key_points"])}
-{SECTION_GUIDES.get(section["kind"], "")}
+{(guides or SECTION_GUIDES).get(section["kind"], "")}
 Extensión: unas {section["words"]} palabras (unos {paragraphs} párrafos). Es importante
 llegar a esa extensión con contenido real de la investigación.
 
@@ -352,7 +379,7 @@ def run_script(
             round(12 + 85 * i / len(outline)),
             f"Escribiendo la sección {i + 1} de {len(outline)}: {section['label']}",
         )
-        prompt = _section_prompt(brief, outline, i, previous_text, research)
+        prompt = _section_prompt(brief, outline, i, previous_text, research, section_guides(params))
         draft = _paragraphs(
             _with_retries(lambda p=prompt: ai.generate_json(p, SectionDraft)), n_sources
         )
@@ -372,6 +399,7 @@ def run_script(
         "title": title,
         "sections": sections,
         "params": params,
+        "structure_name": structure_name(params),
         "based_on": {"concept": selected["concept"], "title": selected.get("title", 0)},
         "target_words": WORDS_BY_DURATION.get(project.duration, 1100),
     }

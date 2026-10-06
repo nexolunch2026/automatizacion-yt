@@ -22,8 +22,10 @@
     </label>
     <label>¿De qué son tus vídeos?
       <input name="niche" value="{{ p.niche }}" maxlength="160">
-      <span class="muted small">El programa está pensado para documentales narrados (marcas, empresas,
-        historia, misterios…). Escríbelo como «documentales sobre …».</span>
+      <span class="muted small">Cualquier nicho: misterios, finanzas personales, historia, ciencia,
+        deportes, true crime, curiosidades… Con tu nicho, la IA crea la «ficha del nicho» de tu canal
+        (estructuras de guion, tono, títulos, miniaturas e ideas). Cada canal puede tener el suyo
+        en <a href="/canales">Canales</a>.</span>
     </label>
     <label>País
       <select name="country">{% for c in countries %}<option {% if c == p.country %}selected{% endif %}>{{ c }}</option>{% endfor %}</select>

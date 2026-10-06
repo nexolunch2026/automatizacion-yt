@@ -341,7 +341,7 @@ def briefing_text(db: Session, now: datetime | None = None, name: str = "") -> s
             parts.append(f"{task['text']}.")
     radar = info.brand_radar(db)
     if radar:
-        parts.append(f"En el radar de marcas: {radar[0]['title']}.")
+        parts.append(f"En el radar de tu nicho: {radar[0]['title']}.")
     return " ".join(parts)
 
 

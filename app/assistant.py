@@ -20,7 +20,18 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import agenda, coach, daily, ideas_bank, jobs, learning, profile, skills, yt_research
+from app import (
+    agenda,
+    coach,
+    daily,
+    ideas_bank,
+    jobs,
+    learning,
+    niche,
+    profile,
+    skills,
+    yt_research,
+)
 from app.media import project_dir
 from app.models import DURATIONS, STAGES, Channel, Job, Project, User
 from app.pipeline.monetization import project_review, summary_text
@@ -618,7 +629,7 @@ def _ai_intent(db: Session, text: str, chat_id: int = 0) -> Intent:
 - reminder: quiere que le recuerdes algo a una hora (task = qué, when = cuándo).
 - timer: quiere un temporizador (when = «en 10 minutos»).
 - reminder_list: pregunta qué recordatorios tiene.
-- news: pide noticias. radar: pregunta por marcas o empresas en crisis/noticias de marcas.
+- news: pide noticias. radar: pregunta por el radar o por noticias del nicho del canal.
 - channel: pregunta por su canal de YouTube (suscriptores, visitas, vídeos).
 - dollar: pregunta el precio del dólar. forecast: pregunta el clima o el pronóstico.
 - fact: pide un dato curioso. stats: pide estadísticas de lo producido.
@@ -686,7 +697,7 @@ def help_replies() -> list[Reply]:
             "☀️ <b>«resumen»</b> — el informe del día (tiempo, tareas y producción).\n"
             "⏰ <b>«recuérdame a las 5 llamar a Juan»</b>, <b>«temporizador de 10 minutos»</b>.\n"
             "📺 <b>«¿cómo va el canal?»</b> — suscriptores, visitas y últimos vídeos.\n"
-            "📡 <b>«radar»</b> — marcas en apuros esta semana (ideas de vídeo); "
+            "📡 <b>«radar»</b> — noticias de tu nicho esta semana (ideas de vídeo); "
             "<b>«noticias»</b>, <b>«dólar»</b>, <b>«clima»</b>, <b>«dato curioso»</b>.\n"
             "🖥️ <b>«abre YouTube Studio»</b>, <b>«busca…»</b>, <b>«pon música lofi»</b>.\n"
             "🛒 <b>«añade leche a la lista de la compra»</b>, <b>«¿qué hay en la lista?»</b>; "
@@ -932,7 +943,16 @@ def _review(db: Session, topic: str = "") -> list[Reply]:
 
 
 def bank_replies(db: Session, region: str = "") -> list[Reply]:
-    """Historias reales del banco de ideas que aún no se han hecho, con formatos variados."""
+    """Historias reales del banco de ideas que aún no se han hecho, con formatos variados.
+    El banco es de marcas y empresas: en otros nichos, las ideas las piensa la IA."""
+    if not niche.is_brands(niche.main_kit(db).niche):
+        return [
+            Reply(
+                "📚 El banco de historias es de marcas y empresas. Para tu nicho di "
+                "<b>«ideas»</b> y pienso nuevas.",
+                buttons=[[("💡 Ideas nuevas", "ideas")]],
+            )
+        ]
     done = [p.topic for p in db.scalars(select(Project))]
     ideas = ideas_bank.fresh_ideas(done, region)
     if not ideas:
@@ -950,7 +970,7 @@ def bank_replies(db: Session, region: str = "") -> list[Reply]:
 
 
 class Idea(BaseModel):
-    topic: str = Field(description="Tema concreto del vídeo (marca o empresa y el ángulo)")
+    topic: str = Field(description="Tema concreto del vídeo y su ángulo")
     hook: str = Field(description="Por qué engancha, en una frase")
     format: str = Field(default="", description="Formato del vídeo, distinto en cada idea")
 
@@ -973,14 +993,13 @@ def _ideas(db: Session) -> list[Reply]:
     done = [p.topic for p in db.scalars(select(Project).order_by(Project.id.desc()).limit(40))]
     ai = jobs.get_ai_provider(db)
     name = channel.name if channel else ""
-    niche = channel.niche if channel and channel.niche else "historias de marcas y empresas"
+    kit = niche.kit_for(db, channel)
     language = channel.language if channel else "Español"
     prompt = f"""Propón 5 ideas de vídeo para el canal de YouTube «{name}»
-(temática: {niche}), en {language}.
-Busca historias con conflicto real y verificable: auges, caídas, errores, rivalidades,
-resurgimientos. Mezcla marcas muy conocidas con alguna sorpresa. Nada de temas inventados.
-Usa un FORMATO distinto en cada idea (por ejemplo: ascenso y caída, «los 5 errores»,
-rivalidad entre dos marcas, el juicio o escándalo, «qué habría pasado si», la resurrección)
+(nicho: {kit.niche}; {kit.video_format}; público: {kit.audience}), en {language}.
+Busca temas reales y verificables, con conflicto, misterio o un giro. Mezcla temas muy
+conocidos con alguna sorpresa. Nada de temas inventados.
+Usa un FORMATO distinto en cada idea (por ejemplo: {", ".join(kit.idea_formats)})
 para que el canal no parezca hecho en serie: YouTube no monetiza el contenido repetitivo.
 {_performance_hint(db)}
 No repitas estos temas ya hechos: {"; ".join(done) or "ninguno"}"""
@@ -988,7 +1007,9 @@ No repitas estos temas ya hechos: {"; ".join(done) or "ninguno"}"""
         ideas = ai.generate_json(prompt, IdeaList).ideas[:5]
     except ProviderError:
         log.info("Gemini no respondió; uso el banco de ideas", exc_info=True)
-        return bank_replies(db)
+        if niche.is_brands(kit.niche):
+            return bank_replies(db)
+        return [Reply("No pude pensar ideas ahora (Gemini no respondió). Prueba en un rato.")]
     jobs.remember_working_model(db, ai)
     if not ideas:
         return [Reply("No se me ocurrió nada bueno ahora. Prueba otra vez en un rato.")]

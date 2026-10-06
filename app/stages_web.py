@@ -20,7 +20,6 @@ from app.pipeline.render import LOOKS, MUSIC_VOLUMES
 from app.pipeline.script import (
     AUTO,
     SECTION_LABELS,
-    STRUCTURES,
     default_params,
     rewrite_paragraph,
     with_stats,
@@ -101,6 +100,14 @@ def strategy_page(request: Request, db: DB, user: CurrentUser, project_id: int):
     return _stage_page(request, db, _project(db, project_id), "strategy")
 
 
+def _structures(db, project: Project) -> dict:
+    """Estructuras de guion de la ficha del nicho del canal: clave → (nombre, guía)."""
+    from app import niche
+
+    kit = niche.kit_for(db, project.channel)
+    return {st.key: (st.name, st.guide) for st in kit.structures}
+
+
 @router.get("/guion")
 def script_page(request: Request, db: DB, user: CurrentUser, project_id: int):
     project = _project(db, project_id)
@@ -114,7 +121,7 @@ def script_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         levels=LEVELS,
         labels=SECTION_LABELS,
         params=(script or {}).get("params") or default_params(),
-        structures=STRUCTURES,
+        structures=_structures(db, project),
     )
 
 
@@ -731,7 +738,7 @@ def run_stage(
     look: Annotated[str | None, Form()] = None,
     music_volume: Annotated[str | None, Form()] = None,
 ):
-    _project(db, project_id)
+    project = _project(db, project_id)
     if stage not in jobs.RUNNERS:
         raise HTTPException(404, "Esta etapa todavía no está disponible")
     params = None
@@ -741,7 +748,7 @@ def run_stage(
             "tone": tone if tone in SCRIPT_TONES else defaults["tone"],
             "drama": drama if drama in LEVELS else defaults["drama"],
             "technical": technical if technical in LEVELS else defaults["technical"],
-            "structure": structure if structure in STRUCTURES else AUTO,
+            "structure": structure if structure in _structures(db, project) else AUTO,
         }
     elif stage == "edit":
         params = {
@@ -848,7 +855,7 @@ def edit_paragraph(
                 levels=LEVELS,
                 labels=SECTION_LABELS,
                 params=script.get("params") or default_params(),
-                structures=STRUCTURES,
+                structures=_structures(db, project),
                 error=f"No se pudo cambiar el párrafo: {exc}",
             )
     row.data = script
