@@ -310,6 +310,19 @@ def voice_sample(
     return _redirect(f"/proyectos/{project_id}/voz?muestra={voice}-{speed}#muestra")
 
 
+@router.get("/paquete")
+def upload_pack(db: DB, user: CurrentUser, project_id: int):
+    """Todo para subir el vídeo en un .zip (vídeo, subtítulos, miniatura, textos, Shorts)."""
+    from app.upload_pack import build
+
+    project = _project(db, project_id)
+    try:
+        path = build(db, project)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return FileResponse(path, filename=path.name, media_type="application/zip")
+
+
 @router.get("/archivos/{path:path}")
 def project_file(db: DB, user: CurrentUser, project_id: int, path: str):
     _project(db, project_id)

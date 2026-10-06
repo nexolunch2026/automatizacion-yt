@@ -123,6 +123,10 @@
 
 <div class="card">
   <div class="row"><h3>Lista para subir el vídeo</h3><span class="badge" id="upload-progress"></span></div>
+  {% if 'edit' in results %}
+  <p><a class="btn" href="/proyectos/{{ project.id }}/paquete">📦 Descargar todo para subir (.zip)</a>
+    <span class="muted small">Vídeo, subtítulos, miniatura, textos para pegar y los Shorts, en un solo archivo.</span></p>
+  {% endif %}
   <ol class="steps checklist" id="upload-list" data-key="subida-{{ project.id }}">
     <li>En YouTube Studio pulsa <strong>Crear → Subir vídeos</strong> y elige el MP4 final (pestaña Vídeo → Descargar MP4).</li>
     <li>Pega el <strong>título</strong> y la <strong>descripción</strong>.</li>

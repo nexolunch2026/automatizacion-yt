@@ -2,6 +2,13 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.60: todo para subir, en un archivo
+
+- En **Publicación**, el botón **«📦 Descargar todo para subir»** baja un .zip con: el
+  vídeo, los subtítulos, la miniatura elegida, un texto con título, descripción,
+  etiquetas y comentario fijado listos para pegar, los créditos y los Shorts con sus
+  portadas y textos. Incluye un «LEEME» con los pasos para subirlo.
+
 ## 2026-10-06 — Versión 0.59: portada más útil y detalles de diseño
 
 - **Empezar un vídeo en un paso**: en la portada, la caja «✨ ¿Sobre qué hacemos el próximo
