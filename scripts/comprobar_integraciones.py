@@ -169,10 +169,15 @@ def main() -> None:
                 failures.append(f"La voz de JARVIS falló con {voice}: {exc} {exc.detail}")
 
     print("8) Información de JARVIS (servicios gratuitos; solo avisos)")
-    from app import info
+    from app import info, profile
+
+    handle = profile.ORIGINAL["handle"]  # un canal real para comprobar la lectura
 
     class FakeDB:  # sin base de datos: valores por defecto
         def get(self, *args):
+            return None
+
+        def scalar(self, *args):
             return None
 
     db = FakeDB()
@@ -186,9 +191,9 @@ def main() -> None:
     except Exception as exc:  # noqa: BLE001
         print(f"   AVISO pronóstico: {exc}")
     try:
-        page = info._get("https://www.youtube.com/" + info.DEFAULT_CHANNEL, hl="es").text
+        page = info._get("https://www.youtube.com/" + handle, hl="es").text
         print(f"   Página del canal: {info.parse_channel_page(page)}")
-        channel = info.fetch_youtube_public(info.DEFAULT_CHANNEL)
+        channel = info.fetch_youtube_public(handle)
         print(
             f"   Canal: {channel['name']} · {channel['subscribers']} suscriptores · "
             f"{len(channel['latest'])} vídeos en el RSS"
