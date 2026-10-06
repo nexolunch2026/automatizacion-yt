@@ -624,3 +624,6 @@ details > summary { cursor: pointer; }
 .small-gauge::before { inset: 7px; }
 .small-gauge .qc-score { font-size: 1.8rem; }
 @media (max-width: 800px) { .showcase { grid-template-columns: 1fr; } }
+
+/* El navegador dibuja en oscuro sus controles (audio, vídeo, barras de desplazamiento, menús) */
+:root { color-scheme: dark; }
