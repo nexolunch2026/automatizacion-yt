@@ -86,3 +86,13 @@ def brand_channel(channel_id=1):
     with SessionLocal() as db:
         db.get(Channel, channel_id).niche = "historias de marcas y empresas"
         db.commit()
+
+
+def test_dashboard_shows_summary_thumbnails_and_active_menu(logged_in):
+    from tests.test_strategy_script import make_project
+
+    make_project(logged_in)
+    page = logged_in.get("/").text
+    assert "En marcha" in page and "Nota media de calidad" in page
+    assert 'href="/" class="active"' in page  # el menú marca la página actual
+    assert 'href="/canales" class="active"' in logged_in.get("/canales").text

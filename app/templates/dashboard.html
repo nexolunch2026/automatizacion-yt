@@ -29,11 +29,33 @@
   {% endfor %}
 </div>
 
+{% if summary %}
+<div class="stats">
+  <div class="stat"><span class="stat-num">{{ summary.working }}</span><span class="stat-label">En marcha</span></div>
+  <div class="stat"><span class="stat-num">{{ summary.ready }}</span><span class="stat-label">Listos para subir</span></div>
+  <div class="stat"><span class="stat-num">{{ summary.published }}</span><span class="stat-label">Publicados</span></div>
+  <div class="stat"><span class="stat-num {% if summary.score is not none %}{{ 'good' if summary.score >= 85 else 'warn' }}{% endif %}">{{ summary.score if summary.score is not none else '—' }}</span>
+    <span class="stat-label">Nota media de calidad</span></div>
+</div>
+{% if summary.steps %}
+<div class="card next-list">
+  <h2>👉 Lo siguiente</h2>
+  <ul>
+    {% for project, step in summary.steps %}
+    <li><a href="/proyectos/{{ project.id }}"><strong>{{ project.title }}</strong></a>
+      <span class="muted">— {{ step.text }}</span></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endif %}
+
 {% if projects %}
 <div class="grid">
   {% for p in projects %}
   <a class="card project" href="/proyectos/{{ p.id }}">
-    <div class="thumb">Sin miniatura</div>
+    {% if thumbs.get(p.id) %}<img class="thumb" src="{{ thumbs[p.id] }}" alt="" loading="lazy">
+    {% else %}<div class="thumb">Sin miniatura</div>{% endif %}
     <h3>{{ p.title }}</h3>
     <p class="muted small">{{ p.channel.name }} · {{ p.video_type }} · {{ p.duration }}</p>
     <div class="row">

@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.49: diseño nuevo
+
+- **Aspecto más cuidado**: tipografías del canal (Montserrat y Bebas), tarjetas con relieve,
+  botones con brillo y movimientos suaves. El menú de arriba se queda fijo y marca la
+  página en la que estás.
+- **Portada con resumen**: vídeos en marcha, listos para subir, publicados y la nota media
+  de calidad, más «👉 Lo siguiente» con lo que toca en cada vídeo.
+- Las tarjetas de los vídeos enseñan **su miniatura**.
+- En cada vídeo, la **producción es una línea de pasos** con círculos (verde = hecho,
+  azul = trabajando, rojo = falló).
+- **En el móvil ya no se sale nada de la pantalla**: el menú se desliza de lado.
+
 ## 2026-10-06 — Versión 0.48: cuánto gasta cada vídeo
 
 - Tercera idea de «AS Video Studio»: en la página de cada vídeo hay un apartado

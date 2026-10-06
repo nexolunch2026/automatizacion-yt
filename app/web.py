@@ -52,7 +52,41 @@ def dashboard(request: Request, db: DB, user: CurrentUser, canal: int | None = N
         projects=projects,
         selected_channel=canal,
         needs_profile=not profile.is_set(db),
+        thumbs={p.id: url for p in projects if (url := _thumb_url(db, p.id))},
+        summary=_studio_summary(db, projects) if projects else None,
     )
+
+
+def _thumb_url(db, project_id: int) -> str | None:
+    """La miniatura elegida (o la primera) para la tarjeta del proyecto."""
+    thumb = jobs.get_result(db, project_id, "thumbnail") or {}
+    variants = thumb.get("variants") or []
+    if not variants:
+        return None
+    chosen = thumb.get("selected")
+    index = chosen if isinstance(chosen, int) and 0 <= chosen < len(variants) else 0
+    return f"/proyectos/{project_id}/archivos/miniaturas/{variants[index]['file']}"
+
+
+def _studio_summary(db, projects) -> dict:
+    """Cifras de la portada y los siguientes pasos (sin ir a internet: carga al momento)."""
+    from app import coach
+
+    published = coach._published_ids(db)
+    shown = {p.id for p in projects}
+    working = sum(1 for p in projects if any(j.active for j in jobs.latest_jobs(db, p.id).values()))
+    scores = []
+    for p in projects[:6]:  # los más recientes (la revisión compara guiones: no muchos)
+        if jobs.get_result(db, p.id, "script"):
+            scores.append(project_review(db, p)["score"])
+    return {
+        "working": working,
+        "ready": len(coach.ready_to_upload(db)),
+        "published": len(published),
+        "score": round(sum(scores) / len(scores)) if scores else None,
+        # solo los vídeos que se están viendo (si se filtra por canal, los de ese canal)
+        "steps": [(p, st) for p, st in coach.next_steps(db) if p.id in shown][:3],
+    }
 
 
 # ---------- Perfil (la primera vez: bienvenida) ----------

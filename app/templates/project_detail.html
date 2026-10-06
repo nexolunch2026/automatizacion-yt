@@ -90,10 +90,15 @@
 
   <div class="card">
     <h2>Producción</h2>
-    <ol class="stages">
+    <ol class="stages pipeline">
       {% for key, label in stages.items() %}
       {% set job = jobs.get(key) %}
-      <li>
+      {% if job and job.active %}{% set state = 'running' %}
+      {% elif key == 'qc' and qc %}{% set state = 'done' if qc.score >= 85 else 'warn' %}
+      {% elif job and job.status == 'failed' and key not in results %}{% set state = 'failed' %}
+      {% elif key in results %}{% set state = 'done' %}
+      {% else %}{% set state = 'todo' %}{% endif %}
+      <li class="step-{{ state }}">
         {% if key in slugs %}<a href="/proyectos/{{ project.id }}/{{ slugs[key] }}">{{ label }}</a>{% else %}<span>{{ label }}</span>{% endif %}
         {% if job and job.active %}
           <span class="small status-running">{{ job.message }} · {{ job.progress }}%</span>
