@@ -640,3 +640,10 @@ details > summary { cursor: pointer; }
   .topbar .busy { grid-row: 1; grid-column: 2; }
   .topbar .logout { grid-row: 1; grid-column: 3; }
 }
+.topbar nav { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.topbar nav::-webkit-scrollbar { display: none; }
+.topbar .logout { flex: none; }
+@media (max-width: 1500px) { .logout .muted { display: none; } }
+.topbar { gap: 16px; }
+.topbar nav { gap: 2px; }
+.topbar nav a { padding: 6px 9px; font-size: .95rem; }
