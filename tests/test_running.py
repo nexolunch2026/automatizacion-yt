@@ -111,3 +111,18 @@ def test_start_when_already_open_just_opens_the_browser(monkeypatch):
         launcher.main()
     assert exit_info.value.code == launcher.ALREADY_RUNNING
     assert opened == [f"http://{launcher.HOST}:{launcher.PORT}"]
+
+
+def test_browser_waits_until_the_program_answers(monkeypatch):
+    answers = iter([False, False, True])
+    opened = []
+    monkeypatch.setattr(launcher, "port_in_use", lambda host, port: next(answers))
+    assert launcher.open_when_ready(lambda: opened.append(1), wait=5, step=0.01)
+    assert opened == [1]
+
+
+def test_browser_is_not_opened_if_the_program_never_starts(monkeypatch):
+    opened = []
+    monkeypatch.setattr(launcher, "port_in_use", lambda host, port: False)
+    assert not launcher.open_when_ready(lambda: opened.append(1), wait=0.05, step=0.01)
+    assert opened == []

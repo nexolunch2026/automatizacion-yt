@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import threading
+import time
 import webbrowser
 from pathlib import Path
 
@@ -62,6 +63,19 @@ def open_jarvis(url: str) -> None:
     )
 
 
+def open_when_ready(opener, wait: float = 180.0, step: float = 0.5) -> bool:
+    """Abre el navegador cuando el programa ya responde (en un ordenador lento, la primera
+    vez tras actualizar puede tardar más de un minuto; antes se abría a los 2 segundos y
+    salía «No se puede acceder a este sitio web»)."""
+    deadline = time.monotonic() + wait
+    while time.monotonic() < deadline:
+        if port_in_use(HOST, PORT):
+            opener()
+            return True
+        time.sleep(step)
+    return False
+
+
 def main() -> None:
     url = f"http://{HOST}:{PORT}"
     jarvis = "--jarvis" in sys.argv
@@ -78,11 +92,13 @@ def main() -> None:
     print(f"  Tus proyectos y videos estan en: {DATA_DIR}")
     if "onedrive" in str(DATA_DIR).lower():
         print("  AVISO: tus datos estan dentro de OneDrive; puede llenarse con los videos.")
-    print("  Para apagarlo, cierra esta ventana.\n")
+    print("  Para apagarlo, cierra esta ventana.")
+    print("  (La primera vez tras actualizar puede tardar un poco: el navegador se abre solo.)\n")
     if jarvis:
-        threading.Timer(2.0, open_jarvis, args=[f"{url}/jarvis/hud"]).start()
+        opener = lambda: open_jarvis(f"{url}/jarvis/hud")  # noqa: E731
     else:
-        threading.Timer(2.0, webbrowser.open, args=[url]).start()
+        opener = lambda: webbrowser.open(url)  # noqa: E731
+    threading.Thread(target=open_when_ready, args=[opener], daemon=True).start()
     uvicorn.run("app.main:app", host=HOST, port=PORT, log_level="warning")
 
 

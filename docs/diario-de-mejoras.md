@@ -2,6 +2,13 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.66.1: el navegador espera a que el programa esté listo
+
+- Antes, Iniciar abría el navegador a los 2 segundos aunque el programa aún no hubiera
+  terminado de arrancar (pasa en ordenadores lentos o la primera vez tras actualizar), y
+  salía **«No se puede acceder a este sitio web»**. Ahora el navegador se abre solo
+  cuando el programa ya responde.
+
 ## 2026-10-06 — Versión 0.66: abrir y actualizar aunque JARVIS ya esté encendido
 
 - Si tienes **JARVIS al encender**, el programa queda encendido en una ventana minimizada.
