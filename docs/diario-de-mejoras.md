@@ -2,6 +2,15 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.52: detalles profesionales
+
+- **Icono propio** en la pestaña del navegador y **títulos de pestaña** con el nombre del
+  vídeo o de la página (así distingues varias pestañas abiertas).
+- Al pulsar un botón, **muestra que está trabajando** y no se puede pulsar dos veces sin
+  querer.
+- En la página de cada vídeo, si las miniaturas están hechas pero no elegidas, el
+  «Siguiente paso» te pide **elegir la miniatura** (antes decía «Todo listo»).
+
 ## 2026-10-06 — Versión 0.51: más detalles de diseño
 
 - La **nota del Control de calidad** se ve en un anillo de color (verde, amarillo o rojo)

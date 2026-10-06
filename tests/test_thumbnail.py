@@ -129,3 +129,12 @@ def test_telegram_sends_photo_album(tmp_path):
     api.send(5, assistant.Reply("¿Cuál?", photos=[photo, photo], buttons=[[("✅ 1", "thumb:1:0")]]))
     assert calls[0].url.path.endswith("/sendMediaGroup") and b"attach://foto1" in calls[0].content
     assert calls[1].url.path.endswith("/sendMessage")
+
+
+def test_project_page_asks_to_pick_the_thumbnail(logged_in, monkeypatch):
+    make_video_project(logged_in, monkeypatch)
+    with SessionLocal() as db:
+        assert jobs.get_result(db, 1, "thumbnail").get("selected") is None
+    assert "Elegir la miniatura" in logged_in.get("/proyectos/1").text
+    logged_in.post("/proyectos/1/miniatura/elegir", data={"index": 0})
+    assert "Elegir la miniatura" not in logged_in.get("/proyectos/1").text

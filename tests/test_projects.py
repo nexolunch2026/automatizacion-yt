@@ -96,3 +96,13 @@ def test_dashboard_shows_summary_thumbnails_and_active_menu(logged_in):
     assert "En marcha" in page and "Nota media de calidad" in page
     assert 'href="/" class="active"' in page  # el menú marca la página actual
     assert 'href="/canales" class="active"' in logged_in.get("/canales").text
+
+
+def test_page_titles_and_icon(logged_in):
+    create_channel(logged_in)
+    logged_in.post("/proyectos/nuevo", data=project_data(topic="La caída de Nokia", title="Nokia"))
+    assert "<title>Nokia · Faceless Studio</title>" in logged_in.get("/proyectos/1").text
+    assert "<title>Canales · Faceless Studio</title>" in logged_in.get("/canales").text
+    assert "<title>Faceless Studio</title>" in logged_in.get("/").text
+    assert "favicon.svg" in logged_in.get("/").text
+    assert logged_in.get("/static/favicon.svg").status_code == 200

@@ -3,7 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Faceless Studio{% endblock %}</title>
+  {% set sections = {'/jarvis': 'JARVIS', '/rendimiento': 'Rendimiento', '/aprender': 'Aprender',
+     '/canales': 'Canales', '/configuracion': 'Configuración', '/bienvenida': 'Mi perfil'} %}
+  {% set here = request.url.path %}
+  <title>{% block title %}{% if project is defined and project %}{{ project.title }} · {% else %}{% for prefix, name in sections.items() if here.startswith(prefix) %}{{ name }} · {% endfor %}{% endif %}Faceless Studio{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}?v={{ version }}">
   <meta name="theme-color" content="#0b0d12">
 </head>
@@ -29,5 +33,15 @@
   <main class="{% block main_class %}page{% endblock %}">
     {% block content %}{% endblock %}
   </main>
+  <script>
+    // Al enviar un formulario, el botón muestra que está trabajando y no se puede pulsar dos
+    // veces. Se desactiva justo después de enviar (si no, el navegador no mandaría su valor).
+    document.addEventListener("submit", (event) => {
+      const button = event.submitter;
+      if (!button || event.defaultPrevented || button.dataset.copy) return;
+      setTimeout(() => { button.disabled = true; button.classList.add("is-loading"); }, 0);
+      setTimeout(() => { button.disabled = false; button.classList.remove("is-loading"); }, 15000);
+    });
+  </script>
 </body>
 </html>
