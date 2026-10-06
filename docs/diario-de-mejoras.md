@@ -2,6 +2,13 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.51: más detalles de diseño
+
+- La **nota del Control de calidad** se ve en un anillo de color (verde, amarillo o rojo)
+  en vez de un número que se montaba sobre el texto.
+- Botones de «elegir archivo», casillas y espacios más cuidados.
+- En Rendimiento, si no se lee el canal, te lleva a **Mi perfil** para escribir tu @canal.
+
 ## 2026-10-06 — Versión 0.50: más ritmo (ideas de los vídeos de esta noche)
 
 - **Voz sin silencios de sobra**: cada párrafo grabado pierde el silencio del principio y

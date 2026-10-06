@@ -491,3 +491,28 @@ img, video, svg, pre, table { max-width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Control de calidad: la nota en un anillo */
+.qc-head { display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center; margin-bottom: 12px; }
+.qc-gauge {
+  --c: var(--ok); width: 112px; height: 112px; border-radius: 50%; display: grid; place-items: center;
+  background: conic-gradient(var(--c) calc(var(--pct) * 1%), rgba(255, 255, 255, .06) 0);
+  position: relative;
+}
+.qc-gauge::before { content: ""; position: absolute; inset: 9px; border-radius: 50%; background: var(--panel); }
+.qc-gauge .qc-score { position: relative; font-family: "Bebas Neue", sans-serif; font-size: 2.6rem; font-weight: 400; }
+.qc-gauge .qc-score small { font-family: system-ui, sans-serif; font-size: .75rem; }
+.qc-gauge.qc-warn { --c: #ffc857; }
+.qc-gauge.qc-fail { --c: var(--accent); }
+@media (max-width: 720px) { .qc-head { grid-template-columns: 1fr; justify-items: start; } }
+
+/* Detalles de formularios */
+input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width: 16px; height: 16px; }
+input[type="file"] { padding: 8px; cursor: pointer; }
+input[type="file"]::file-selector-button {
+  font: inherit; font-weight: 600; color: var(--text); background: rgba(255, 255, 255, .06);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; margin-right: 12px; cursor: pointer;
+}
+input[type="file"]::file-selector-button:hover { background: rgba(255, 255, 255, .1); }
+.next-inline { margin-bottom: 16px; }
+details > summary { cursor: pointer; }

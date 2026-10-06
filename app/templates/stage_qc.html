@@ -6,13 +6,16 @@
 {% set icons = {'ok': '✅', 'warn': '⚠️', 'fail': '⛔', 'pending': '⏳'} %}
 
 <div class="card qc-summary">
-  <div class="row">
+  <div class="qc-head">
     <div>
       <h2>Control de calidad: ¿se puede monetizar?</h2>
       <p class="muted small">Revisa lo que YouTube mira para pagar por un vídeo: duración, originalidad,
         derechos, retención y lo que hace falta para subirlo. No gasta nada: se calcula al momento.</p>
     </div>
-    <span class="qc-score qc-{{ 'ok' if qc.score >= 85 else ('warn' if qc.score >= 60 else 'fail') }}">{{ qc.score }}<small>/100</small></span>
+    {% set level = 'ok' if qc.score >= 85 else ('warn' if qc.score >= 60 else 'fail') %}
+    <div class="qc-gauge qc-{{ level }}" style="--pct: {{ qc.score }}" role="img" aria-label="Nota {{ qc.score }} de 100">
+      <span class="qc-score qc-{{ level }}">{{ qc.score }}<small>/100</small></span>
+    </div>
   </div>
   <p class="alert {{ 'ok' if qc.counts.fail == 0 and qc.counts.pending == 0 and qc.score >= 85 else ('info' if qc.counts.fail == 0 else '') }}">{{ qc.verdict }}</p>
   <p class="muted small">✅ {{ qc.counts.ok }} bien · ⚠️ {{ qc.counts.warn }} mejorable · ⛔ {{ qc.counts.fail }} a corregir · ⏳ {{ qc.counts.pending }} pendiente</p>
