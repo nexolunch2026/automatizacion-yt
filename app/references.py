@@ -105,6 +105,17 @@ def overview(db: Session) -> list[dict]:
         return list(pool.map(lambda h: channel(h, key), current))
 
 
+def cached_overview(db: Session) -> list[dict]:
+    """Solo lo ya leído (sin ir a internet): para las ideas de JARVIS, que deben ser rápidas."""
+    key = get_api_key(db, "youtube")
+    result = []
+    for handle in handles(db):
+        hit = info._cache.get(f"ref:{handle}:{bool(key)}")
+        if hit and hit[1]:
+            result.append({**hit[1], "videos": analyze(hit[1]["videos"])})
+    return result
+
+
 def top_outliers(channels: list[dict], limit: int = 6) -> list[dict]:
     """Los vídeos que más destacan de todos los canales, para la parte de arriba."""
     rows = [

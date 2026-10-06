@@ -215,6 +215,7 @@ class Intent(BaseModel):
         "learn_video",
         "yt_research",
         "demand",
+        "references",
         "question",
         "remember",
         "memory",
@@ -412,6 +413,43 @@ RESEARCH = [
 ]
 
 
+REFERENCE_WORDS = (
+    "referencias",
+    "mis referencias",
+    "canales de referencia",
+    "que funciona en mis referencias",
+    "que funciona en la competencia",
+    "competencia",
+    "que hace la competencia",
+    "que les funciona a otros canales",
+)
+
+
+def references_reply(db: Session) -> Reply:
+    from app import references
+
+    if not references.handles(db):
+        return Reply(
+            "🔭 Aún no tienes canales de referencia. Añádelos en Rendimiento → «Canales de "
+            "referencia» (su @) y te diré qué temas les están funcionando."
+        )
+    top = references.top_outliers(references.overview(db), limit=5)
+    if not top:
+        return Reply("🔭 Ahora mismo ningún vídeo de tus referencias destaca sobre su media.")
+    lines = [
+        f"🔥 <b>{escape(v['title'])}</b> — {escape(v['channel'])}, ×{v['ratio']} su media"
+        for v in top
+    ]
+    _save_json(db, "telegram_ideas", [v["title"] for v in top])
+    buttons = [[(f"🎬 {n}", f"idea:{n - 1}") for n in range(1, len(top) + 1)]]
+    return Reply(
+        "🔭 <b>Lo que más funciona en tus referencias</b>\n\n"
+        + "\n".join(lines)
+        + "\n\nPulsa un número para hacer tu versión (con tu investigación y tu enfoque).",
+        buttons=buttons,
+    )
+
+
 DEMAND = re.compile(
     r"^(?:que (?:busca|buscan|escribe) la gente|que se busca|que buscan|cuanta demanda tiene"
     r"|tiene demanda|se busca)(?: en youtube)? (?:sobre |de |acerca de )?(.+?)(?: en youtube)?$"
@@ -482,6 +520,8 @@ def quick_intent(text: str) -> Intent | None:
     topic = research_topic(bare)
     if topic:
         return Intent(action="yt_research", topic=topic)
+    if bare in REFERENCE_WORDS:
+        return Intent(action="references")
     match = DEMAND.match(bare)
     if match and len(match.group(1).strip()) >= 3:
         return Intent(action="demand", topic=match.group(1).strip())
@@ -670,6 +710,7 @@ def _ai_intent(db: Session, text: str, chat_id: int = 0) -> Intent:
 - monetize: pregunta cuánto le falta para monetizar o para el Programa de Socios.
 - yt_research: pide investigar un tema VIENDO vídeos de YouTube (topic = el tema).
 - demand: pregunta qué busca la gente o si un tema tiene demanda en YouTube (topic).
+- references: pregunta qué funciona en sus canales de referencia o en la competencia.
 - review: pregunta si un vídeo se puede monetizar o pide revisarlo antes de subirlo
   (topic = de qué vídeo, si lo dice).
 - open: quiere abrir una página, app o proyecto, buscar algo o poner música
@@ -735,6 +776,8 @@ def help_replies() -> list[Reply]:
             "🎓 <b>Mándame un enlace de YouTube</b> y lo veo: te digo lo bueno y cómo "
             "aplicarlo a tu canal. O <b>«investiga en YouTube canales faceless»</b>: "
             "busco los mejores vídeos, los veo y te hago un informe.\n"
+            "🔭 <b>«¿qué funciona en mis referencias?»</b> — los vídeos que destacan en los "
+            "canales de tu nicho; <b>«¿qué busca la gente sobre…?»</b>.\n"
             "❓ <b>Pregúntame lo que sea</b> (cultura, noticias, deportes, cómo hacer algo…): "
             "lo busco en Google.\n"
             "🧠 <b>«recuerda que…»</b> y lo tendré siempre en cuenta; <b>«¿qué sabes de "
@@ -1020,6 +1063,24 @@ def _performance_hint(db: Session) -> str:
         return ""
 
 
+def _references_hint(db: Session) -> str:
+    """Temas que destacan en los canales de referencia (solo lo ya leído: sin esperas)."""
+    from app import references
+
+    try:
+        top = references.top_outliers(references.cached_overview(db), limit=5)
+    except Exception:  # noqa: BLE001 — las ideas no deben fallar por esto
+        log.info("Sin referencias para las ideas", exc_info=True)
+        return ""
+    if not top:
+        return ""
+    titles = " | ".join(f"«{v['title']}» (×{v['ratio']})" for v in top)
+    return (
+        "Temas que están funcionando mucho mejor de lo normal en canales del nicho "
+        f"(inspiración, nunca copiar): {titles}"
+    )
+
+
 def _radar_hint(db: Session) -> str:
     """Noticias recientes del nicho, como inspiración para ideas con interés actual."""
     from app import info
@@ -1060,6 +1121,7 @@ Usa un FORMATO distinto en cada idea (por ejemplo: {", ".join(kit.idea_formats)}
 para que el canal no parezca hecho en serie: YouTube no monetiza el contenido repetitivo.
 {_performance_hint(db)}
 {_radar_hint(db)}
+{_references_hint(db)}
 Propón temas que la gente BUSQUE (en «keyword», lo que escribiría en YouTube).
 No repitas estos temas ya hechos: {"; ".join(done) or "ninguno"}"""
     try:
@@ -1216,6 +1278,8 @@ def _act(db: Session, intent: Intent, text: str, chat_id: int = 0) -> list[Reply
     if intent.action == "idea_bank":
         region = intent.topic if intent.topic in ("España", "Latinoamérica") else ""
         return bank_replies(db, region)
+    if intent.action == "references":
+        return [references_reply(db)]
     if intent.action == "demand" and intent.topic.strip():
         return [demand_reply(intent.topic)]
     if intent.action == "yt_research" and intent.topic.strip():

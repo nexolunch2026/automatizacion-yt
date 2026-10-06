@@ -2,6 +2,13 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.62: JARVIS conoce tus referencias
+
+- Pregúntale **«¿qué funciona en mis referencias?»** y te dice los vídeos que más
+  destacan en tus canales de referencia, con botones para hacer tu versión.
+- Cuando le pides **«ideas»**, también se inspira en esos temas que están funcionando (sin
+  copiarlos y sin hacerte esperar).
+
 ## 2026-10-06 — Versión 0.61: canales de referencia
 
 - Nueva página **«🔭 Canales de referencia»** (botón en Rendimiento): pones el @ de 3–8

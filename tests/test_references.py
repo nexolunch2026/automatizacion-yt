@@ -63,3 +63,25 @@ def test_page_shows_outliers_and_quick_version(logged_in, monkeypatch):
     assert "Hacer mi versión" in page and "No pude leer este canal" in page
     assert logged_in.post("/referencias", data={"channel": "nada"}).url.query == b"error=1"
     assert "Canales de referencia" in logged_in.get("/rendimiento").text
+
+
+def test_jarvis_lists_reference_outliers(logged_in, monkeypatch):
+    from app import assistant
+
+    create_channel(logged_in)
+    info._cache.clear()
+    with SessionLocal() as db:
+        assert "Aún no tienes canales de referencia" in assistant.references_reply(db).text
+        assert assistant._references_hint(db) == ""
+        references.add(db, "@MagnatesMedia")
+    monkeypatch.setattr(
+        info,
+        "fetch_youtube_public",
+        lambda handle, limit=15: {"name": "Magnates", "latest": [
+            video("Normal", 1000, 10), video("Otro", 1100, 10), video("Gran éxito", 30000, 10)]},
+    )  # fmt: skip
+    assert assistant.quick_intent("¿Qué funciona en mis referencias?").action == "references"
+    with SessionLocal() as db:
+        reply = assistant.references_reply(db)
+        assert "Gran éxito" in reply.text and reply.buttons
+        assert "Gran éxito" in assistant._references_hint(db)  # ya leído: sirve para ideas
