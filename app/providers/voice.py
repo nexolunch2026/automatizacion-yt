@@ -127,6 +127,55 @@ def wav_seconds(data: bytes) -> float:
         return round(wav.getnframes() / wav.getframerate(), 2)
 
 
+def tighten(
+    data: bytes, keep: float = 0.08, max_pause: float = 0.45, threshold: float = 0.02
+) -> bytes:
+    """Quita el silencio del principio y del final de una toma y acorta las pausas largas
+    entre frases (las guías de retención piden quitar las de más de medio segundo).
+    Solo audio de 16 bits; con cualquier otro formato devuelve la toma tal cual."""
+    import array
+
+    try:
+        with wave.open(io.BytesIO(data)) as reader:
+            params = reader.getparams()
+            frames = reader.readframes(reader.getnframes())
+    except (wave.Error, EOFError):
+        return data
+    if params.sampwidth != 2 or not frames:
+        return data
+    samples = array.array("h", frames)
+    channels, rate = params.nchannels, params.framerate
+    window = max(int(rate * 0.01), 1) * channels  # trozos de 10 ms
+    limit = max(int(32767 * threshold), 1)
+    loud = []
+    for i in range(0, len(samples), window):
+        chunk = samples[i : i + window]  # max/min de un trozo van a velocidad de C
+        loud.append(max(chunk) >= limit or -min(chunk) >= limit)
+    if not any(loud):
+        return data
+    first = loud.index(True)
+    last = len(loud) - 1 - loud[::-1].index(True)
+    margin, longest = round(keep / 0.01), round(max_pause / 0.01)
+    keep_windows: list[int] = list(range(max(first - margin, 0), first))
+    quiet: list[int] = []
+    for w in range(first, last + 1):
+        if loud[w]:
+            keep_windows += quiet[:longest] if len(quiet) > longest else quiet
+            quiet = []
+            keep_windows.append(w)
+        else:
+            quiet.append(w)
+    keep_windows += list(range(last + 1, min(last + 1 + margin, len(loud))))
+    out_samples = array.array("h")
+    for w in keep_windows:
+        out_samples.extend(samples[w * window : (w + 1) * window])
+    out = io.BytesIO()
+    with wave.open(out, "wb") as writer:
+        writer.setparams(params)
+        writer.writeframes(out_samples.tobytes())
+    return out.getvalue()
+
+
 def join_wavs(parts: list[bytes], pause_seconds: float = 0.35) -> bytes:
     """Une varios WAV con el mismo formato, con una pausa breve entre ellos."""
     if not parts:

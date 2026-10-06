@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.50: más ritmo (ideas de los vídeos de esta noche)
+
+- **Voz sin silencios de sobra**: cada párrafo grabado pierde el silencio del principio y
+  del final, y las pausas de más de medio segundo se acortan. Las guías de retención lo
+  recomiendan: el vídeo gana ritmo (suele quedar un 5–10 % más corto).
+- **Nuevo control de calidad, «re-enganches»**: avisa si hay un tramo de más de 2 minutos
+  del guion sin una pregunta o un adelanto («lo peor estaba por llegar…»), y te dice el
+  minuto exacto para que lo arregles con «Otra forma».
+- 5 vídeos nuevos para aprender en `docs/videos-para-aprender.md` (guion documental, cómo
+  funciona un canal documental viral y dos en español).
+
 ## 2026-10-06 — Versión 0.49: diseño nuevo
 
 - **Aspecto más cuidado**: tipografías del canal (Montserrat y Bebas), tarjetas con relieve,

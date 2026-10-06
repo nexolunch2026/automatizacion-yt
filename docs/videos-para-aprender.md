@@ -4,6 +4,23 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (6 de octubre de 2026, búsqueda nocturna)
+
+- [How To Write A Documentary Script (With Examples)](https://www.youtube.com/watch?v=GWp0-iPN7iE)
+  — cómo escribir un guion documental que mantenga a la gente enganchada, con ejemplos.
+- [I Reverse Engineered a Viral AI Documentary Channel (Complete Workflow)](https://www.youtube.com/watch?v=Hu1ATOpc67M)
+  — desmonta el sistema de un canal documental faceless que se hizo viral: útil para
+  comparar con lo que ya hace Faceless Studio.
+- [I Built a Faceless 3D Documentary Channel System With AI](https://www.youtube.com/watch?v=aNcCW2ATKGo)
+  — otro sistema de documentales con IA (muy reciente) para sacar ideas.
+- [Cómo Escribir Guiones Desde 0 (Guía Práctica)](https://www.youtube.com/watch?v=g2A4zEH44tI)
+  — en español: por qué empezar con «Hola, bienvenidos…» hunde la retención y cómo evitarlo.
+- [Cómo hacer un documental: la estructura clásica en el guion documental](https://www.youtube.com/watch?v=ppD2bjCdVcc)
+  — en español: la estructura clásica del documental, buena base para tus estructuras.
+
+Consejo: pégale cualquiera de estos enlaces a JARVIS (o en 🎓 Aprender) y Gemini lo ve
+entero y te saca lo útil para tu canal.
+
 ## Guion y ganchos (lo más importante)
 
 - [How To Write A Killer Script That Keeps Viewers Hooked](https://www.youtube.com/watch?v=7I50PECz7SU)

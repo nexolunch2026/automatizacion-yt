@@ -72,6 +72,36 @@ def _words(text: str) -> list[str]:
     return re.findall(r"[a-zñ0-9]+", _plain(text))
 
 
+REHOOK_MAX_SECONDS = 120  # más de 2 min sin pregunta ni adelanto: la gente se va
+REHOOK = re.compile(
+    r"\?|lo que (?:nadie|vino|pas[oó]|ocurri[oó])|todav[ií]a no|a[uú]n (?:no|faltaba|quedaba)|"
+    r"lo peor|estaba a punto|pronto (?:descubr|sabr|lleg)|eso no es todo|nadie (?:sab[ií]a|imagin)|"
+    r"(?:ya )?ver[aá]s|m[aá]s adelante|lo que (?:est[aá]|iba) a pasar|el giro",
+    re.IGNORECASE,
+)
+
+
+def _mmss(seconds: float) -> str:
+    return f"{int(seconds // 60)}:{int(seconds % 60):02d}"
+
+
+def rehook_gap(script: dict) -> tuple[float, float] | None:
+    """El tramo más largo (inicio y fin en segundos, aprox.) sin preguntas ni adelantos,
+    sin contar el final (la conclusión ya cierra la historia). None si el vídeo es corto."""
+    marks, t = [0.0], 0.0
+    for section in script.get("sections", []):
+        if section.get("kind") in ("conclusion", "cta"):
+            break
+        for paragraph in section["paragraphs"]:
+            t += len(paragraph["text"].split()) / WORDS_PER_SECOND
+            if REHOOK.search(paragraph["text"]):
+                marks.append(t)
+    if t < 240:  # menos de 4 min: no hace falta
+        return None
+    marks.append(t)
+    return max(zip(marks[:-1], marks[1:], strict=True), key=lambda pair: pair[1] - pair[0])
+
+
 def script_text(script: dict | None) -> str:
     return " ".join(p["text"] for s in (script or {}).get("sections", []) for p in s["paragraphs"])
 
@@ -428,6 +458,29 @@ def _audience_checks(results: dict) -> list[dict]:
                 "guion",
             )
         )
+
+    if script:
+        gap = rehook_gap(script)
+        if gap:
+            start, end = gap
+            ok = end - start <= REHOOK_MAX_SECONDS
+            checks.append(
+                _check(
+                    "rehook",
+                    "audience",
+                    OK if ok else WARN,
+                    "Preguntas o adelantos repartidos por el vídeo"
+                    if ok
+                    else f"Tramo de {_mmss(start)} a {_mmss(end)} sin preguntas ni adelantos",
+                    "Los canales que más retienen re-enganchan cada 60–90 s con una pregunta "
+                    "o un adelanto de lo que viene.",
+                    ""
+                    if ok
+                    else "Reescribe un párrafo de ese tramo con «Otra forma» para que termine con "
+                    "una pregunta o un adelanto.",
+                    "guion",
+                )
+            )
 
     board = results.get("storyboard")
     if board and board.get("scenes"):

@@ -10,7 +10,7 @@ from pathlib import Path
 
 from app.models import Project
 from app.pipeline.storyboard import paragraphs_of
-from app.providers.voice import VoiceProvider, is_eleven, join_wavs, wav_seconds
+from app.providers.voice import VoiceProvider, is_eleven, join_wavs, tighten, wav_seconds
 
 
 def take_key(text: str, voice: str, speed: str, model: str = "") -> str:
@@ -61,7 +61,8 @@ def run_voice(
                 round(5 + 85 * (i - 1) / len(paragraphs)),
                 f"Grabando párrafo {i} de {len(paragraphs)}",
             )
-            data = tts.synthesize(paragraph["text"], voice, speed)
+            # Sin silencios de sobra: el ritmo mejora y la gente se queda más.
+            data = tighten(tts.synthesize(paragraph["text"], voice, speed))
             path.write_bytes(data)
         takes.append(
             {
