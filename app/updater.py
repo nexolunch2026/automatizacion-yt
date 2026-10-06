@@ -139,15 +139,18 @@ def update(root: Path = ROOT, data_dir: Path = DATA_DIR, fetch=None) -> str:
 
 
 def main() -> None:
-    from app.__main__ import port_in_use
+    from app import running
 
     print("\n  Actualizando Faceless Studio...")
     print(f"  Versión actual: {VERSION}\n")
-    if port_in_use(HOST, PORT):
-        print("  ATENCION: el programa está abierto.")
-        print("  Cierra la ventana negra de Faceless Studio y vuelve a hacer doble clic")
-        print("  en Actualizar.\n")
-        sys.exit(1)
+    if running.port_in_use(HOST, PORT):
+        print("  El programa estaba encendido (quizá minimizado, por JARVIS al encender).")
+        print("  Lo apago para poder actualizar...\n")
+        if not running.stop(HOST, PORT):
+            print("  ATENCION: no pude apagarlo solo.")
+            print("  Abre el Administrador de tareas (Ctrl + Shift + Esc), cierra «Python»")
+            print("  y «Faceless Studio», y vuelve a hacer doble clic en Actualizar.\n")
+            sys.exit(1)
     try:
         new_version = update()
     except UpdateError as exc:

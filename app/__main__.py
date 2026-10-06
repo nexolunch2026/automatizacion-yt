@@ -6,7 +6,6 @@ Uso: python -m app            (el programa)
 
 import os
 import shutil
-import socket
 import subprocess
 import sys
 import threading
@@ -16,9 +15,12 @@ from pathlib import Path
 import uvicorn
 
 from app.config import DATA_DIR, HOST, PORT, VERSION
+from app.running import port_in_use
 
 # Perfil propio del navegador de JARVIS: recuerda el permiso del micrófono y la sesión.
 JARVIS_PROFILE = DATA_DIR.parent / "navegador_jarvis"
+# Código de salida cuando ya estaba encendido: Iniciar.bat cierra su ventana sin esperar.
+ALREADY_RUNNING = 3
 
 
 def find_browser() -> str | None:
@@ -46,7 +48,7 @@ def open_jarvis(url: str) -> None:
     browser = find_browser()
     if browser is None:
         webbrowser.open(url)
-        return
+        sys.exit(ALREADY_RUNNING)
     subprocess.Popen(
         [
             browser,
@@ -60,23 +62,17 @@ def open_jarvis(url: str) -> None:
     )
 
 
-def port_in_use(host: str, port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.settimeout(0.5)
-        return s.connect_ex((host, port)) == 0
-
-
 def main() -> None:
     url = f"http://{HOST}:{PORT}"
     jarvis = "--jarvis" in sys.argv
     if jarvis and port_in_use(HOST, PORT):  # el programa ya está abierto: solo la pantalla
         open_jarvis(f"{url}/jarvis/hud")
-        return
-    if port_in_use(HOST, PORT):
-        print("\n  ATENCION: ya hay otro Faceless Studio abierto.")
-        print("  Busca la otra ventana negra, cierrala y vuelve a hacer doble clic en Iniciar.")
-        print("  (Si no la encuentras, reinicia el ordenador.)\n")
-        sys.exit(1)
+        sys.exit(ALREADY_RUNNING)
+    if port_in_use(HOST, PORT):  # ya encendido (p. ej. por JARVIS al encender): se abre
+        print("\n  Faceless Studio ya estaba encendido. Lo abro en tu navegador.")
+        print("  (Para actualizar no hace falta cerrarlo: Actualizar lo apaga solo.)\n")
+        webbrowser.open(url)
+        sys.exit(ALREADY_RUNNING)
 
     print(f"\n  Faceless Studio version {VERSION} esta encendido en {url}")
     print(f"  Tus proyectos y videos estan en: {DATA_DIR}")

@@ -30,6 +30,11 @@ if errorlevel 1 (
 
 echo   Abriendo Faceless Studio en tu navegador...
 uv run --no-dev python -m app %*
+rem 3 = ya estaba encendido y se ha abierto en el navegador: no hay nada que esperar.
+if %errorlevel%==3 (
+    timeout /t 5 >nul
+    exit /b 0
+)
 
 echo.
 echo   Faceless Studio se ha cerrado.

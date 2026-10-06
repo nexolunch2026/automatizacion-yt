@@ -2,6 +2,15 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-06 — Versión 0.66: abrir y actualizar aunque JARVIS ya esté encendido
+
+- Si tienes **JARVIS al encender**, el programa queda encendido en una ventana minimizada.
+  Antes, **Iniciar** decía «ya hay otro abierto» y **Actualizar** «el programa está
+  abierto», y no dejaban hacer nada.
+- Ahora **Iniciar** simplemente te lo abre en el navegador, y **Actualizar** lo apaga solo
+  (solo si es Faceless Studio), actualiza y te avisa. Lo que estuviera a medias se retoma
+  al volver a encenderlo.
+
 ## 2026-10-06 — Versión 0.65: ¿se lee la miniatura en pequeño?
 
 - En **Miniatura**, cada una dice **«📱 Se lee bien en pequeño»** o te avisa si la letra
