@@ -8,7 +8,17 @@
   <a class="btn secondary" href="/bienvenida">👤 Mi perfil y compartir</a>
 </div>
 
-<div class="card form-card">
+<div class="services">
+  {% for s in services %}
+  <a class="service {{ 'on' if s.on else ('need' if s.need else 'off') }}" href="{{ s.href }}">
+    <span class="service-dot"></span>
+    <span><strong>{{ s.name }}</strong><span class="muted small">{{ s.what }}</span></span>
+    <span class="service-state">{% if s.on %}Conectado{% elif s.need %}Necesario{% else %}Opcional{% endif %}</span>
+  </a>
+  {% endfor %}
+</div>
+
+<div class="card form-card" id="gemini">
   <h2>Gemini (Google) — investigación y guiones</h2>
   {% if saved %}<p class="alert ok">Clave guardada y comprobada. ¡Listo!</p>{% endif %}
   {% if error %}<p class="alert">{{ error }}</p>{% endif %}
@@ -176,7 +186,7 @@
   {% endfor %}
 </div>
 
-<div class="card form-card">
+<div class="card form-card" id="github">
   <h2>GitHub — para el botón Actualizar</h2>
   <p class="muted small">Solo hace falta si tu repositorio de GitHub es <strong>privado</strong>.
     Si es público, no tienes que poner nada aquí.</p>

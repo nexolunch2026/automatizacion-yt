@@ -59,6 +59,30 @@ def check_eleven_key(api_key: str) -> None:
     ElevenLabsVoices(api_key).list_voices()
 
 
+def _services(db) -> list[dict]:
+    """Estado de cada servicio para el panel de arriba de Configuración."""
+    has = {name: api_key_hint(db, name) is not None for name in (
+        "gemini", "elevenlabs", "pollinations", "pixabay", "pexels", "github", "telegram",
+        "youtube",
+    )}  # fmt: skip
+    return [
+        {"name": "Gemini", "what": "Investiga y escribe", "on": has["gemini"], "need": True,
+         "href": "#gemini"},
+        {"name": "Imágenes", "what": "Pixabay o Pexels", "on": has["pixabay"] or has["pexels"],
+         "need": False, "href": "#stock"},
+        {"name": "ElevenLabs", "what": "Voz más natural", "on": has["elevenlabs"], "need": False,
+         "href": "#elevenlabs"},
+        {"name": "Pollinations", "what": "Más imágenes con IA", "on": has["pollinations"],
+         "need": False, "href": "#pollinations"},
+        {"name": "Telegram", "what": "JARVIS en el móvil", "on": has["telegram"], "need": False,
+         "href": "/jarvis"},
+        {"name": "YouTube", "what": "Cifras exactas del canal", "on": has["youtube"],
+         "need": False, "href": "/jarvis"},
+        {"name": "GitHub", "what": "Solo si el repositorio es privado", "on": has["github"],
+         "need": False, "href": "#github"},
+    ]  # fmt: skip
+
+
 def _page(request: Request, db: DB, status_code: int = 200, **ctx):
     return render(
         request,
@@ -70,6 +94,7 @@ def _page(request: Request, db: DB, status_code: int = 200, **ctx):
         stock_hints={name: api_key_hint(db, name) for name in STOCK_PROVIDERS},
         eleven_hint=api_key_hint(db, "elevenlabs"),
         pollinations_hint=api_key_hint(db, "pollinations"),
+        services=_services(db),
         backup_dir=str(backup_folder(DATA_DIR)),
         last_backup=get_setting(db, "backup_last"),
         **ctx,

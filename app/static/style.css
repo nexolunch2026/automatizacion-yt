@@ -592,3 +592,21 @@ details > summary { cursor: pointer; }
 .char-count.long { background: rgba(255, 200, 87, .16); color: #ffd98a; }
 /* Entrada */
 .auth-logo { display: block; margin-bottom: 14px; border-radius: 14px; box-shadow: 0 10px 30px -10px rgba(255, 77, 79, .6); }
+
+/* Configuración: panel de servicios */
+.services { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.service {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; text-decoration: none;
+  padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel);
+  transition: border-color .15s, transform .15s;
+}
+.service:hover { border-color: #3a4152; transform: translateY(-1px); }
+.service strong { display: block; }
+.service-dot { width: 10px; height: 10px; border-radius: 50%; background: #4a5162; }
+.service.on .service-dot { background: var(--ok); box-shadow: 0 0 10px rgba(62, 207, 142, .7); }
+.service.need .service-dot { background: var(--accent); box-shadow: 0 0 10px var(--glow); }
+.service-state { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.service.on .service-state { color: var(--ok); }
+.service.need { border-color: rgba(255, 77, 79, .45); }
+.service.need .service-state { color: #ffb3b4; }
+.form-card[id] { scroll-margin-top: 80px; }

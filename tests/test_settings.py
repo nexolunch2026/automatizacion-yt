@@ -82,3 +82,12 @@ def test_github_token_saved_encrypted_and_hidden(logged_in):
 
     r = logged_in.post("/configuracion/github/borrar")
     assert "Cómo conseguir el token" in r.text
+
+
+def test_services_panel_shows_what_is_connected(logged_in, monkeypatch):
+    page = logged_in.get("/configuracion").text
+    assert 'class="service need" href="#gemini"' in page  # Gemini hace falta
+    assert 'id="gemini"' in page and 'id="github"' in page
+    monkeypatch.setattr(settings_web, "check_gemini_key", lambda key: "gemini-test")
+    logged_in.post("/configuracion/gemini", data={"api_key": "AIzaSecreta1234"})
+    assert 'class="service on" href="#gemini"' in logged_in.get("/configuracion").text
