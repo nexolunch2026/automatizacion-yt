@@ -654,3 +654,13 @@ details > summary { cursor: pointer; }
 .quick-row input { flex: 1; font-size: 1.05rem; padding: 12px 14px; }
 .quick-start { border-color: rgba(255, 77, 79, .3); }
 @media (max-width: 720px) { .quick-row { flex-direction: column; } }
+
+/* Shorts dentro de un marco de móvil */
+.short-media .short-player {
+  border-radius: 26px; border: 6px solid #1d212b; box-shadow: 0 0 0 1px #2c3240, 0 20px 40px -22px rgba(0, 0, 0, .9);
+  background: #000;
+}
+.short-card { position: relative; }
+.short-media { grid-template-columns: auto 120px; justify-content: start; }
+.short-media .short-player { width: auto; height: min(520px, 70vh); max-width: 100%; aspect-ratio: 9 / 16; }
+@media (max-width: 720px) { .short-media .short-player { height: auto; width: 100%; } }
