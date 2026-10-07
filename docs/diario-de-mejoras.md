@@ -2,6 +2,16 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-07 — Versión 0.70: respuestas a comentarios listas para pegar
+
+- En **Rendimiento → «Lo que pide tu audiencia»**, al pulsar **«Leer comentarios»**
+  aparece un apartado nuevo: **«✍️ Comentarios por responder»**.
+- Salen los **5 comentarios con más «me gusta»** que aún no tienen respuesta, cada uno con
+  un **borrador** de respuesta corto y cercano escrito por la IA.
+- Pulsa **«Copiar»**, luego **«Abrir en YouTube»** (te lleva justo a ese comentario) y
+  pega la respuesta. Revísala antes: el programa **no publica nada** solo.
+- Responder pronto a los comentarios ayuda a que YouTube enseñe más tu vídeo.
+
 ## 2026-10-06 — Versión 0.69.1: el informe de audiencia siempre a la vista
 
 - La tarjeta «Lo que pide tu audiencia» enseña el último informe aunque la clave de

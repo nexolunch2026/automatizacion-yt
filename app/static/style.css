@@ -701,3 +701,7 @@ details > summary { cursor: pointer; }
   border: 1px solid var(--line, #242a37); border-radius: 10px; overflow-wrap: anywhere; }
 .check.fail { border-color: rgba(255, 77, 79, .55); }
 .check.warn { border-color: rgba(255, 196, 0, .45); }
+
+/* Borradores de respuesta a comentarios (Rendimiento) */
+.answers li { border-left: 3px solid var(--line); padding-left: 12px; }
+.answers li p { margin: 0 0 6px; }

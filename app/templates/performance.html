@@ -90,6 +90,28 @@
   <h3>📌 Para el comentario fijado del próximo vídeo</h3>
   <p class="quote">{{ audience.pinned }}</p>
   {% endif %}
+  {% if audience.answers %}
+  <h3>✍️ Comentarios por responder</h3>
+  <p class="muted small">Los que tienen más «me gusta» y aún no tienen respuesta. Revisa el borrador,
+    pulsa «Copiar» y luego «Abrir en YouTube» para pegarlo como respuesta. Responder pronto
+    ayuda a que el vídeo se mueva más.</p>
+  <ul class="plain-list answers">
+    {% for a in audience.answers %}
+    <li>
+      <p class="small"><strong>{{ a.video }}</strong>{% if a.likes %} · 👍 {{ a.likes }}{% endif %}</p>
+      <p class="quote">{{ a.text }}</p>
+      <p id="respuesta-{{ loop.index }}">{{ a.reply }}</p>
+      <div class="row">
+        <button type="button" class="btn small secondary" data-copy="respuesta-{{ loop.index }}">Copiar</button>
+        <a class="btn small secondary" href="{{ a.url }}" target="_blank" rel="noopener">Abrir en YouTube</a>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% elif audience.unanswered %}
+  <p class="muted small">✍️ Hay {{ audience.unanswered }} comentarios sin respuesta, pero no pude preparar
+    los borradores esta vez. Vuelve a pulsar «Leer comentarios».</p>
+  {% endif %}
   <p class="muted small">{{ audience.comments }} comentarios leídos el {{ audience.date }}.
     Las ideas de JARVIS ya tienen en cuenta estos temas.</p>
   {% elif not has_key %}
@@ -100,6 +122,21 @@
     qué temas te piden, qué preguntas se repiten y qué poner en el comentario fijado.</p>
   {% endif %}
 </div>
+
+<script>
+  // Botones «Copiar» de los borradores de respuesta.
+  document.querySelectorAll("[data-copy]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const text = document.getElementById(btn.dataset.copy).innerText;
+      try { await navigator.clipboard.writeText(text); } catch (e) {
+        const area = document.createElement("textarea"); area.value = text;
+        document.body.appendChild(area); area.select(); document.execCommand("copy"); area.remove();
+      }
+      const old = btn.textContent; btn.textContent = "¡Copiado!";
+      setTimeout(() => btn.textContent = old, 1500);
+    });
+  });
+</script>
 
 <div class="card">
   <h2>Vídeos</h2>

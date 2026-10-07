@@ -4,6 +4,16 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (7 de octubre de 2026: comentarios y miniaturas)
+
+- [Should You Be Replying to Every Comment?](https://www.youtube.com/shorts/SlD8JfFOdmI)
+  — Short: al principio conviene responder a mano; va con los nuevos borradores de
+  respuesta en Rendimiento.
+- [Cómo hacer miniaturas para Youtube (8 claves para mejorar el CTR)](https://www.youtube.com/watch?v=lUwBNszQKGI)
+  — en español: diseño, color, letra e historia en la miniatura para que hagan más clic.
+- [MINIATURAS para YouTube: 7 LECCIONES que aprendí](https://www.youtube.com/watch?v=ObZSyLQik9M)
+  — en español: 7 consejos prácticos de miniaturas de alguien que las ha ido probando.
+
 ## Nuevos (6 de octubre de 2026, segunda búsqueda: guion que suena natural)
 
 - [What You NEED to Do Before Writing Your VOICEOVER SCRIPT](https://www.youtube.com/watch?v=XDgpuoRrlqs)

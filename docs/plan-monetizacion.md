@@ -111,7 +111,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [x] **Lo que pide tu audiencia** (0.67.0): con la clave de YouTube, leer los comentarios de tus
   vídeos y sacar preguntas y temas que pide la gente (ideas nuevas y respuestas para el
   comentario fijado), en Rendimiento y por JARVIS.
-- [ ] **Responder comentarios**: en «Lo que pide tu audiencia», borradores de respuesta para
+- [x] **Responder comentarios** (0.70.0): en «Lo que pide tu audiencia», borradores de respuesta para
   los comentarios con más «me gusta» que aún no tienen respuesta (con botón copiar).
 - [ ] **Revisión semanal del ordenador**: cada lunes JARVIS pasa «Revisar mi ordenador» y
   avisa por Telegram solo si algo falla (voz, espacio en disco, ffmpeg…).

@@ -92,3 +92,54 @@ def test_jarvis_keeps_the_last_report_if_youtube_fails(studio, ai, monkeypatch):
 
 def test_jarvis_without_key_says_how(studio, ai):  # noqa: F811
     assert "clave gratuita de YouTube" in talk("qué dicen los comentarios")[0].text
+
+
+def test_reply_drafts_for_unanswered_comments(studio, ai, monkeypatch):  # noqa: F811
+    def download(video_id, key, limit=50):
+        items = [thread("¿Haréis Nokia?", 30), thread("Ya respondido", 50), thread("Spam", 1)]
+        items[0]["id"], items[1]["id"], items[2]["id"] = "c1", "c2", "c3"
+        items[1]["snippet"]["totalReplyCount"] = 2
+        return {"items": items if video_id == "abc" else []}
+
+    monkeypatch.setattr(audience, "_download", download)
+    add_videos()
+    prompts = []
+    replies = [  # desordenadas, una vacía y un número que no existe
+        audience.Reply(n=2, reply=" "),
+        audience.Reply(n=9, reply="No existe"),
+        audience.Reply(n=1, reply="¡Sí! Nokia llega pronto."),
+    ]
+    report = REPORT.model_copy(update={"replies": replies})
+    monkeypatch.setattr(
+        ai, "generate_json", lambda prompt, schema: prompts.append(prompt) or report
+    )
+    studio.post("/rendimiento/audiencia")
+
+    assert "SIN RESPONDER" in prompts[0]
+    assert "1. [Kodak] ¿Haréis Nokia?" in prompts[0] and "2. [Kodak] Spam" in prompts[0]
+    assert "Ya respondido" not in prompts[0].split("SIN RESPONDER")[1]  # ya tiene respuestas
+    with SessionLocal() as db:
+        saved = audience.last_report(db)
+    assert "replies" not in saved
+    assert saved["unanswered"] == 2
+    assert saved["answers"] == [  # cada borrador con su comentario; el vacío no se guarda
+        {
+            "video": "Kodak",
+            "text": "¿Haréis Nokia?",
+            "likes": 30,
+            "reply": "¡Sí! Nokia llega pronto.",
+            "url": "https://www.youtube.com/watch?v=abc&lc=c1",
+        }
+    ]
+    page = studio.get("/rendimiento").text
+    assert "Comentarios por responder" in page and "¡Sí! Nokia llega pronto." in page
+    assert "Copiar" in page and "watch?v=abc&amp;lc=c1" in page
+
+
+def test_old_reports_without_answers_still_show(studio, ai, monkeypatch):  # noqa: F811
+    fake_comments(monkeypatch)
+    add_videos()
+    monkeypatch.setattr(ai, "generate_json", lambda prompt, schema: REPORT)
+    studio.post("/rendimiento/audiencia")
+    page = studio.get("/rendimiento").text
+    assert "La caída de Nokia" in page and "Comentarios por responder" not in page
