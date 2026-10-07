@@ -85,3 +85,18 @@ def test_the_real_check_runs_espeak(tmp_path):
     piper_safe.check(ESPEAK_DATA_DIR)  # con los datos buenos funciona
     with pytest.raises(ProviderError):
         piper_safe.check(tmp_path / "no-existe")  # sin datos, falla sin cerrar las pruebas
+
+
+def test_a_slow_first_check_is_retried_next_time(tmp_path):
+    calls = []
+
+    def run(*args, **kwargs):
+        calls.append(1)
+        if len(calls) == 1:  # el antivirus tarda la primera vez
+            raise subprocess.TimeoutExpired(args[0], 120)
+        return SimpleNamespace(returncode=0, stderr="")
+
+    with pytest.raises(ProviderError, match="tardó"):
+        piper_safe.check(tmp_path, run=run)
+    piper_safe.check(tmp_path, run=run)  # la segunda vez funciona
+    assert len(calls) == 2

@@ -65,6 +65,10 @@ class NoKey(Exception):
     pass
 
 
+class KeyProblem(ValueError):
+    """YouTube rechaza la clave (cuota agotada, clave mala o API sin activar)."""
+
+
 def _download(video_id: str, key: str, limit: int = PER_VIDEO) -> dict:
     with httpx.Client(timeout=15) as client:
         response = client.get(
@@ -78,8 +82,18 @@ def _download(video_id: str, key: str, limit: int = PER_VIDEO) -> dict:
                 "key": key,
             },
         )
-    if response.status_code == 403:  # comentarios desactivados en ese vídeo
-        return {"items": []}
+    if response.status_code == 403:
+        try:
+            reason = response.json()["error"]["errors"][0]["reason"]
+        except (ValueError, KeyError, IndexError, TypeError):
+            reason = ""
+        if reason == "commentsDisabled":  # ese vídeo no deja comentar
+            return {"items": []}
+        raise KeyProblem(
+            "YouTube no deja usar tu clave ahora mismo: puede que se haya acabado la cuota "
+            "de hoy o que la clave de YouTube no tenga activada la «YouTube Data API v3». "
+            f"Prueba mañana o revisa la clave. (Motivo: {reason or 'desconocido'})"
+        )
     response.raise_for_status()
     return response.json()
 

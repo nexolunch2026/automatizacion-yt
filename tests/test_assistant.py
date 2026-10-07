@@ -126,6 +126,18 @@ def test_unknown_chat_must_send_the_code(logged_in, ai):
         assert assistant.link_code(db) != code  # el código ya no sirve para otro
 
 
+def test_guessing_the_code_changes_it(logged_in, ai):
+    with SessionLocal() as db:
+        code = assistant.link_code(db)
+        wrong = f"{(int(code) + 1) % 1000000:06}"
+        for _ in range(assistant.MAX_LINK_MISSES):
+            assistant.handle(db, Incoming(chat_id=66, text=wrong))
+        assert assistant.link_code(db) != code  # tras 5 fallos, código nuevo
+        replies = assistant.handle(db, Incoming(chat_id=66, text=code))
+        assert "Sistemas en línea" not in replies[0].text
+        assert assistant.linked_chats(db) == []
+
+
 def test_old_jobs_are_not_announced_after_linking(logged_in, ai):
     create_channel(logged_in)
     logged_in.post("/proyectos/nuevo", data=project_data())

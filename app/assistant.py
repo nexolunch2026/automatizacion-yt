@@ -125,6 +125,11 @@ def linked_chats(db: Session) -> list[dict]:
     return _json_setting(db, "telegram_chats", [])
 
 
+# Tras 5 códigos equivocados se cambia el código, para que nadie pueda adivinarlo probando
+# números (el de verdad siempre se ve en la página JARVIS).
+MAX_LINK_MISSES = 5
+
+
 def link_code(db: Session) -> str:
     """Código de 6 cifras que hay que enviar al bot para vincular el chat."""
     code = get_setting(db, "telegram_code")
@@ -140,13 +145,20 @@ def unlink_chat(db: Session, chat_id: int) -> None:
 
 def _try_link(db: Session, msg: Incoming) -> list[Reply]:
     digits = re.sub(r"\D", "", msg.text)
-    if digits and digits == link_code(db):
+    if digits and digits != link_code(db):
+        misses = int(get_setting(db, "telegram_code_misses") or 0) + 1
+        if misses >= MAX_LINK_MISSES:
+            set_setting(db, "telegram_code", "")  # el próximo link_code() crea otro
+            misses = 0
+        set_setting(db, "telegram_code_misses", str(misses))
+    elif digits:
         chats = linked_chats(db)
         if len(chats) >= MAX_CHATS:
             return [Reply("Ya hay demasiados chats vinculados. Quita uno en la página JARVIS.")]
         chats.append({"id": msg.chat_id, "name": msg.name})
         _save_json(db, "telegram_chats", chats)
         set_setting(db, "telegram_code", "")  # el código no se puede reutilizar
+        set_setting(db, "telegram_code_misses", "0")
         _mark_old_jobs_notified(db)
         return [
             Reply(

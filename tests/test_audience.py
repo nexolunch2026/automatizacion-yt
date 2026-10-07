@@ -6,6 +6,8 @@ from app.models import Video
 from app.settings_store import save_api_key
 from tests.test_assistant import ai, studio, talk  # noqa: F401
 
+REAL_DOWNLOAD = audience._download  # las pruebas lo cambian por uno sin internet
+
 REPORT = audience.Report(
     summary="Os encanta la historia de las marcas que caen.",
     questions=["¿Haréis la historia de Nokia?"],
@@ -143,3 +145,22 @@ def test_old_reports_without_answers_still_show(studio, ai, monkeypatch):  # noq
     studio.post("/rendimiento/audiencia")
     page = studio.get("/rendimiento").text
     assert "La caída de Nokia" in page and "Comentarios por responder" not in page
+
+
+def test_a_broken_youtube_key_is_not_reported_as_no_comments(studio, ai, monkeypatch):  # noqa: F811
+    real_client = httpx.Client
+
+    def respond(reason):
+        body = {"error": {"errors": [{"reason": reason}]}}
+        transport = httpx.MockTransport(lambda request: httpx.Response(403, json=body))
+        return lambda **kw: real_client(transport=transport, **kw)
+
+    monkeypatch.setattr(audience, "_download", REAL_DOWNLOAD)
+    monkeypatch.setattr(audience.httpx, "Client", respond("commentsDisabled"))
+    assert audience._download("abc", "clave") == {"items": []}  # comentarios desactivados
+
+    monkeypatch.setattr(audience.httpx, "Client", respond("quotaExceeded"))
+    add_videos()
+    reply = studio.post("/rendimiento/audiencia", follow_redirects=False)
+    assert "quotaExceeded" in reply.headers["location"]
+    assert "comentarios%20en%20tus" not in reply.headers["location"]

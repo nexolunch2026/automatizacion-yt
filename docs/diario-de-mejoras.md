@@ -2,6 +2,20 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-07 — Versión 0.70.1: revisión de salud
+
+Revisión de los cambios de la semana con los revisores automáticos. Se arreglaron 3 fallos:
+
+- **«Leer comentarios»** decía «Aún no hay comentarios en tus vídeos» cuando en realidad
+  YouTube rechazaba tu clave (por ejemplo, si se acaba la cuota del día). Ahora te dice
+  la verdad: que la clave no funciona o que se acabó la cuota, y qué hacer.
+- La **voz gratuita (Piper)**: si la primera vez tardaba mucho en arrancar (el antivirus
+  la revisa), se quedaba marcada como rota hasta cerrar el programa. Ahora te dice que
+  tardó y lo vuelve a intentar la próxima vez.
+- **Telegram**: el código de 6 cifras para vincular JARVIS se cambia solo tras 5 intentos
+  equivocados, para que nadie pueda adivinarlo probando números. El código bueno
+  siempre lo ves en la página **JARVIS**.
+
 ## 2026-10-07 — Versión 0.70: respuestas a comentarios listas para pegar
 
 - En **Rendimiento → «Lo que pide tu audiencia»**, al pulsar **«Leer comentarios»**

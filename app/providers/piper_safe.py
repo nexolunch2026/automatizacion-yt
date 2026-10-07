@@ -77,6 +77,15 @@ def check(espeak_dir: Path, run=subprocess.run) -> None:
                 check=False,
             )
             _checked[key] = done.returncode == 0
+        except subprocess.TimeoutExpired as exc:
+            # La primera vez el antivirus puede tardar mucho: no se apunta como fallo para
+            # que la próxima vez se vuelva a probar.
+            raise ProviderError(
+                "La voz gratuita (Piper) tardó demasiado en arrancar (puede ser el antivirus "
+                "la primera vez). Vuelve a intentarlo en un momento.",
+                transient=True,
+                detail=f"espeak-ng no respondió en 120 s con {key}",
+            ) from exc
         except (OSError, subprocess.SubprocessError):
             _checked[key] = False
     if not _checked[key]:
