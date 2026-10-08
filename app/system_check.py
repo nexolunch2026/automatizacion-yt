@@ -152,6 +152,16 @@ def run_all(db: Session) -> list[Check]:
     return checks
 
 
+# Avisos que no son un problema (la clave de YouTube es opcional): la revisión semanal
+# no molesta con ellos.
+NOT_A_PROBLEM = {"YouTube"}
+
+
+def problems(checks: list[Check]) -> list[Check]:
+    """Lo que falla o conviene mirar, para el aviso semanal por Telegram."""
+    return [c for c in checks if c.state != OK and c.name not in NOT_A_PROBLEM]
+
+
 def summary(checks: list[Check]) -> str:
     fails = sum(c.state == FAIL for c in checks)
     warns = sum(c.state == WARN for c in checks)

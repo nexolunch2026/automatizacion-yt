@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-08 — Versión 0.71: JARVIS revisa tu ordenador cada lunes
+
+- Cada **lunes**, a la hora de tu piloto automático (las 9 si no la cambiaste), JARVIS
+  pasa solo **«Revisar mi ordenador»**: voz gratuita, montaje de vídeo, internet, espacio
+  en disco, claves y pasos detenidos.
+- **Solo te escribe por Telegram si algo falla** o conviene mirarlo, con qué hacer para
+  arreglarlo. Si todo va bien, no te molesta.
+- Si el lunes el ordenador estaba apagado, lo revisa el **primer día que lo abras** esa
+  semana.
+- En el mensaje hay un botón **«🩺 Revisar otra vez»** para comprobar si ya quedó bien.
+
 ## 2026-10-07 — Versión 0.70.1: revisión de salud
 
 Revisión de los cambios de la semana con los revisores automáticos. Se arreglaron 3 fallos:

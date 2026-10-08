@@ -525,18 +525,68 @@ CHECK_WORDS = (
 )
 
 
-def system_check_reply(db: Session) -> Reply:
-    from app import system_check
-
-    checks = system_check.run_all(db)
+def _check_lines(checks: list) -> list[str]:
     icons = {"ok": "✅", "warn": "⚠️", "fail": "❌"}
-    lines = [f"🩺 <b>{escape(system_check.summary(checks))}</b>\n"]
+    lines = []
     for c in checks:
         line = f"{icons[c.state]} <b>{escape(c.name)}</b>: {escape(c.detail)}"
         if c.fix and c.state != "ok":
             line += f"\n   👉 {escape(c.fix)}"
         lines.append(line)
+    return lines
+
+
+def system_check_reply(db: Session) -> Reply:
+    from app import system_check
+
+    checks = system_check.run_all(db)
+    lines = [f"🩺 <b>{escape(system_check.summary(checks))}</b>\n", *_check_lines(checks)]
     return Reply("\n".join(lines))
+
+
+def weekly_check(db: Session, now: datetime | None = None) -> list[Reply]:
+    """Cada lunes (a la hora del piloto, o el primer día que se abra el programa después)
+    JARVIS revisa el ordenador y solo avisa por Telegram si algo falla."""
+    from app import system_check
+
+    now = now or datetime.now()
+    if not linked_chats(db):
+        return []
+    if now.weekday() == 0 and now.hour < autopilot_state(db)["hour"]:
+        return []
+    year, week, _ = now.isocalendar()
+    this_week = f"{year}-W{week:02}"
+    if get_setting(db, "weekly_check_week") == this_week:
+        return []
+    retry = get_setting(db, "weekly_check_retry") or ""
+    if retry and now < datetime.fromisoformat(retry):
+        return []
+    set_setting(db, "weekly_check_week", this_week)  # antes de revisar: una vez por semana
+    try:
+        problems = system_check.problems(system_check.run_all(db))
+    except Exception:  # noqa: BLE001 — una revisión que falla no debe parar a JARVIS
+        log.exception("No se pudo hacer la revisión semanal del ordenador")
+        return [
+            Reply(
+                "🩺 No pude hacer la revisión semanal del ordenador. Pulsa el botón para "
+                "probar otra vez; si vuelve a fallar, avisa a Claude.",
+                buttons=[[("🩺 Revisar otra vez", "syscheck")]],
+            )
+        ]
+    if any(c.name == "Internet" for c in problems):
+        # Sin internet el aviso tampoco llegaría por Telegram: se repite dentro de 1 hora.
+        set_setting(db, "weekly_check_week", "")
+        set_setting(db, "weekly_check_retry", (now + timedelta(hours=1)).isoformat())
+        return []
+    if not problems:
+        return []
+    return [
+        Reply(
+            "🩺 <b>Revisión semanal del ordenador:</b> hay cosas que mirar antes de que den "
+            "problemas.\n\n" + "\n".join(_check_lines(problems)),
+            buttons=[[("🩺 Revisar otra vez", "syscheck")]],
+        )
+    ]
 
 
 DEMAND = re.compile(
@@ -1594,6 +1644,8 @@ def _button(db: Session, data: str) -> list[Reply]:
         ]
     if kind == "money":
         return [monetization_reply(db)]
+    if kind == "syscheck":
+        return [system_check_reply(db)]
     if kind == "perf":
         return skills.act(db, Intent(action="performance"))
     if kind == "radar":
@@ -2005,5 +2057,6 @@ def tick(db: Session, now: datetime | None = None) -> list[Reply]:
         *reference_alerts(db, now),
         *reminder_alerts(db, now),
         *briefing(db, now),
+        *weekly_check(db, now),
         *autopilot_tick(db, now),
     ]

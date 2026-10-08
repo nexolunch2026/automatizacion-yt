@@ -4,6 +4,16 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (8 de octubre de 2026: crecer con un canal sin rostro)
+
+- [What The Fastest Growing Faceless Channels Know That You Don't](https://www.youtube.com/watch?v=FltNsyPXNdo)
+  — qué hacen distinto los canales sin rostro que más crecen: para comparar con tu canal.
+- [The New Rules For Faceless Channels in 2026](https://www.youtube.com/watch?v=ye2T2FwubI4)
+  — las reglas de este año: con la IA todos hacen vídeos fácil, así que gana quien
+  investiga mejor y cuenta mejor la historia.
+- [Why 99% of Faceless YouTube Channels Fail in 2026](https://www.youtube.com/watch?v=mUyU_tEdEYA)
+  — los errores típicos que hunden a los canales sin rostro, para no caer en ellos.
+
 ## Nuevos (7 de octubre de 2026: comentarios y miniaturas)
 
 - [Should You Be Replying to Every Comment?](https://www.youtube.com/shorts/SlD8JfFOdmI)

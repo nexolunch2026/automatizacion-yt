@@ -102,6 +102,11 @@ def no_real_internet(monkeypatch):
     from app import audience
 
     monkeypatch.setattr(audience, "_download", lambda *a, **k: offline("", ""))
+    from app import assistant
+
+    # La revisión semanal del ordenador mira internet y ffmpeg de verdad: fuera de sus
+    # propias pruebas (tests/test_weekly_check.py) no se hace.
+    monkeypatch.setattr(assistant, "weekly_check", lambda db, now=None: [])
     voice = FakeVoice()
     monkeypatch.setattr(jobs, "get_voice_provider", lambda *args, **kwargs: voice)
     monkeypatch.setattr(jobs, "get_image_providers", lambda db: ImageChain([FakeImageMaker()]))

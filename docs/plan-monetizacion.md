@@ -113,7 +113,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   comentario fijado), en Rendimiento y por JARVIS.
 - [x] **Responder comentarios** (0.70.0): en «Lo que pide tu audiencia», borradores de respuesta para
   los comentarios con más «me gusta» que aún no tienen respuesta (con botón copiar).
-- [ ] **Revisión semanal del ordenador**: cada lunes JARVIS pasa «Revisar mi ordenador» y
+- [x] **Revisión semanal del ordenador** (0.71.0): cada lunes JARVIS pasa «Revisar mi ordenador» y
   avisa por Telegram solo si algo falla (voz, espacio en disco, ffmpeg…).
 - [ ] **Banco de historias para cualquier nicho**: crear una vez con Gemini un banco de 30
   temas reales del nicho del canal (no solo marcas) y marcar los ya hechos.
