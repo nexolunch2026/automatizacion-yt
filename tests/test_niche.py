@@ -149,8 +149,17 @@ def test_ideas_radar_and_fact_follow_the_niche(logged_in, ai, monkeypatch):  # n
         niche.generate(db, db.get(Channel, 1), KitAI())
         assert niche.main_kit(db).fact_topic == "el dinero y la economía doméstica"
 
+        from app import niche_bank
+
+        monkeypatch.setattr(  # el banco propio del nicho (sus pruebas: test_niche_bank.py)
+            niche_bank,
+            "generate",
+            lambda db, channel, kit, ai: [
+                {"topic": "El ahorro de los abuelos", "format": "", "hook": ""}
+            ],
+        )
         bank = assistant.bank_replies(db)[0].text
-        assert "marcas y empresas" in bank and "ideas" in bank
+        assert "finanzas personales" in bank and "El ahorro de los abuelos" in bank
 
         prompts = []
         monkeypatch.setattr(

@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-09 — Versión 0.72: banco de historias para cualquier canal
+
+- Si tienes un canal que **no es de marcas** (misterios, finanzas, historia…), al pedir a
+  JARVIS **«banco de historias»** ya no te dice que solo es para marcas.
+- La primera vez, Gemini prepara **30 temas reales de tu nicho**, con un gancho y formatos
+  variados. Se guardan, así que las siguientes veces no gasta Gemini.
+- JARVIS te enseña 5 temas cada vez, con los botones **🎬** para empezar el vídeo, y los
+  que ya hiciste **no vuelven a salir** («Llevas 3 de 30»).
+- Si cambias el nicho del canal, prepara un banco nuevo para el nicho nuevo.
+- El canal de marcas sigue con su banco de 80 historias de siempre.
+
 ## 2026-10-08 — Versión 0.71: JARVIS revisa tu ordenador cada lunes
 
 - Cada **lunes**, a la hora de tu piloto automático (las 9 si no la cambiaste), JARVIS

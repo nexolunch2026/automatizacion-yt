@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (9 de octubre de 2026: documentales de otros nichos)
+
+- [How to Create History Videos for a Faceless YouTube Channel (Step-by-Step)](https://www.youtube.com/watch?v=i5-xT982oSY)
+  — paso a paso de un canal de historia sin rostro: útil si abres un segundo canal.
+- [How to Make True Crime Videos for Faceless YouTube (Full Course)](https://www.youtube.com/watch?v=XOgwwaU-nPk)
+  — curso de vídeos de casos reales («true crime»), un nicho de documental muy parecido.
+- [Create a VIRAL Faceless Documentary Channel With AI (For Beginners)](https://www.youtube.com/watch?v=jKhN7j3aiNc)
+  — para principiantes: cómo montar un canal de documentales con IA desde cero.
+
 ## Nuevos (8 de octubre de 2026: crecer con un canal sin rostro)
 
 - [What The Fastest Growing Faceless Channels Know That You Don't](https://www.youtube.com/watch?v=FltNsyPXNdo)

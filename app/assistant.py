@@ -1158,15 +1158,10 @@ def _review(db: Session, topic: str = "") -> list[Reply]:
 
 def bank_replies(db: Session, region: str = "") -> list[Reply]:
     """Historias reales del banco de ideas que aún no se han hecho, con formatos variados.
-    El banco es de marcas y empresas: en otros nichos, las ideas las piensa la IA."""
+    En canales de marcas, el banco fijo de 80; en otros nichos, uno de 30 que crea Gemini
+    una vez (niche_bank.py)."""
     if not niche.is_brands(niche.main_kit(db).niche):
-        return [
-            Reply(
-                "📚 El banco de historias es de marcas y empresas. Para tu nicho di "
-                "<b>«ideas»</b> y pienso nuevas.",
-                buttons=[[("💡 Ideas nuevas", "ideas")]],
-            )
-        ]
+        return niche_bank_replies(db)
     done = [p.topic for p in db.scalars(select(Project))]
     ideas = ideas_bank.fresh_ideas(done, region)
     if not ideas:
@@ -1182,6 +1177,51 @@ def bank_replies(db: Session, region: str = "") -> list[Reply]:
     title = f"📚 <b>Banco de historias{f' — {escape(region)}' if region else ''}</b>"
     made, total = ideas_bank.progress(done)
     footer = f"\n\n✅ Llevas {made} de {total} historias del banco." if made else ""
+    return [Reply(title + "\n\n" + "\n\n".join(lines) + footer, buttons=buttons)]
+
+
+def niche_bank_saved(db: Session) -> bool:
+    """Si hay un banco del nicho guardado con temas aún sin hacer (reserva sin Gemini)."""
+    from app import niche_bank
+
+    ideas = niche_bank.stored(db, niche.main_channel(db), niche.main_kit(db).niche)
+    done = [p.topic for p in db.scalars(select(Project))]
+    return bool(ideas and niche_bank.fresh(ideas, done))
+
+
+def niche_bank_replies(db: Session) -> list[Reply]:
+    """El banco de temas del nicho del canal; la primera vez lo crea Gemini."""
+    from app import niche_bank
+
+    channel, kit = niche.main_channel(db), niche.main_kit(db)
+    if channel is None:
+        return [Reply("📚 Crea primero tu canal en la página Canales y te preparo el banco.")]
+    ideas = niche_bank.stored(db, channel, kit.niche)
+    if ideas is None:
+        try:
+            ai = jobs.get_ai_provider(db)
+            ideas = niche_bank.generate(db, channel, kit, ai)
+            jobs.remember_working_model(db, ai)
+        except ProviderError as exc:
+            return [Reply(f"📚 No pude crear el banco de historias ahora: {escape(str(exc))}")]
+        if not ideas:
+            return [Reply("📚 Gemini no me dio temas útiles. Prueba otra vez en un rato.")]
+    done = [p.topic for p in db.scalars(select(Project))]
+    fresh = niche_bank.fresh(ideas, done)
+    if not fresh:
+        return [Reply("📚 Ya hiciste todos los temas del banco. Di «ideas» y pienso nuevas.")]
+    _save_json(db, "telegram_ideas", [i["topic"] for i in fresh])
+    lines = [
+        f"{n}. <b>{escape(i['topic'])}</b>"
+        + (f" <i>({escape(i['format'])})</i>" if i["format"] else "")
+        + (f"\n   🪝 {escape(i['hook'])}" if i["hook"] else "")
+        for n, i in enumerate(fresh, 1)
+    ]
+    buttons = [[(f"🎬 {n}", f"idea:{n - 1}") for n in range(1, len(fresh) + 1)]]
+    buttons.append([("🛫 Todas a la cola", "idea:all"), ("💡 Ideas nuevas", "ideas")])
+    made, total = niche_bank.progress(ideas, done)
+    footer = f"\n\n✅ Llevas {made} de {total} temas del banco." if made else ""
+    title = f"📚 <b>Banco de historias — {escape(kit.niche)}</b>"
     return [Reply(title + "\n\n" + "\n\n".join(lines) + footer, buttons=buttons)]
 
 
@@ -1283,7 +1323,7 @@ No repitas estos temas ya hechos: {"; ".join(done) or "ninguno"}"""
         ideas = ai.generate_json(prompt, IdeaList).ideas[:5]
     except ProviderError:
         log.info("Gemini no respondió; uso el banco de ideas", exc_info=True)
-        if niche.is_brands(kit.niche):
+        if niche.is_brands(kit.niche) or niche_bank_saved(db):
             return bank_replies(db)
         return [Reply("No pude pensar ideas ahora (Gemini no respondió). Prueba en un rato.")]
     jobs.remember_working_model(db, ai)

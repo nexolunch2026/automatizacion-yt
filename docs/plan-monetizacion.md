@@ -115,7 +115,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   los comentarios con más «me gusta» que aún no tienen respuesta (con botón copiar).
 - [x] **Revisión semanal del ordenador** (0.71.0): cada lunes JARVIS pasa «Revisar mi ordenador» y
   avisa por Telegram solo si algo falla (voz, espacio en disco, ffmpeg…).
-- [ ] **Banco de historias para cualquier nicho**: crear una vez con Gemini un banco de 30
+- [x] **Banco de historias para cualquier nicho** (0.72.0): crear una vez con Gemini un banco de 30
   temas reales del nicho del canal (no solo marcas) y marcar los ya hechos.
 - [x] **Miniatura legible en el móvil** (0.65.0): comprobar el tamaño y el contraste del texto de
   cada miniatura vista a 168 px de ancho y avisar si no se lee bien.
