@@ -13,6 +13,7 @@ from app import jobs, music_rights
 from app.auth import DB, CurrentUser
 from app.media import MUSIC_DIR, MUSIC_EXTENSIONS, music_library, project_dir, safe_path
 from app.models import LEVELS, SCRIPT_TONES, STAGES, Project, StageResult
+from app.pipeline import end_screen
 from app.pipeline.ab_test import ab_plan
 from app.pipeline.humanize import script_issues
 from app.pipeline.monetization import AREAS, project_review
@@ -666,6 +667,7 @@ def publish_page(request: Request, db: DB, user: CurrentUser, project_id: int):
             jobs.get_result(db, project_id, "strategy"),
             jobs.get_result(db, project_id, "thumbnail"),
         ),
+        end_screen=end_screen.suggest(db, project),
     )
 
 

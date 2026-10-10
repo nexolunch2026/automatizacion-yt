@@ -117,6 +117,13 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   avisa por Telegram solo si algo falla (voz, espacio en disco, ffmpeg…).
 - [x] **Banco de historias para cualquier nicho** (0.72.0): crear una vez con Gemini un banco de 30
   temas reales del nicho del canal (no solo marcas) y marcar los ya hechos.
+- [x] **Pantalla final que lleva a otro vídeo** (0.73.0): en Publicación, qué vídeo tuyo
+  poner en la pantalla final (el más parecido y el que más visitas tiene) y una frase final
+  para el guion que invite a verlo.
+- [ ] **Listas de reproducción**: agrupar tus vídeos en 2–4 listas por tema o formato, con
+  título y descripción listos para copiar (más tiempo de visionado seguido).
+- [ ] **Resumen del domingo**: cada domingo JARVIS manda por Telegram cómo fue la semana
+  (visitas frente a la semana anterior, el mejor vídeo y un consejo para la siguiente).
 - [x] **Miniatura legible en el móvil** (0.65.0): comprobar el tamaño y el contraste del texto de
   cada miniatura vista a 168 px de ancho y avisar si no se lee bien.
 - [x] **Alertas de referencias** (0.64.0): JARVIS avisa por Telegram cuando un vídeo de tus canales de

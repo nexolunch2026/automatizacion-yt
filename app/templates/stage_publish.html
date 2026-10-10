@@ -85,6 +85,28 @@
   </div>
 </div>
 
+<div class="card" id="pantalla-final">
+  <h3>🔚 Pantalla final: que sigan viendo tu canal</h3>
+  {% if end_screen %}
+  <p class="muted small">En los últimos 20 segundos, YouTube deja poner un vídeo tuyo para que la gente siga en tu canal
+    (YouTube Studio → Editor → «Pantalla final» → Vídeo → «Elegir vídeo específico»).</p>
+  <ol class="ab-list">
+    {% for v in end_screen %}
+    <li>
+      <a href="{{ v.url }}" target="_blank" rel="noopener"><strong>{{ v.title }}</strong></a>
+      <br><span class="muted small">{{ v.reason }}</span>
+      <br><span class="small">Frase para el final del guion:</span>
+      <span class="copy-text" id="final-{{ loop.index }}">{{ v.line }}</span>
+      <button class="btn small secondary" data-copy="final-{{ loop.index }}">Copiar</button>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="muted small">Cuando tengas vídeos publicados (en Rendimiento), aquí te diré cuál poner en la pantalla final
+    para que la gente siga viendo tu canal.</p>
+  {% endif %}
+</div>
+
 <div class="card" id="ab">
   <h3>🧪 Probar y comparar (A/B de títulos y miniaturas)</h3>
   <p class="muted small">YouTube enseña cada opción a una parte del público durante hasta 14 días y se queda

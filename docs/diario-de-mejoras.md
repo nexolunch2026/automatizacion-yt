@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-10 — Versión 0.73: pantalla final que lleva a otro vídeo
+
+- En **Publicación** hay una tarjeta nueva, **«🔚 Pantalla final»**: te dice qué vídeo tuyo
+  poner al final para que la gente **siga viendo tu canal** (YouTube lo premia).
+- Te propone hasta 2: el de **tema más parecido** y el de **más visitas**. Si aún no tienes
+  cifras, el más reciente.
+- Cada uno trae una **frase para el final del guion** que invita a verlo, con botón
+  **«Copiar»**, y dónde ponerlo en YouTube Studio.
+- Funciona con los vídeos que ya aparecen en **Rendimiento**.
+- Lista de mejoras: se añadieron dos ideas nuevas para las próximas noches (listas de
+  reproducción y un resumen de la semana los domingos por Telegram).
+
 ## 2026-10-09 — Versión 0.72: banco de historias para cualquier canal
 
 - Si tienes un canal que **no es de marcas** (misterios, finanzas, historia…), al pedir a

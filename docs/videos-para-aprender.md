@@ -4,6 +4,16 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (10 de octubre de 2026: pantallas finales)
+
+- [YouTube End Screen Tutorial That Will BOOST Your Channel Growth](https://www.youtube.com/watch?v=4ZJHgc78tE0)
+  — cómo usar la pantalla final para que la gente siga en tu canal: va con la tarjeta nueva
+  de Publicación.
+- [How To Optimize your End Screen for Clicks](https://www.youtube.com/watch?v=-GDdyJVX61s)
+  — qué hace que la gente pulse el vídeo de la pantalla final.
+- [How to Add an End Screen On YouTube Videos in 2026](https://www.youtube.com/watch?v=fmNBZpR850w)
+  — paso a paso, en YouTube Studio, de cómo poner la pantalla final.
+
 ## Nuevos (9 de octubre de 2026: documentales de otros nichos)
 
 - [How to Create History Videos for a Faceless YouTube Channel (Step-by-Step)](https://www.youtube.com/watch?v=i5-xT982oSY)
