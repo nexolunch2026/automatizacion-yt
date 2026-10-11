@@ -503,6 +503,25 @@ IDEAS: list[dict] = [
         "region": "España",
         "hook": "Antonio Puig fundó la empresa en Barcelona en 1914.",
     },
+    # ---------------------------------------------------------------- radar (octubre 2026)
+    {
+        "topic": "Crumbl: la galletería de TikTok que se desmigaja",
+        "format": "auge_caida",
+        "region": "Mundo",
+        "hook": "Se hizo viral en redes y en 2026 ya ha cerrado al menos 57 tiendas.",
+    },
+    {
+        "topic": "Desigual: el anuncio que se burló de su propia ciudad",
+        "format": "errores",
+        "region": "España",
+        "hook": "En 2026 tuvo que pedir perdón por un anuncio que ridiculizaba Barcelona.",
+    },
+    {
+        "topic": "Zhoue: de los mejores centros comerciales al concurso de acreedores",
+        "format": "auge_caida",
+        "region": "Latinoamérica",
+        "hook": "La marca argentina declaró casi 6.000 millones de pesos de deudas.",
+    },
 ]
 
 

@@ -2,6 +2,27 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-11 — Versión 0.74.1: radar de historias
+
+Tres historias nuevas y recientes en el **banco de historias** (pídeselas a JARVIS con
+«banco de ideas»):
+
+- **Crumbl** (Mundo, ascenso y caída): la galletería que se hizo viral en redes ha cerrado
+  al menos 57 tiendas en 2026.
+- **Desigual** (España, errores): en septiembre tuvo que pedir perdón por un anuncio que
+  ridiculizaba Barcelona, su propia ciudad.
+- **Zhoue** (Latinoamérica, ascenso y caída): la marca de ropa argentina declaró casi 6.000
+  millones de pesos de deudas y pidió concurso preventivo.
+
+Fuentes: [TheStreet](https://www.thestreet.com/retail/crumbl-cookie-chain-closes-57-locations-in-2026-franchisee-files-chapter-7-bankruptcy),
+[Yahoo Finanzas](https://finance.yahoo.com/small-business/articles/crumbl-closed-57-stores-franchisees-180739687.html),
+[KUTV](https://kutv.com/news/local/crumbl-cookies-closes-dozens-of-stores-amid-declining-sales-report-finds),
+[eldiario.es](https://www.eldiario.es/catalunya/desigual-disculpa-polemico-anuncio-criticado-burlarse-gentrificacion-barcelona_1_13483136.html),
+[Reason Why](https://www.reasonwhy.es/actualidad/desigual-polemica-retrato-barcelona-campana-ottolinger),
+[The Olive Press](https://www.theolivepress.es/spain-news/2026/09/07/barcelona-desigual-advert-fury/),
+[iProfesional](https://www.iprofesional.com/negocios/466310-colapsa-marca-de-ropa-femenina-con-deuda-de-6000-millones-de-pesos),
+[FashionNetwork](https://pe.fashionnetwork.com/news/La-firma-argentina-de-moda-femenina-zhoue-se-declara-al-borde-de-la-quiebra,1869989.html).
+
 ## 2026-10-11 — Versión 0.74: listas de reproducción listas para copiar
 
 - En **Rendimiento** hay una tarjeta nueva, **«📂 Listas de reproducción»** (sale cuando
