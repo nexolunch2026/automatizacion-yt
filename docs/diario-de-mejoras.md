@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-11 — Versión 0.74: listas de reproducción listas para copiar
+
+- En **Rendimiento** hay una tarjeta nueva, **«📂 Listas de reproducción»** (sale cuando
+  tienes 2 vídeos publicados o más).
+- Agrupa tus vídeos por su **formato** (ascenso y caída, rivalidad…). Si todavía no hay
+  grupos de 2, te propone una lista con **todas tus historias**.
+- Cada lista trae **título y descripción con botón «Copiar»** y los vídeos en orden, del
+  más viejo al más nuevo. Los que no encajan en ningún grupo van en «Más historias».
+- Para qué sirve: dentro de una lista, YouTube pone **el siguiente vídeo solo**, y eso suma
+  horas vistas, que es lo que cuenta para monetizar.
+- En YouTube Studio: «Contenido» → «Listas» → «Nueva lista».
+
 ## 2026-10-10 — Versión 0.73: pantalla final que lleva a otro vídeo
 
 - En **Publicación** hay una tarjeta nueva, **«🔚 Pantalla final»**: te dice qué vídeo tuyo

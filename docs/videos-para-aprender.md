@@ -4,6 +4,16 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (11 de octubre de 2026: listas y horas vistas)
+
+- [Want 4,000 Watch Hours? Do This With Your Playlists](https://www.youtube.com/watch?v=fOiDpQZQZt8)
+  — cómo usar las listas de reproducción para llegar a las 4.000 horas: va con la tarjeta
+  nueva de Rendimiento.
+- [How to Use Playlists to Drive YouTube Watch Time](https://www.youtube.com/watch?v=rdlr4dGQqYI)
+  — cómo ordenar los vídeos de una lista para que la gente vea uno tras otro.
+- [Small channels: Do these 8 tips to INCREASE your Watch Time on YouTube](https://www.youtube.com/watch?v=-l3hPlKHPjc)
+  — 8 trucos para canales pequeños que quieren más tiempo de visionado.
+
 ## Nuevos (10 de octubre de 2026: pantallas finales)
 
 - [YouTube End Screen Tutorial That Will BOOST Your Channel Growth](https://www.youtube.com/watch?v=4ZJHgc78tE0)

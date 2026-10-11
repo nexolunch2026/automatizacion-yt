@@ -123,8 +123,26 @@
   {% endif %}
 </div>
 
+{% if playlists %}
+<div class="card" id="listas">
+  <h2>📂 Listas de reproducción</h2>
+  <p class="muted small">Con tus vídeos en listas, YouTube pone el siguiente solo y la gente ve varios seguidos (más
+    horas vistas). En YouTube Studio: «Contenido» → «Listas» → «Nueva lista». Copia el título y la descripción y añade
+    estos vídeos en este orden.</p>
+  {% for l in playlists %}
+  <div class="copy-block">
+    <div class="row"><h3 id="lista-titulo-{{ loop.index }}">{{ l.title }}</h3>
+      <button type="button" class="btn small secondary" data-copy="lista-titulo-{{ loop.index }}">Copiar título</button></div>
+    <p class="copy-text" id="lista-desc-{{ loop.index }}">{{ l.description }}</p>
+    <button type="button" class="btn small secondary" data-copy="lista-desc-{{ loop.index }}">Copiar descripción</button>
+    <ol class="small">{% for t in l.videos %}<li>{{ t }}</li>{% endfor %}</ol>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 <script>
-  // Botones «Copiar» de los borradores de respuesta.
+  // Botones «Copiar» de los borradores de respuesta y de las listas.
   document.querySelectorAll("[data-copy]").forEach(btn => {
     btn.addEventListener("click", async () => {
       const text = document.getElementById(btn.dataset.copy).innerText;

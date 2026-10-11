@@ -120,7 +120,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [x] **Pantalla final que lleva a otro vídeo** (0.73.0): en Publicación, qué vídeo tuyo
   poner en la pantalla final (el más parecido y el que más visitas tiene) y una frase final
   para el guion que invite a verlo.
-- [ ] **Listas de reproducción**: agrupar tus vídeos en 2–4 listas por tema o formato, con
+- [x] **Listas de reproducción** (0.74.0): agrupar tus vídeos en 2–4 listas por tema o formato, con
   título y descripción listos para copiar (más tiempo de visionado seguido).
 - [ ] **Resumen del domingo**: cada domingo JARVIS manda por Telegram cómo fue la semana
   (visitas frente a la semana anterior, el mejor vídeo y un consejo para la siguiente).
