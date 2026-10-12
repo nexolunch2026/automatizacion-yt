@@ -2,6 +2,16 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-12 — Versión 0.75: resumen del domingo por Telegram
+
+- Cada **domingo**, a la hora de tu piloto automático, JARVIS te manda por Telegram
+  **cómo fue la semana** del canal.
+- Te dice las **visitas** de los últimos 7 días y si **subieron o bajaron** frente a la
+  semana anterior, **el vídeo que más tiró** y cuántos **suscriptores** ganaste.
+- Termina con **un consejo** sencillo para la semana siguiente.
+- Usa las cifras que el programa ya guarda en **Rendimiento**: empieza a llegar cuando hay
+  dos semanas de datos. Con el botón **«📈 Ver rendimiento»** ves el detalle.
+
 ## 2026-10-11 — Versión 0.74.1: radar de historias
 
 Tres historias nuevas y recientes en el **banco de historias** (pídeselas a JARVIS con

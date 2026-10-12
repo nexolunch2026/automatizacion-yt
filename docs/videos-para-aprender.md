@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (12 de octubre de 2026: entender tus cifras)
+
+- [YouTube Analytics for Beginners: The Only 4 Numbers That Matter](https://www.youtube.com/watch?v=KojZRJONjIY)
+  — las 4 cifras que de verdad importan al empezar: para leer bien el resumen del domingo.
+- [YouTube Analytics Explained — 2026 Beginner's Guide](https://www.youtube.com/watch?v=2g6hbhclpKo)
+  — guía de este año para principiantes sobre YouTube Studio.
+- [3 Ridiculously Useful YouTube Analytics (Small Channels, Pay Attention!)](https://www.youtube.com/watch?v=7n9hBmA-oCY)
+  — 3 cifras muy útiles para canales pequeños.
+
 ## Nuevos (11 de octubre de 2026: listas y horas vistas)
 
 - [Want 4,000 Watch Hours? Do This With Your Playlists](https://www.youtube.com/watch?v=fOiDpQZQZt8)

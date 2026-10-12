@@ -122,7 +122,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   para el guion que invite a verlo.
 - [x] **Listas de reproducción** (0.74.0): agrupar tus vídeos en 2–4 listas por tema o formato, con
   título y descripción listos para copiar (más tiempo de visionado seguido).
-- [ ] **Resumen del domingo**: cada domingo JARVIS manda por Telegram cómo fue la semana
+- [x] **Resumen del domingo** (0.75.0): cada domingo JARVIS manda por Telegram cómo fue la semana
   (visitas frente a la semana anterior, el mejor vídeo y un consejo para la siguiente).
 - [x] **Miniatura legible en el móvil** (0.65.0): comprobar el tamaño y el contraste del texto de
   cada miniatura vista a 168 px de ancho y avisar si no se lee bien.

@@ -544,6 +544,49 @@ def system_check_reply(db: Session) -> Reply:
     return Reply("\n".join(lines))
 
 
+def sunday_summary(db: Session, now: datetime | None = None) -> list[Reply]:
+    """Cada domingo, a la hora del piloto, cómo fue la semana del canal (una vez)."""
+    from app import weekly_summary
+    from app.skills import number
+
+    now = now or datetime.now()
+    if not linked_chats(db) or now.weekday() != 6 or now.hour < autopilot_state(db)["hour"]:
+        return []
+    today = now.strftime("%Y-%m-%d")
+    if get_setting(db, "sunday_summary_day") == today:
+        return []
+    set_setting(db, "sunday_summary_day", today)
+    try:
+        data = weekly_summary.summary(db, now)
+    except Exception:  # noqa: BLE001 — un fallo en las cifras no debe parar a JARVIS
+        log.exception("No se pudo preparar el resumen del domingo")
+        return []
+    if data is None:  # aún no hay dos semanas de cifras: nada que comparar
+        return []
+    change = ""
+    if data["previous"] > 0:
+        pct = round((data["views"] - data["previous"]) / data["previous"] * 100)
+        change = f" ({'+' if pct >= 0 else ''}{pct} % frente a la semana anterior)"
+    lines = [
+        "📊 <b>Resumen de la semana</b>\n",
+        f"👀 Visitas: <b>{number(data['views'])}</b>{change}",
+    ]
+    if data["best"]:
+        lines.append(
+            f"⭐ Lo que más tiró: «{escape(data['best']['title'])}» "
+            f"(+{number(data['best']['views'])})"
+        )
+    if data["subs"] is not None:
+        extra = (
+            f" ({'+' if data['new_subs'] >= 0 else ''}{data['new_subs']} esta semana)"
+            if data["new_subs"] is not None
+            else ""
+        )
+        lines.append(f"👥 Suscriptores: {number(data['subs'])}{extra}")
+    lines.append(f"\n💡 {escape(weekly_summary.tip(data))}")
+    return [Reply("\n".join(lines), buttons=[[("📈 Ver rendimiento", "perf")]])]
+
+
 def weekly_check(db: Session, now: datetime | None = None) -> list[Reply]:
     """Cada lunes (a la hora del piloto, o el primer día que se abra el programa después)
     JARVIS revisa el ordenador y solo avisa por Telegram si algo falla."""
@@ -2098,5 +2141,6 @@ def tick(db: Session, now: datetime | None = None) -> list[Reply]:
         *reminder_alerts(db, now),
         *briefing(db, now),
         *weekly_check(db, now),
+        *sunday_summary(db, now),
         *autopilot_tick(db, now),
     ]
