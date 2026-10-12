@@ -12,6 +12,12 @@ Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba
 - Usa las cifras que el programa ya guarda en **Rendimiento**: empieza a llegar cuando hay
   dos semanas de datos. Con el botón **«📈 Ver rendimiento»** ves el detalle.
 
+**Aviso:** esta versión no se ha mandado al actualizador. La prueba de GitHub que usa
+servicios reales falló dos veces seguidas: la **voz de Microsoft de JARVIS** respondió
+«acceso denegado» (error 403) desde los ordenadores de GitHub. No tiene que ver con esta
+mejora (no toca la voz), y no hay versión nueva de la librería de la voz que lo arregle.
+Si a ti también te falla la voz de JARVIS, avísale a Claude.
+
 ## 2026-10-11 — Versión 0.74.1: radar de historias
 
 Tres historias nuevas y recientes en el **banco de historias** (pídeselas a JARVIS con
