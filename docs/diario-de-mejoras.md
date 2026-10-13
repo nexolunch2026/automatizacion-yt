@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-13 — Versión 0.76: JARVIS no se queda mudo
+
+- Si la **voz de Microsoft** que usa JARVIS no responde (sin internet, o Microsoft la
+  bloquea), JARVIS **habla con la voz gratuita del programa** (Piper), con su efecto de
+  siempre.
+- Funciona en la **pantalla de JARVIS** y en las **notas de voz de Telegram**.
+- La próxima vez vuelve a probar la de Microsoft: en cuanto funcione, se oye la de siempre.
+- La prueba de GitHub ahora comprueba lo importante: que **JARVIS pueda hablar**. Si
+  Microsoft falla, lo apunta como aviso.
+- Lista de mejoras: dos ideas nuevas (aviso cuando un vídeo despega y Shorts de tus vídeos
+  que ya funcionaron).
+
 ## 2026-10-12 — Versión 0.75: resumen del domingo por Telegram
 
 - Cada **domingo**, a la hora de tu piloto automático, JARVIS te manda por Telegram

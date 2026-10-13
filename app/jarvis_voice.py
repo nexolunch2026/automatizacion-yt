@@ -2,6 +2,8 @@
 
 - «microsoft»: voces neuronales de Microsoft (las mismas de Edge), gratis y sin clave.
 - «eleven»: una voz de tu cuenta de ElevenLabs (gasta créditos).
+Si la voz de Microsoft falla (sin internet, o Microsoft la bloquea), JARVIS habla con la
+voz gratuita del programa (Piper, en el ordenador) para no quedarse mudo.
 Encima se aplica el «efecto JARVIS»: voz un poco más grave, con cuerpo, un brillo
 metálico muy suave y un eco corto, como un asistente que suena desde la sala.
 
@@ -12,6 +14,7 @@ import asyncio
 import hashlib
 import logging
 import tempfile
+from datetime import datetime
 from pathlib import Path
 
 from app.config import DATA_DIR
@@ -34,6 +37,10 @@ MICROSOFT_VOICES = {
     "es-ES-ElviraNeural": "Elvira (España) — voz femenina, estilo FRIDAY",
 }
 DEFAULT_VOICE = "es-ES-AlvaroNeural"
+FALLBACK_VOICE = "es_ES-davefx-medium"  # voz de Piper de respaldo
+# Cuándo y por qué se usó la voz de respaldo por última vez (lo enseña «Revisar mi ordenador»).
+last_fallback: dict = {}
+_piper = None  # la voz de respaldo se carga una sola vez
 
 # Efecto JARVIS (FFmpeg). Sutil a propósito: tiene que entenderse perfectamente.
 EFFECTS = {
@@ -76,6 +83,16 @@ def microsoft_tts(text: str, voice: str, out: Path) -> None:
         ) from exc
     if not out.exists() or out.stat().st_size < 500:
         raise ProviderError("La voz de Microsoft no devolvió audio.")
+
+
+def piper_tts(text: str, out: Path) -> None:
+    """Graba con la voz gratuita del programa (respaldo). Se reemplaza en los tests."""
+    global _piper
+    if _piper is None:
+        from app.providers.voice import PiperVoices
+
+        _piper = PiperVoices()
+    out.write_bytes(_piper.synthesize(text, FALLBACK_VOICE, "Normal"))
 
 
 def _apply_effect(source: Path, out: Path, effect: str) -> None:
@@ -133,7 +150,28 @@ def speak(
             wav.write_bytes(eleven.synthesize(text, voice, "Normal"))
             raw = wav
         else:
-            microsoft_tts(text, voice, raw)
+            try:
+                microsoft_tts(text, voice, raw)
+            except ProviderError as exc:
+                # Respaldo: la voz del programa. Se guarda aparte para volver a probar
+                # Microsoft la próxima vez; si tampoco funciona, se avisa del fallo original.
+                log.warning(
+                    "Voz de Microsoft no disponible (%s · %s); uso la de respaldo", exc, exc.detail
+                )
+                target = _cache_path("piper", FALLBACK_VOICE, effect, text)
+                if target.exists():
+                    last_fallback.update(when=datetime.now(), reason=str(exc))
+                    target.touch()
+                    return target
+                raw = Path(tmp) / "voz.wav"
+                try:
+                    piper_tts(text, raw)
+                except Exception as backup:  # noqa: BLE001 — falta la voz, espeak se cae…
+                    log.warning("Tampoco funcionó la voz de respaldo: %s", backup)
+                    raise ProviderError(
+                        str(exc), detail=f"{exc.detail} | respaldo: {backup}"[:400]
+                    ) from exc
+                last_fallback.update(when=datetime.now(), reason=str(exc))
         try:
             _apply_effect(raw, Path(tmp) / "final.mp3", effect)
         except RuntimeError as exc:

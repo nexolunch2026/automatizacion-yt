@@ -92,6 +92,20 @@ def free_voice() -> Check:
     return Check("Voz gratuita (Piper)", OK, "Funciona")
 
 
+def jarvis_voice_state() -> Check:
+    from app import jarvis_voice
+
+    used = jarvis_voice.last_fallback
+    if used:
+        return Check(
+            "Voz de JARVIS",
+            WARN,
+            f"Microsoft falló a las {used['when']:%H:%M}; JARVIS habla con la de respaldo",
+            "Suele ser internet o que Microsoft la bloquea un rato. Si dura días, avisa a Claude.",
+        )
+    return Check("Voz de JARVIS", OK, "Sin problemas desde que se abrió el programa")
+
+
 def keys(db: Session) -> list[Check]:
     from app.settings_store import api_key_hint
 
@@ -148,7 +162,8 @@ def stuck_jobs(db: Session) -> Check:
 
 def run_all(db: Session) -> list[Check]:
     checks = [Check("Versión", OK, f"Faceless Studio {VERSION}"), folders(), disk()]
-    checks += [video_tools(), free_voice(), internet(), *keys(db), stuck_jobs(db)]
+    checks += [video_tools(), free_voice(), jarvis_voice_state(), internet(), *keys(db)]
+    checks.append(stuck_jobs(db))
     return checks
 
 

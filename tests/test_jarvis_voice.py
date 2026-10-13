@@ -120,3 +120,41 @@ def test_telegram_answers_voice_notes_with_voice(logged_in, monkeypatch, fake_mi
         api.updates = [{"update_id": 2, "message": {"chat": {"id": 5}, "text": "estado"}}]
         telegram.poll_once(db, api)
         assert len(sent_voice) == 1  # a los mensajes escritos responde escribiendo
+
+
+def test_piper_backup_when_microsoft_fails(monkeypatch, tmp_path):
+    from tests.conftest import silent_wav
+
+    calls = []
+
+    def broken(text, voice, out):
+        raise ProviderError("No se pudo usar la voz de Microsoft (¿hay internet?).")
+
+    def piper(text, out):
+        calls.append(text)
+        out.write_bytes(silent_wav(1.0))
+
+    monkeypatch.setattr(jarvis_voice, "microsoft_tts", broken)
+    monkeypatch.setattr(jarvis_voice, "piper_tts", piper)
+    monkeypatch.setattr(jarvis_voice, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(jarvis_voice, "last_fallback", {})
+    first = jarvis_voice.speak("Sigo aquí, señor.")
+    assert "internet" in jarvis_voice.last_fallback["reason"]
+    from app import system_check
+
+    assert system_check.jarvis_voice_state().state == "warn"
+    assert first.exists() and first.stat().st_size > 1000 and calls == ["Sigo aquí, señor."]
+    assert jarvis_voice.speak("Sigo aquí, señor.") == first and len(calls) == 1  # caché
+    # Si Microsoft vuelve, se usa otra vez Microsoft (la de respaldo no la tapa).
+    monkeypatch.setattr(jarvis_voice, "microsoft_tts", lambda text, voice, out: piper(text, out))
+    assert jarvis_voice.speak("Sigo aquí, señor.") != first
+
+
+def test_both_voices_failing_keeps_the_original_message(monkeypatch, tmp_path):
+    def broken(text, voice, out):
+        raise ProviderError("No se pudo usar la voz de Microsoft (¿hay internet?).")
+
+    monkeypatch.setattr(jarvis_voice, "microsoft_tts", broken)
+    monkeypatch.setattr(jarvis_voice, "CACHE_DIR", tmp_path)
+    with pytest.raises(ProviderError, match="internet"):
+        jarvis_voice.speak("Hola")

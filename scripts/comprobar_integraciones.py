@@ -154,19 +154,29 @@ def main() -> None:
         if "token" not in str(exc):
             failures.append(f"Telegram no respondió como se esperaba: {exc} {exc.detail}")
 
-    print("7) Voz de JARVIS (voz neuronal de Microsoft + efecto)")
+    print("7) Voz de JARVIS (voz neuronal de Microsoft + efecto; si falla, la de respaldo)")
     from app import jarvis_voice
 
     with tempfile.TemporaryDirectory() as tmp:
         jarvis_voice.CACHE_DIR = Path(tmp)
         for voice in ("es-ES-AlvaroNeural", "es-CO-GonzaloNeural"):
             try:
-                path = jarvis_voice.speak(
-                    "Buenos días, señor. Todos los sistemas funcionan.", voice=voice
-                )
-                print(f"   {voice}: {path.stat().st_size} bytes")
+                jarvis_voice.microsoft_tts("Prueba.", voice, Path(tmp) / f"{voice}.mp3")
+                print(f"   {voice}: Microsoft responde")
             except ProviderError as exc:
-                failures.append(f"La voz de JARVIS falló con {voice}: {exc} {exc.detail}")
+                # Microsoft a veces bloquea los ordenadores de GitHub: JARVIS usa la de
+                # respaldo, así que solo es un aviso. Lo grave es que no hable (abajo).
+                print(f"::warning::Voz de Microsoft ({voice}): {exc} {exc.detail}"[:600])
+        try:
+            jarvis_voice.piper_tts("Prueba de la voz de respaldo.", Path(tmp) / "respaldo.wav")
+            print("   Voz de respaldo (Piper): OK")
+        except Exception as exc:  # noqa: BLE001
+            failures.append(f"La voz de respaldo de JARVIS (Piper) no funciona: {exc}")
+        try:
+            path = jarvis_voice.speak("Buenos días, señor. Todos los sistemas funcionan.")
+            print(f"   JARVIS habla: {path.stat().st_size} bytes")
+        except ProviderError as exc:
+            failures.append(f"JARVIS no puede hablar (ni Microsoft ni respaldo): {exc}")
 
     print("8) Información de JARVIS (servicios gratuitos; solo avisos)")
     from app import info, profile

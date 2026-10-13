@@ -124,6 +124,12 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   título y descripción listos para copiar (más tiempo de visionado seguido).
 - [x] **Resumen del domingo** (0.75.0): cada domingo JARVIS manda por Telegram cómo fue la semana
   (visitas frente a la semana anterior, el mejor vídeo y un consejo para la siguiente).
+- [x] **JARVIS habla aunque falle Microsoft** (0.76.0): si la voz de Microsoft no responde,
+  JARVIS usa la voz gratuita del programa (Piper) en la pantalla y en Telegram.
+- [ ] **Aviso de vídeo que despega**: JARVIS avisa por Telegram si un vídeo tuyo va al doble
+  de tu media en sus primeras 48 horas, con la idea de hacer otro parecido pronto.
+- [ ] **Shorts de vídeos que ya funcionaron**: en Shorts, proponer momentos de tus vídeos
+  viejos con más visitas para sacar Shorts nuevos que lleven a ellos.
 - [x] **Miniatura legible en el móvil** (0.65.0): comprobar el tamaño y el contraste del texto de
   cada miniatura vista a 168 px de ancho y avisar si no se lee bien.
 - [x] **Alertas de referencias** (0.64.0): JARVIS avisa por Telegram cuando un vídeo de tus canales de

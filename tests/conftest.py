@@ -123,6 +123,12 @@ def no_real_internet(monkeypatch):
 
     monkeypatch.setattr(jarvis_voice, "microsoft_tts", no_microsoft)
 
+    def no_piper(text, out):
+        raise ProviderError("Sin voz de respaldo en los tests")
+
+    monkeypatch.setattr(jarvis_voice, "piper_tts", no_piper)
+    monkeypatch.setattr(jarvis_voice, "last_fallback", {})
+
     from app import info
 
     def offline(url, **params):

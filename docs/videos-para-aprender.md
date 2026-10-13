@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (13 de octubre de 2026: Shorts a partir de vídeos largos)
+
+- [How to Repurpose Long-form Videos into Shorts](https://www.youtube.com/watch?v=QQ0DNLbaaF0)
+  — cómo sacar Shorts de un vídeo largo: va con la próxima mejora de la lista.
+- [How to repurpose long form videos for growth](https://www.youtube.com/shorts/9Ih8fYmuNos)
+  — un Short corto sobre por qué reciclar tus vídeos largos ayuda a crecer.
+- [How To Repurpose Long Form Videos into Short Vertical Videos using CapCut](https://www.youtube.com/watch?v=V-roVs5EgX0)
+  — si algún día quieres retocar un Short a mano con un programa gratis.
+
 ## Nuevos (12 de octubre de 2026: entender tus cifras)
 
 - [YouTube Analytics for Beginners: The Only 4 Numbers That Matter](https://www.youtube.com/watch?v=KojZRJONjIY)
