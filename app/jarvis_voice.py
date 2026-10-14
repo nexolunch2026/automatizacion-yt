@@ -152,6 +152,7 @@ def speak(
         else:
             try:
                 microsoft_tts(text, voice, raw)
+                last_fallback.clear()  # Microsoft vuelve a funcionar
             except ProviderError as exc:
                 # Respaldo: la voz del programa. Se guarda aparte para volver a probar
                 # Microsoft la próxima vez; si tampoco funciona, se avisa del fallo original.

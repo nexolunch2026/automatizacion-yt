@@ -87,3 +87,17 @@ def test_button_runs_the_full_check(logged_in, ai, monkeypatch):  # noqa: F811
     with SessionLocal() as db:
         reply = assistant._button(db, "syscheck")[0]
     assert "🩺" in reply.text and "Espacio en disco" in reply.text and "Versión" in reply.text
+
+
+def test_one_failing_notice_does_not_lose_the_others(logged_in, ai, monkeypatch):  # noqa: F811
+    from app.assistant import Reply
+
+    monkeypatch.setattr(assistant, "briefing", lambda db, now=None: [Reply("☀️ Buenos días")])
+
+    def broken(db, now=None):
+        raise OSError("carpeta bloqueada")
+
+    monkeypatch.setattr(assistant, "autopilot_tick", broken)
+    with SessionLocal() as db:
+        replies = assistant.tick(db, MONDAY)
+    assert [r.text for r in replies] == ["☀️ Buenos días"]

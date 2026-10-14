@@ -100,7 +100,7 @@ def jarvis_voice_state() -> Check:
         return Check(
             "Voz de JARVIS",
             WARN,
-            f"Microsoft falló a las {used['when']:%H:%M}; JARVIS habla con la de respaldo",
+            f"Microsoft falló el {used['when']:%d/%m %H:%M}; JARVIS usó la de respaldo",
             "Suele ser internet o que Microsoft la bloquea un rato. Si dura días, avisa a Claude.",
         )
     return Check("Voz de JARVIS", OK, "Sin problemas desde que se abrió el programa")

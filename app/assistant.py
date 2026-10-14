@@ -2179,15 +2179,24 @@ def reference_alerts(db: Session, now: datetime | None = None) -> list[Reply]:
 
 
 def tick(db: Session, now: datetime | None = None) -> list[Reply]:
-    """Lo que JARVIS hace por su cuenta cada pocos segundos."""
-    return [
-        *notifications(db),
-        *research_notices(db),
-        *reference_alerts(db, now),
-        *reminder_alerts(db, now),
-        *briefing(db, now),
-        *weekly_check(db, now),
-        *sunday_summary(db, now),
-        *rising_alerts(db, now),
-        *autopilot_tick(db, now),
+    """Lo que JARVIS hace por su cuenta cada pocos segundos. Si un paso falla, los demás
+    siguen y sus avisos se mandan igual (cada paso ya apuntó que los había preparado)."""
+    steps = [
+        lambda: notifications(db),
+        lambda: research_notices(db),
+        lambda: reference_alerts(db, now),
+        lambda: reminder_alerts(db, now),
+        lambda: briefing(db, now),
+        lambda: weekly_check(db, now),
+        lambda: sunday_summary(db, now),
+        lambda: rising_alerts(db, now),
+        lambda: autopilot_tick(db, now),
     ]
+    replies: list[Reply] = []
+    for step in steps:
+        try:
+            replies += step()
+        except Exception:  # noqa: BLE001 — un paso roto no puede tapar los avisos de otros
+            log.exception("Falló un paso de JARVIS")
+            db.rollback()
+    return replies

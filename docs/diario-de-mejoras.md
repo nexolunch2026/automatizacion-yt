@@ -2,6 +2,20 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-14 — Versión 0.77.1: revisión de salud
+
+Revisión de los cambios de la semana con los revisores automáticos (errores escondidos,
+Python y seguridad). Se arreglaron 2 fallos:
+
+- **Avisos de JARVIS que se perdían:** si uno de los avisos automáticos fallaba (por ejemplo
+  el piloto automático), se perdían también los demás que estaban listos, como el «buenos
+  días» o el resumen del domingo, y no volvían a enviarse. Ahora cada aviso va por su lado.
+- **Aviso de la voz de respaldo:** «Revisar mi ordenador» seguía diciendo que la voz de
+  Microsoft había fallado aunque ya funcionara otra vez. Ahora el aviso se quita solo en
+  cuanto vuelve, y enseña el día y la hora.
+
+Seguridad: sin problemas. Los avisos de GitHub (CodeQL) no se pueden leer desde aquí.
+
 ## 2026-10-14 — Versión 0.77: aviso cuando un vídeo despega
 
 - Si un vídeo tuyo **recién publicado** (entre 12 y 72 horas) va **al doble de lo normal**

@@ -158,3 +158,21 @@ def test_both_voices_failing_keeps_the_original_message(monkeypatch, tmp_path):
     monkeypatch.setattr(jarvis_voice, "CACHE_DIR", tmp_path)
     with pytest.raises(ProviderError, match="internet"):
         jarvis_voice.speak("Hola")
+
+
+def test_backup_warning_clears_when_microsoft_works_again(monkeypatch, tmp_path):
+    from app import system_check
+
+    monkeypatch.setattr(jarvis_voice, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(jarvis_voice, "last_fallback", {})
+    jarvis_voice.last_fallback.update(
+        when=__import__("datetime").datetime(2026, 10, 13, 14, 3), reason="x"
+    )
+    assert "13/10 14:03" in system_check.jarvis_voice_state().detail
+
+    def works(text, voice, out):
+        run_ffmpeg(["-f", "lavfi", "-i", "sine=frequency=180:duration=1", "-ar", "24000", str(out)])
+
+    monkeypatch.setattr(jarvis_voice, "microsoft_tts", works)
+    jarvis_voice.speak("Vuelvo a tener voz.")
+    assert system_check.jarvis_voice_state().state == "ok"
