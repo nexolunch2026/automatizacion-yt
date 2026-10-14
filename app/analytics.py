@@ -249,6 +249,8 @@ def video_rows(db: Session, now: datetime | None = None) -> list[dict]:
                 if chosen is not None and thumb.get("variants")
                 else None,
                 "history": list(daily.items())[-30:],
+                "updated": last.taken_at,  # cuándo se tomó la última cifra
+                "exact_time": "T" in video.published,  # se sabe la hora de publicación
             }
         )
     if rows:

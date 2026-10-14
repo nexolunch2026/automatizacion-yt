@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (14 de octubre de 2026: después de las primeras 48 horas)
+
+- [If Your Views Die After 48 Hours Do This](https://www.youtube.com/watch?v=D7I-2oJ4Im0)
+  — qué hacer cuando un vídeo se para tras los dos primeros días.
+- [This will KEEP YOUR VIDEOS Alive Past 48 Hours](https://www.youtube.com/watch?v=fnMD7zjWqYQ)
+  — cómo hacer que un vídeo siga teniendo visitas después del arranque.
+- [Why your views FLATLINE after 48hrs (and what you can do about it)](https://www.youtube.com/watch?v=REyqYr8A_ps)
+  — por qué se frenan las visitas y cómo evitarlo: va con el aviso nuevo de JARVIS.
+
 ## Nuevos (13 de octubre de 2026: Shorts a partir de vídeos largos)
 
 - [How to Repurpose Long-form Videos into Shorts](https://www.youtube.com/watch?v=QQ0DNLbaaF0)

@@ -544,6 +544,52 @@ def system_check_reply(db: Session) -> Reply:
     return Reply("\n".join(lines))
 
 
+RISING_CHECK_HOURS = 3
+
+
+def rising_alerts(db: Session, now: datetime | None = None) -> list[Reply]:
+    """Cada pocas horas, avisa si un vídeo tuyo recién publicado va al doble de lo normal
+    (una sola vez por vídeo)."""
+    from app import analytics, rising
+    from app.skills import number
+
+    now = now or datetime.now()
+    if not linked_chats(db):
+        return []
+    try:
+        last = datetime.fromisoformat(get_setting(db, "rising_checked") or "")
+    except ValueError:
+        last = None
+    if last and now - last < timedelta(hours=RISING_CHECK_HOURS):
+        return []
+    set_setting(db, "rising_checked", now.isoformat(timespec="minutes"))
+    seen = set(_json_setting(db, "rising_alerted", []))
+    try:
+        fresh = [
+            v
+            for v in rising.rising(analytics.video_rows(db, now), now)
+            if v["video_id"] not in seen
+        ]
+    except Exception:  # noqa: BLE001 — unas cifras raras no deben parar a JARVIS
+        log.exception("No se pudo revisar si algún vídeo despega")
+        return []
+    if not fresh:
+        return []
+    _save_json(db, "rising_alerted", [*seen, *(v["video_id"] for v in fresh)][-200:])
+    return [
+        Reply(
+            f"🚀 <b>¡«{escape(v['title'])}» está despegando!</b>\n"
+            f"{number(v['views'])} visitas en {v['hours']} h: ×{v['ratio']} de lo normal en "
+            "tus vídeos.\n\nAprovecha ahora:\n"
+            "1. Responde los comentarios (Rendimiento → «Comentarios por responder»).\n"
+            "2. Sube un Short con su mejor momento que lleve a él.\n"
+            "3. Prepara otro vídeo del mismo estilo para esta semana.",
+            buttons=[[("💡 Ideas parecidas", "ideas"), ("📈 Ver rendimiento", "perf")]],
+        )
+        for v in fresh
+    ]
+
+
 def sunday_summary(db: Session, now: datetime | None = None) -> list[Reply]:
     """Cada domingo, a la hora del piloto, cómo fue la semana del canal (una vez)."""
     from app import weekly_summary
@@ -2142,5 +2188,6 @@ def tick(db: Session, now: datetime | None = None) -> list[Reply]:
         *briefing(db, now),
         *weekly_check(db, now),
         *sunday_summary(db, now),
+        *rising_alerts(db, now),
         *autopilot_tick(db, now),
     ]

@@ -126,7 +126,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   (visitas frente a la semana anterior, el mejor vídeo y un consejo para la siguiente).
 - [x] **JARVIS habla aunque falle Microsoft** (0.76.0): si la voz de Microsoft no responde,
   JARVIS usa la voz gratuita del programa (Piper) en la pantalla y en Telegram.
-- [ ] **Aviso de vídeo que despega**: JARVIS avisa por Telegram si un vídeo tuyo va al doble
+- [x] **Aviso de vídeo que despega** (0.77.0): JARVIS avisa por Telegram si un vídeo tuyo va al doble
   de tu media en sus primeras 48 horas, con la idea de hacer otro parecido pronto.
 - [ ] **Shorts de vídeos que ya funcionaron**: en Shorts, proponer momentos de tus vídeos
   viejos con más visitas para sacar Shorts nuevos que lleven a ellos.

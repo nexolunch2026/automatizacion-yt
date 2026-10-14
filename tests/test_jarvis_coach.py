@@ -120,6 +120,9 @@ def test_monetization_path_with_growth_and_eta(logged_in, ai, monkeypatch):  # n
         assert path["hours"]["assumed"] == 1 and path["hours"]["hours"] == 70
         assert any("Shorts" in t for t in path["tips"]) is False  # van mejor los subs
         assert any("10–15 minutos" in t for t in path["tips"])
+        # JARVIS usa la fecha de hoy: se fija la de la prueba para que no caduque.
+        real = coach.monetization_path
+        monkeypatch.setattr(coach, "monetization_path", lambda db, now=None: real(db, now or NOW))
         reply = ask(db, "¿cuánto me falta para monetizar?")[0]
     assert "400 de 1.000 suscriptores (40 %)" in reply.text
     assert "+10 al día" in reply.text and "4.000 horas" in reply.text

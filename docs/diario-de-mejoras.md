@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-14 — Versión 0.77: aviso cuando un vídeo despega
+
+- Si un vídeo tuyo **recién publicado** (entre 12 y 72 horas) va **al doble de lo normal**
+  en tu canal, JARVIS te avisa por **Telegram**: «🚀 ¡… está despegando!».
+- Te dice cuántas visitas lleva y **qué hacer ahora**: responder comentarios, subir un
+  Short que lleve a él y preparar otro vídeo del mismo estilo.
+- Botones **«💡 Ideas parecidas»** y **«📈 Ver rendimiento»**.
+- Avisa **una sola vez** por vídeo. Necesita al menos 2 vídeos anteriores con cifras de sus
+  primeras 48 horas para saber qué es «lo normal».
+- Arreglo: una prueba de JARVIS («cuánto me falta para monetizar») fallaba según el día
+  en que se ejecutaba; ya no depende de la fecha.
+
 ## 2026-10-13 — Versión 0.76: JARVIS no se queda mudo
 
 - Si la **voz de Microsoft** que usa JARVIS no responde (sin internet, o Microsoft la
