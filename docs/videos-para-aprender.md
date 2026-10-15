@@ -4,6 +4,16 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (15 de octubre de 2026: de los Shorts al vídeo largo)
+
+- [The Right Way to Funnel Shorts Viewers to Long Videos](https://www.youtube.com/watch?v=xbqUOv9f-dg)
+  — cómo hacer que quien ve un Short acabe viendo el vídeo largo.
+- [How To Link Shorts To Longform Videos (Powerful YouTube Feature!)](https://www.youtube.com/watch?v=tN0rVfY9-pI)
+  — la opción de YouTube para enlazar un Short a tu vídeo largo: úsala con los Shorts
+  de la tarjeta nueva.
+- [How Do You Get Shorts Viewers to Watch Your Longform Videos?](https://www.youtube.com/watch?v=z_PYo5BjWiI)
+  — más ideas para pasar del Short al documental.
+
 ## Nuevos (14 de octubre de 2026: después de las primeras 48 horas)
 
 - [If Your Views Die After 48 Hours Do This](https://www.youtube.com/watch?v=D7I-2oJ4Im0)

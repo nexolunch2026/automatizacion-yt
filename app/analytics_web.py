@@ -8,7 +8,7 @@ from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 
-from app import analytics, audience, info, jobs, playlists
+from app import analytics, audience, info, jobs, playlists, recycle
 from app.auth import DB, CurrentUser
 from app.models import Project, Video
 from app.providers.ai import ProviderError
@@ -53,6 +53,7 @@ def performance_page(request: Request, db: DB, user: CurrentUser):
         insight=analytics.last_insight(db),
         audience=audience.last_report(db),
         playlists=playlists.suggest(db),
+        recycle=recycle.suggest(db, rows),
         retention=analytics.retention_summary(rows),
         retention_notes=analytics.retention_notes(analytics.retention_summary(rows)),
         last=get_setting(db, "analytics_last"),

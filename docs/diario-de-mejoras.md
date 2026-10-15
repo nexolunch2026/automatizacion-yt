@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-15 — Versión 0.78: Shorts de tus vídeos que ya funcionaron
+
+- En **Rendimiento** hay una tarjeta nueva, **«♻️ Shorts de tus vídeos que ya
+  funcionaron»**, con tus **3 vídeos con más visitas**.
+- Para cada uno te dice **el siguiente paso** con un botón:
+  - **«Hacer sus Shorts»** si todavía no tiene;
+  - **«Poner el enlace al vídeo»** para que cada Short lleve al vídeo largo;
+  - **«Ver sus Shorts para subirlos»** cuando ya está todo listo.
+- Consejo: sube uno cada 2 o 3 días. Cada Short trae gente nueva a un vídeo que ya sabes
+  que gusta.
+
 ## 2026-10-14 — Versión 0.77.1: revisión de salud
 
 Revisión de los cambios de la semana con los revisores automáticos (errores escondidos,

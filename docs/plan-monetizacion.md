@@ -128,7 +128,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   JARVIS usa la voz gratuita del programa (Piper) en la pantalla y en Telegram.
 - [x] **Aviso de vídeo que despega** (0.77.0): JARVIS avisa por Telegram si un vídeo tuyo va al doble
   de tu media en sus primeras 48 horas, con la idea de hacer otro parecido pronto.
-- [ ] **Shorts de vídeos que ya funcionaron**: en Shorts, proponer momentos de tus vídeos
+- [x] **Shorts de vídeos que ya funcionaron** (0.78.0): en Shorts, proponer momentos de tus vídeos
   viejos con más visitas para sacar Shorts nuevos que lleven a ellos.
 - [x] **Miniatura legible en el móvil** (0.65.0): comprobar el tamaño y el contraste del texto de
   cada miniatura vista a 168 px de ancho y avisar si no se lee bien.

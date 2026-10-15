@@ -123,6 +123,32 @@
   {% endif %}
 </div>
 
+{% if recycle %}
+<div class="card" id="reciclar">
+  <h2>♻️ Shorts de tus vídeos que ya funcionaron</h2>
+  <p class="muted small">Tus vídeos con más visitas tienen momentos que funcionan como Short, y cada Short lleva gente
+    de vuelta al vídeo largo. Sube uno cada 2 o 3 días.</p>
+  <ul class="plain-list">
+    {% for r in recycle %}
+    <li class="row">
+      <span><a href="{{ r.url }}" target="_blank" rel="noopener"><strong>{{ r.title }}</strong></a>
+        <span class="muted small">· {{ r.views }} visitas{% if r.shorts %} · {{ r.shorts }} Shorts hechos{% endif %}</span></span>
+      {% if r.step == "make" %}
+      <form method="post" action="/proyectos/{{ r.project_id }}/etapas/shorts">
+        <button class="btn small" title="Saca los mejores momentos de este vídeo">Hacer sus Shorts</button></form>
+      {% elif r.step == "link" %}
+      <form method="post" action="/proyectos/{{ r.project_id }}/shorts/enlace">
+        <input type="hidden" name="url" value="{{ r.url }}">
+        <button class="btn small secondary" title="Pone el enlace a este vídeo en la descripción de sus Shorts">Poner el enlace al vídeo</button></form>
+      {% else %}
+      <a class="btn small secondary" href="/proyectos/{{ r.project_id }}/shorts">Ver sus Shorts para subirlos</a>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
 {% if playlists %}
 <div class="card" id="listas">
   <h2>📂 Listas de reproducción</h2>
