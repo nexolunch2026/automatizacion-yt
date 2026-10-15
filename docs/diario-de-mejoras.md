@@ -7,7 +7,7 @@ Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba
 - En **Rendimiento** hay una tarjeta nueva, **«♻️ Shorts de tus vídeos que ya
   funcionaron»**, con tus **3 vídeos con más visitas**.
 - Para cada uno te dice **el siguiente paso** con un botón:
-  - **«Hacer sus Shorts»** si todavía no tiene;
+  - **«Hacer sus Shorts»** si todavía no tiene (y te avisa si se están haciendo o si fallaron);
   - **«Poner el enlace al vídeo»** para que cada Short lleve al vídeo largo;
   - **«Ver sus Shorts para subirlos»** cuando ya está todo listo.
 - Consejo: sube uno cada 2 o 3 días. Cada Short trae gente nueva a un vídeo que ya sabes

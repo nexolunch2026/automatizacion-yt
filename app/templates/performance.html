@@ -133,7 +133,11 @@
     <li class="row">
       <span><a href="{{ r.url }}" target="_blank" rel="noopener"><strong>{{ r.title }}</strong></a>
         <span class="muted small">· {{ r.views }} visitas{% if r.shorts %} · {{ r.shorts }} Shorts hechos{% endif %}</span></span>
-      {% if r.step == "make" %}
+      {% if r.step == "working" %}
+      <span class="muted small">⏳ Haciendo sus Shorts…</span>
+      {% elif r.step == "failed" %}
+      <a class="btn small secondary" href="/proyectos/{{ r.project_id }}/shorts">Falló: ver qué pasó</a>
+      {% elif r.step == "make" %}
       <form method="post" action="/proyectos/{{ r.project_id }}/etapas/shorts">
         <button class="btn small" title="Saca los mejores momentos de este vídeo">Hacer sus Shorts</button></form>
       {% elif r.step == "link" %}
