@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-16 — Versión 0.79: el principio cumple lo que promete el título
+
+- El **Control de calidad** tiene una comprobación nueva: mira si los **primeros 45
+  segundos** del guion hablan de lo que **promete el título** (la marca, el hecho…).
+- Si no, avisa en amarillo y te dice qué palabras del título conviene mencionar en los
+  **primeros 45 segundos**. Si el título nombra una marca, tiene que salir pronto.
+- Por qué: quien hace clic espera ver pronto lo del título. Si no aparece, se va enseguida
+  y YouTube enseña menos el vídeo.
+- Lista de mejoras: dos ideas nuevas (calendario de Shorts y recordatorio de responder
+  comentarios).
+
 ## 2026-10-15 — Versión 0.78: Shorts de tus vídeos que ya funcionaron
 
 - En **Rendimiento** hay una tarjeta nueva, **«♻️ Shorts de tus vídeos que ya

@@ -130,6 +130,12 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   de tu media en sus primeras 48 horas, con la idea de hacer otro parecido pronto.
 - [x] **Shorts de vídeos que ya funcionaron** (0.78.0): en Shorts, proponer momentos de tus vídeos
   viejos con más visitas para sacar Shorts nuevos que lleven a ellos.
+- [x] **El principio cumple lo que promete el título** (0.79.0): el control de calidad avisa
+  si los primeros 45 segundos no hablan de lo que promete el título.
+- [ ] **Calendario de Shorts**: repartir los Shorts ya hechos en los días de la semana
+  (uno cada 2–3 días) con recordatorio de JARVIS para subir cada uno.
+- [ ] **Recordatorio de comentarios**: dos días después de publicar, JARVIS recuerda
+  responder los comentarios y manda los borradores por Telegram.
 - [x] **Miniatura legible en el móvil** (0.65.0): comprobar el tamaño y el contraste del texto de
   cada miniatura vista a 168 px de ancho y avisar si no se lee bien.
 - [x] **Alertas de referencias** (0.64.0): JARVIS avisa por Telegram cuando un vídeo de tus canales de

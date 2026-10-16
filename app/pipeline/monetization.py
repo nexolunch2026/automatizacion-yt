@@ -608,6 +608,70 @@ def _publish_checks(project: Project, results: dict, title: str) -> list[dict]:
     return checks
 
 
+PROMISE_SECONDS = 45  # en lo que dura el gancho, el vídeo debe tocar lo que promete el título
+PROMISE_SKIP = {"porque", "cuando", "nadie", "todos", "todas", "sobre", "entre", "nunca",
+                "hasta", "desde", "despues", "antes", "historia", "verdad", "realmente",
+                "increible", "secreto", "jamas", "mundo", "los", "las", "una", "uno", "del",
+                "por", "que", "como", "asi", "este", "esta", "por que"}  # fmt: skip
+
+
+def title_words(title: str) -> list[str]:
+    """Las palabras con contenido del título (marcas, hechos), sin las de relleno."""
+    seen, found = set(), []
+    for word in _words(title):
+        if len(word) >= 5 and word not in PROMISE_SKIP and word not in seen:
+            seen.add(word)
+            found.append(word)
+    return found
+
+
+def title_brands(title: str) -> list[str]:
+    """Nombres propios del título (con mayúscula, aunque sean cortos: Nike, Zara, Seat)."""
+    found = []
+    for token in re.findall(r"[A-ZÁÉÍÓÚÑ][\wáéíóúñ]*", title):
+        word = _plain(token)
+        if len(word) >= 3 and word not in PROMISE_SKIP and word not in found:
+            found.append(word)
+    return found
+
+
+def _promise_check(results: dict, title: str) -> list[dict]:
+    """¿El principio del vídeo habla de lo que promete el título? Si no, la gente que hizo
+    clic se siente engañada y se va (y YouTube lo nota). Si el título nombra una marca,
+    tiene que salir; si no, basta con una de sus palabras importantes."""
+    script = results.get("script")
+    brands, words = title_brands(title), title_words(title)
+    if not script or not (brands or len(words) >= 2):
+        return []
+    opening = _words(script_text(script))[: int(PROMISE_SECONDS * WORDS_PER_SECOND)]
+    if len(opening) < 20:
+        return []  # guion casi vacío: lo avisan otras comprobaciones
+    if brands:
+        said = set(opening)
+        missing = [b for b in brands if b not in said]
+        ok = len(missing) < len(brands)
+    else:
+        stems = {w[:5] for w in opening}
+        missing = [w for w in words if w[:5] not in stems]
+        ok = len(missing) < len(words)
+    return [
+        _check(
+            "promise",
+            "audience",
+            OK if ok else WARN,
+            "El principio cumple lo que promete el título"
+            if ok
+            else "El principio no habla de lo que promete el título",
+            "Quien hace clic espera ver pronto lo del título; si no aparece, se va enseguida.",
+            ""
+            if ok
+            else f"Menciona en los primeros {PROMISE_SECONDS} segundos: "
+            + ", ".join(f"«{w}»" for w in missing[:3]),
+            "guion",
+        )
+    ]
+
+
 def chosen_title(results: dict, project: Project) -> str:
     seo = results.get("publish") or {}
     if seo.get("titles"):
@@ -632,6 +696,7 @@ def review(
         + _look_check(results, recent_styles or [])
         + _rights_checks(results, music_licenses)
         + _audience_checks(results)
+        + _promise_check(results, title)
         + _publish_checks(project, results, title)
     )
     score = round(100 * sum(POINTS[c["status"]] for c in checks) / len(checks)) if checks else 0

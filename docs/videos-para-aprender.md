@@ -4,6 +4,16 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (16 de octubre de 2026: que el gancho cumpla el título)
+
+- [How To Make A Good YouTube Hook That Matches (Title & Thumbnail)](https://www.youtube.com/watch?v=W0qNuSi92aY)
+  — cómo hacer un gancho que encaje con el título y la miniatura: va con el aviso nuevo
+  del control de calidad.
+- [How To Keep Viewers Past 30 Seconds](https://www.youtube.com/watch?v=LRkhrHsZD84)
+  — qué hacer para que la gente pase de los primeros 30 segundos.
+- [Can't Get 75% Audience Retention In First 30 Seconds? TRY THIS](https://www.youtube.com/watch?v=2G4aQDd6yYQ)
+  — trucos para que más gente siga viendo al principio.
+
 ## Nuevos (15 de octubre de 2026: de los Shorts al vídeo largo)
 
 - [The Right Way to Funnel Shorts Viewers to Long Videos](https://www.youtube.com/watch?v=xbqUOv9f-dg)
