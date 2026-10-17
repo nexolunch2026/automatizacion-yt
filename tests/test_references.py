@@ -91,6 +91,12 @@ def test_jarvis_alerts_once_when_a_reference_takes_off(logged_in, monkeypatch):
     from datetime import datetime as dt
     from datetime import timedelta as td
 
+    def live(title, views, days_ago):
+        """Las referencias miden la edad con la fecha de hoy: el vídeo, contado desde hoy."""
+        row = video(title, views, days_ago)
+        published = dt.now(UTC) - td(days=days_ago)
+        return {**row, "published": published.strftime("%Y-%m-%dT%H:%M")}
+
     from app import assistant
     from app.assistant import Incoming
 
@@ -100,7 +106,7 @@ def test_jarvis_alerts_once_when_a_reference_takes_off(logged_in, monkeypatch):
         info,
         "fetch_youtube_public",
         lambda handle, limit=15: {"name": "Magnates", "latest": [
-            video("Normal", 1000, 5), video("Otro", 1100, 5), video("Se dispara", 40000, 4)]},
+            live("Normal", 1000, 5), live("Otro", 1100, 5), live("Se dispara", 40000, 4)]},
     )  # fmt: skip
     now = dt(2026, 10, 6, 9)
     with SessionLocal() as db:

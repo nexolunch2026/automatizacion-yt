@@ -532,6 +532,9 @@ def _run_shorts(db: Session, project: Project, progress, params: dict) -> dict:
         from app.pipeline.shorts import link_long_video
 
         data = link_long_video(data, long_url)
+    from app import coach
+
+    coach.forget_uploaded_shorts(db, project.id)  # son Shorts nuevos: aún no subidos
     return data
 
 

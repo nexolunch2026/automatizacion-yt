@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (17 de octubre de 2026: cuántos Shorts subir)
+
+- [How Often to Upload Shorts to Grow on YouTube](https://www.youtube.com/shorts/nYPEjYjPGpc)
+  — cada cuánto subir Shorts para crecer: va con el calendario de la Semana.
+- [Best Time to Post Shorts + Videos — COMPLETE Opposite (2M video study)](https://www.youtube.com/watch?v=jBGTJ8nf3B4)
+  — a qué hora publicar Shorts y vídeos largos, según un estudio de muchos vídeos.
+- [Is Posting Too Much Ruining Your Views on YouTube Shorts?](https://www.youtube.com/watch?v=ZiCA4OHADos)
+  — por qué subir demasiados Shorts también puede bajar las visitas.
+
 ## Nuevos (16 de octubre de 2026: que el gancho cumpla el título)
 
 - [How To Make A Good YouTube Hook That Matches (Title & Thumbnail)](https://www.youtube.com/watch?v=W0qNuSi92aY)

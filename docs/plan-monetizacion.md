@@ -132,7 +132,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   viejos con más visitas para sacar Shorts nuevos que lleven a ellos.
 - [x] **El principio cumple lo que promete el título** (0.79.0): el control de calidad avisa
   si los primeros 45 segundos no hablan de lo que promete el título.
-- [ ] **Calendario de Shorts**: repartir los Shorts ya hechos en los días de la semana
+- [x] **Calendario de Shorts** (0.80.0, el calendario ya existía; ahora con «Ya lo subí»): repartir los Shorts ya hechos en los días de la semana
   (uno cada 2–3 días) con recordatorio de JARVIS para subir cada uno.
 - [ ] **Recordatorio de comentarios**: dos días después de publicar, JARVIS recuerda
   responder los comentarios y manda los borradores por Telegram.

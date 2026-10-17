@@ -57,7 +57,7 @@
 {% if data %}
 <div class="shorts">
   {% for s in data.shorts %}
-  <div class="card short-card">
+  <div class="card short-card" id="short-{{ loop.index }}">
     <div class="short-media">
       <video class="short-player" src="/proyectos/{{ project.id }}/archivos/{{ s.file }}?v={{ job.id if job else 0 }}" controls preload="metadata"></video>
       {% if s.cover %}
@@ -84,6 +84,15 @@
     <div class="row-actions">
       <button class="btn small secondary" data-copy="short-desc-{{ loop.index }}">Copiar descripción</button>
       <a class="btn small" href="/proyectos/{{ project.id }}/archivos/{{ s.file }}" download="short-{{ project.id }}-{{ loop.index }}.mp4">Descargar</a>
+      <form method="post" action="/proyectos/{{ project.id }}/shorts/{{ loop.index }}/subido" class="inline-form">
+        {% if loop.index in (uploaded or []) %}
+        <input type="hidden" name="done" value="0">
+        <button class="btn small secondary" title="Si te equivocaste, vuelve al calendario">✔ Subido (deshacer)</button>
+        {% else %}
+        <input type="hidden" name="done" value="1">
+        <button class="btn small secondary" title="El calendario de la Semana pasa al siguiente Short">✅ Ya lo subí</button>
+        {% endif %}
+      </form>
       <span class="muted small">{{ '%.0f'|format(s.seconds) }} s · párrafos {{ s.paragraphs[0] }}–{{ s.paragraphs[1] }}</span>
     </div>
   </div>

@@ -1775,6 +1775,17 @@ def _button(db: Session, data: str) -> list[Reply]:
         return [monetization_reply(db)]
     if kind == "syscheck":
         return [system_check_reply(db)]
+    if kind == "shortup":
+        pid, _, number = rest.partition(":")
+        if not (pid.isdigit() and number.isdigit()) or _project_or_none(db, pid) is None:
+            return [Reply("Ese Short ya no existe.")]
+        made = (jobs.get_result(db, int(pid), "shorts") or {}).get("shorts", [])
+        if not 1 <= int(number) <= len(made):
+            return [Reply("Ese Short ya no existe (quizá se volvieron a hacer).")]
+        coach.mark_short_uploaded(db, int(pid), int(number))
+        nxt = coach.weekly_plan(db).get("shorts") or []
+        after = f" El siguiente: «{escape(nxt[0][1])}» ({nxt[0][0]})." if nxt else ""
+        return [Reply(f"✅ Apuntado: Short subido.{after}")]
     if kind == "perf":
         return skills.act(db, Intent(action="performance"))
     if kind == "radar":
@@ -2103,16 +2114,20 @@ def briefing(db: Session, now: datetime | None = None) -> list[Reply]:
         if job.finished_at and (now - job.finished_at).days < 7
     )
     step = "\n".join(x for x in (coach.today_text(db, now), coach.first_step_text(db)) if x)
+    buttons = [
+        [("👉 ¿Qué hago ahora?", "next"), ("💡 Ideas para hoy", "ideas")],
+        [("💰 Monetización", "money"), ("🛫 Piloto", "autopilot")],
+    ]
+    short_key = coach.weekly_plan(db, now).get("today_short_key")
+    if short_key:
+        buttons.insert(0, [("✅ Ya subí el Short de hoy", f"shortup:{short_key}")])
     return [
         Reply(
             "☀️ <b>Buenos días.</b> Resumen del estudio:\n\n"
             f"{status_text(db)}\n\n{tasks_text(db)}\n\n"
             f"🎞️ Vídeos montados en los últimos 7 días: {week}"
             + (f"\n{escape(step)}" if step else ""),
-            buttons=[
-                [("👉 ¿Qué hago ahora?", "next"), ("💡 Ideas para hoy", "ideas")],
-                [("💰 Monetización", "money"), ("🛫 Piloto", "autopilot")],
-            ],
+            buttons=buttons,
         )
     ]
 

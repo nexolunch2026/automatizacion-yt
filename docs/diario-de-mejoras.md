@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-17 — Versión 0.80: «Ya lo subí» para los Shorts
+
+- El calendario de Shorts (lunes, miércoles y sábado, en la página **📅 Semana**) ya
+  existía, pero siempre te proponía los mismos. Ahora **sabe cuáles ya subiste**.
+- En **Shorts**, cada uno tiene un botón **«✅ Ya lo subí»** (y «deshacer» si te
+  equivocas). El calendario pasa solo al siguiente.
+- En el **«buenos días»** de JARVIS por Telegram, el día que toca Short, sale el botón
+  **«✅ Ya subí el Short de hoy»**: lo pulsas y te dice cuál toca después.
+- Si vuelves a hacer los Shorts de un vídeo, las marcas se borran (son Shorts nuevos).
+- Arreglo: una prueba de las alertas de canales de referencia fallaba según la fecha; ya
+  no depende del día.
+
 ## 2026-10-16 — Versión 0.79: el principio cumple lo que promete el título
 
 - El **Control de calidad** tiene una comprobación nueva: mira si los **primeros 45

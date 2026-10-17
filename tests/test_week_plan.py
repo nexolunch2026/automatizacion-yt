@@ -89,3 +89,50 @@ def test_briefing_says_what_to_publish_today(logged_in, ai):  # noqa: F811
         set_setting(db, "telegram_chats", '[{"id": 1, "name": "Simón"}]')
         reply = assistant.briefing(db, THURSDAY.replace(hour=10))[0]
     assert "🚀 Hoy toca publicar" in reply.text
+
+
+def test_uploaded_shorts_leave_the_calendar(logged_in, ai):  # noqa: F811
+    make_project(logged_in, "manual")
+    with SessionLocal() as db:
+        _final_video(db, 1, shorts=["El error de Kodak", "La cámara escondida", "1975"])
+        set_setting(db, "telegram_chats", '[{"id": 1, "name": "Simón"}]')
+        reply = assistant.briefing(db, MONDAY.replace(hour=10))[0]
+        assert ("✅ Ya subí el Short de hoy", "shortup:1:1") in reply.buttons[0]
+        done = assistant.handle(db, Incoming(chat_id=1, button="shortup:1:1"), trusted=True)
+        assert "Apuntado" in done[0].text and "La cámara escondida" in done[0].text
+        plan = coach.weekly_plan(db, MONDAY)
+        assert [t for _, t in plan["shorts"]] == ["La cámara escondida", "1975"]
+        bad = assistant.handle(db, Incoming(chat_id=1, button="shortup:9:1"), trusted=True)
+        assert "ya no existe" in bad[0].text
+
+
+def test_shorts_page_marks_and_unmarks(logged_in, ai):  # noqa: F811
+    make_project(logged_in, "manual")
+    with SessionLocal() as db:
+        _final_video(db, 1, shorts=["El error de Kodak", "La cámara escondida"])
+    r = logged_in.post("/proyectos/1/shorts/2/subido", data={"done": "1"}, follow_redirects=False)
+    assert r.headers["location"].endswith("/shorts#short-2")
+    with SessionLocal() as db:
+        assert coach.uploaded_shorts(db) == {"1:2"}
+    logged_in.post("/proyectos/1/shorts/2/subido", data={"done": "0"}, follow_redirects=False)
+    with SessionLocal() as db:
+        assert coach.uploaded_shorts(db) == set()
+    assert logged_in.post("/proyectos/1/shorts/5/subido", data={"done": "1"}).status_code == 404
+
+
+def test_marks_reset_when_shorts_are_made_again_and_bad_data_is_ignored(logged_in, ai):  # noqa: F811
+    make_project(logged_in, "manual")
+    with SessionLocal() as db:
+        _final_video(db, 1, shorts=["A", "B"])
+        coach.mark_short_uploaded(db, 1, 1)
+        coach.mark_short_uploaded(db, 7, 1)
+        coach.forget_uploaded_shorts(db, 1)
+        assert coach.uploaded_shorts(db) == {"7:1"}
+        set_setting(db, coach.UPLOADED_KEY, '["1:x", 5, "roto"]')
+        assert coach.uploaded_shorts(db) == {"1:x"}
+        set_setting(db, coach.UPLOADED_KEY, "{no es json")
+        assert coach.uploaded_shorts(db) == set()
+    with SessionLocal() as db:
+        set_setting(db, "telegram_chats", '[{"id": 1, "name": "Simón"}]')
+        stale = assistant.handle(db, Incoming(chat_id=1, button="shortup:1:9"), trusted=True)
+        assert "ya no existe" in stale[0].text

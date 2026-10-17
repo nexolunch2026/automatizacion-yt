@@ -700,7 +700,28 @@ def shorts_page(request: Request, db: DB, user: CurrentUser, project_id: int):
 
     long_url = (jobs.get_result(db, project_id, "shorts") or {}).get("long_url", "")
     pinned = pinned_comment(long_url) if long_url else ""
-    return _stage_page(request, db, _project(db, project_id), "shorts", pinned=pinned)
+    from app import coach
+
+    mine = (k.split(":")[1] for k in coach.uploaded_shorts(db) if k.startswith(f"{project_id}:"))
+    uploaded = {int(n) for n in mine if n.isdigit()}
+    return _stage_page(
+        request, db, _project(db, project_id), "shorts", pinned=pinned, uploaded=uploaded
+    )
+
+
+@router.post("/shorts/{number}/subido")
+def short_uploaded(
+    db: DB, user: CurrentUser, project_id: int, number: int, done: Annotated[str, Form()] = "1"
+):
+    """«Ya lo subí»: el calendario de Shorts pasa al siguiente (y se puede deshacer)."""
+    from app import coach
+
+    _project(db, project_id)
+    shorts = (jobs.get_result(db, project_id, "shorts") or {}).get("shorts", [])
+    if not 1 <= number <= len(shorts):
+        raise HTTPException(404, "Ese Short no existe")
+    coach.mark_short_uploaded(db, project_id, number, done == "1")
+    return _redirect(f"/proyectos/{project_id}/shorts#short-{number}")
 
 
 @router.get("/control")

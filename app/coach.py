@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from app import jobs
 from app.models import STAGES, Project, Video
 from app.pipeline.monetization import project_review, summary_text, video_seconds
-from app.settings_store import get_setting
+from app.settings_store import get_setting, set_setting
 
 log = logging.getLogger(__name__)
 
@@ -299,13 +299,48 @@ def ready_to_upload(db: Session) -> list[Project]:
     return ready
 
 
-def _shorts_queue(db: Session) -> list[str]:
-    """Títulos de los Shorts preparados, empezando por los del vídeo más reciente."""
-    titles = []
+UPLOADED_KEY = "shorts_uploaded"  # Shorts que ya subiste («proyecto:número»)
+
+
+def uploaded_shorts(db: Session) -> set[str]:
+    try:
+        data = json.loads(get_setting(db, UPLOADED_KEY) or "[]")
+    except ValueError:
+        log.warning("Lista de Shorts subidos dañada: se empieza de cero")
+        return set()
+    return (
+        {k for k in data if isinstance(k, str) and k.count(":") == 1}
+        if isinstance(data, list)
+        else set()
+    )
+
+
+def forget_uploaded_shorts(db: Session, project_id: int) -> None:
+    """Al hacer los Shorts de nuevo son otros: se borran sus marcas de «ya subido»."""
+    keys = {k for k in uploaded_shorts(db) if not k.startswith(f"{project_id}:")}
+    set_setting(db, UPLOADED_KEY, json.dumps(sorted(keys)))
+
+
+def mark_short_uploaded(db: Session, project_id: int, number: int, done: bool = True) -> None:
+    """Apunta (o desapunta) que ya subiste ese Short: el calendario pasa al siguiente."""
+    keys = uploaded_shorts(db)
+    key = f"{project_id}:{number}"
+    keys = keys | {key} if done else keys - {key}
+    set_setting(db, UPLOADED_KEY, json.dumps(sorted(keys)))
+
+
+def _shorts_queue(db: Session) -> list[dict]:
+    """Shorts preparados que aún no has subido, empezando por los del vídeo más reciente."""
+    done = uploaded_shorts(db)
+    queue = []
     for project in db.scalars(select(Project).order_by(Project.id.desc()).limit(10)):
-        for short in (jobs.get_result(db, project.id, "shorts") or {}).get("shorts", []):
-            titles.append(short.get("title") or project.title)
-    return titles
+        for n, short in enumerate(
+            (jobs.get_result(db, project.id, "shorts") or {}).get("shorts", []), 1
+        ):
+            key = f"{project.id}:{n}"
+            if key not in done:
+                queue.append({"key": key, "title": short.get("title") or project.title})
+    return queue
 
 
 def weekly_plan(db: Session, now: datetime | None = None) -> dict:
@@ -330,17 +365,19 @@ def weekly_plan(db: Session, now: datetime | None = None) -> dict:
     shorts = _shorts_queue(db)
     upcoming = [(now.weekday() + i) % 7 for i in range(7)]
     short_days = [d for d in upcoming if d in SHORTS_DAYS]
-    schedule = list(zip(short_days, shorts, strict=False))
+    schedule = [(d, s["title"], s["key"]) for d, s in zip(short_days, shorts, strict=False)]
     return {
         "publish_day": day,
         "publish_hour": hour,
         "long": long_text,
         "shorts": [
-            (WEEKDAYS[d] + (" (hoy)" if d == now.weekday() else ""), title) for d, title in schedule
+            (WEEKDAYS[d] + (" (hoy)" if d == now.weekday() else ""), title)
+            for d, title, _ in schedule
         ],
         "learning": LEARNING[now.weekday()],
         "today_publish": now.weekday() == day and bool(ready),
-        "today_short": next((t for d, t in schedule if d == now.weekday()), None),
+        "today_short": next((t for d, t, _ in schedule if d == now.weekday()), None),
+        "today_short_key": next((k for d, _, k in schedule if d == now.weekday()), None),
         "ready": ready[0].title if ready else None,
     }
 
