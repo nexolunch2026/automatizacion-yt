@@ -2,6 +2,27 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-18 — Versión 0.81.1: radar de historias
+
+Tres historias nuevas y recientes en el **banco de historias** (pídeselas a JARVIS con
+«banco de ideas»):
+
+- **Presto** (Latinoamérica, ascenso y caída): la cadena de hamburguesas colombiana entra
+  en liquidación; la Superintendencia de Sociedades lo dejó en firme el 13 de octubre.
+- **Publimetro** (Latinoamérica, ascenso y caída): el diario gratuito, tras 25 años en
+  Chile, pidió la quiebra con casi 14.000 millones de pesos de deuda.
+- **Character.AI** (Mundo, investigación): la app de chatbots, demandada en los
+  tribunales, se declaró en quiebra; Disney ofreció 20 millones de dólares por una licencia.
+
+Fuentes: [El Colombiano](https://www.elcolombiano.com/negocios/presto-liquidacion-judicial-quiebra-restaurantes-colombia-AB42342543),
+[Vanguardia](https://www.vanguardia.com/colombia/2026/10/16/presto-oficializa-su-quiebra-entra-en-liquidacion-judicial-y-busca-comprador-para-evitar-el-cierre-de-sus-restaurantes/),
+[Pulzo](https://www.pulzo.com/economia/restaurantes-presto-acaba-colombia-supersociedades-confirmo-quiebra-PP5332063),
+[La Tercera](https://www.latercera.com/pulso/noticia/publimetro-pide-su-quiebra-y-acusa-pasivos-por-casi-14000-millones/),
+[Sabes](https://sabes.cl/2026/09/15/publimetro-solicita-su-quiebra-en-chile-mantiene-deudas-por-casi-14-000-millones),
+[CNN](https://edition.cnn.com/2026/10/13/tech/character-ai-bankruptcy-filing),
+[Forbes](https://www.forbes.com/sites/siladityaray/2026/10/13/characterai-files-for-bankruptcy-disney-bids-20-million-after-copyright-dispute/),
+[Deadline](https://deadline.com/2026/10/disney-character-ai-chapter-11-bankruptcy-1237155582/).
+
 ## 2026-10-18 — Versión 0.81: recordatorio para responder comentarios
 
 - **Dos días después** de publicar un vídeo, JARVIS te escribe por **Telegram**: es buen

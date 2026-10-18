@@ -522,6 +522,24 @@ IDEAS: list[dict] = [
         "region": "Latinoamérica",
         "hook": "La marca argentina declaró casi 6.000 millones de pesos de deudas.",
     },
+    {
+        "topic": "Presto: la cadena de hamburguesas colombiana que acabó en liquidación",
+        "format": "auge_caida",
+        "region": "Latinoamérica",
+        "hook": "En octubre de 2026 la Superintendencia de Sociedades ordenó liquidarla.",
+    },
+    {
+        "topic": "Publimetro: el diario gratis que llegó a tres países y pidió su quiebra",
+        "format": "auge_caida",
+        "region": "Latinoamérica",
+        "hook": "Tras 25 años en Chile, pidió la quiebra con casi 14.000 millones de deuda.",
+    },
+    {
+        "topic": "Character.AI: la app de chatbots que acabó en los tribunales y en quiebra",
+        "format": "investigacion",
+        "region": "Mundo",
+        "hook": "En 2026 se declaró en quiebra y Disney ofreció 20 millones por una licencia.",
+    },
 ]
 
 
