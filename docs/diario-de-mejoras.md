@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-18 — Versión 0.81: recordatorio para responder comentarios
+
+- **Dos días después** de publicar un vídeo, JARVIS te escribe por **Telegram**: es buen
+  momento para **responder los comentarios** (a YouTube le gusta y la gente vuelve).
+- El mensaje trae el botón **«💬 Leer comentarios y borradores»**: JARVIS lee los
+  comentarios de **ese vídeo** y te manda **borradores de respuesta** para los que tienen más «me gusta»,
+  con el enlace directo a cada uno.
+- Revisa cada borrador y pégalo tú en YouTube: el programa no publica nada solo.
+- Avisa **una vez por vídeo**. Para leer los comentarios hace falta la clave gratuita de
+  YouTube (y Gemini para los borradores). Si no puede leerlos en ese momento, te dice por
+  qué y de qué día son los borradores que te enseña.
+
 ## 2026-10-17 — Versión 0.80: «Ya lo subí» para los Shorts
 
 - El calendario de Shorts (lunes, miércoles y sábado, en la página **📅 Semana**) ya

@@ -134,7 +134,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   si los primeros 45 segundos no hablan de lo que promete el título.
 - [x] **Calendario de Shorts** (0.80.0, el calendario ya existía; ahora con «Ya lo subí»): repartir los Shorts ya hechos en los días de la semana
   (uno cada 2–3 días) con recordatorio de JARVIS para subir cada uno.
-- [ ] **Recordatorio de comentarios**: dos días después de publicar, JARVIS recuerda
+- [x] **Recordatorio de comentarios** (0.81.0): dos días después de publicar, JARVIS recuerda
   responder los comentarios y manda los borradores por Telegram.
 - [x] **Miniatura legible en el móvil** (0.65.0): comprobar el tamaño y el contraste del texto de
   cada miniatura vista a 168 px de ancho y avisar si no se lee bien.

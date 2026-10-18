@@ -545,6 +545,96 @@ def system_check_reply(db: Session) -> Reply:
 
 
 RISING_CHECK_HOURS = 3
+COMMENTS_AFTER = timedelta(hours=48)  # a los 2 días: ya hay comentarios y aún se ve el vídeo
+COMMENTS_UNTIL = timedelta(hours=120)  # pasados 5 días, ya no se recuerda
+
+
+def _published_at(video) -> datetime | None:
+    """La hora de publicación en hora local (YouTube la da en UTC con «T»)."""
+    try:
+        moment = datetime.fromisoformat((video.published or "")[:16])
+    except ValueError:
+        return None
+    if "T" in video.published:
+        moment += datetime.now().astimezone().utcoffset() or timedelta()
+    return moment
+
+
+def comment_reminders(db: Session, now: datetime | None = None) -> list[Reply]:
+    """Dos días después de publicar, recuerda responder los comentarios (una vez por vídeo)."""
+    from app.models import Video
+
+    now = now or datetime.now()
+    if not linked_chats(db):
+        return []
+    try:
+        last = datetime.fromisoformat(get_setting(db, "comments_checked") or "")
+    except ValueError:
+        last = None
+    if last and now - last < timedelta(hours=1):
+        return []
+    set_setting(db, "comments_checked", now.isoformat(timespec="minutes"))
+    reminded = list(_json_setting(db, "comments_reminded", []))
+    done = set(reminded)
+    due = []
+    for video in db.scalars(select(Video)):
+        when = _published_at(video)
+        if video.video_id in done or when is None:
+            continue
+        if COMMENTS_AFTER <= now - when <= COMMENTS_UNTIL:
+            due.append(video)
+    if not due:
+        return []
+    _save_json(db, "comments_reminded", [*reminded, *(v.video_id for v in due)][-200:])
+    return [
+        Reply(
+            f"💬 Hace un par de días publicaste «{escape(v.title or 'tu vídeo')}». Buen momento "
+            "para <b>responder comentarios</b>: a YouTube le gusta y la gente vuelve.\n"
+            "Pulsa el botón y te preparo borradores para los que tienen más «me gusta».",
+            buttons=[[("💬 Leer comentarios y borradores", f"comments:{v.video_id}")]],
+        )
+        for v in due
+    ]
+
+
+def comment_drafts_reply(db: Session, video_id: str = "") -> list[Reply]:
+    """Lee los comentarios (si hay clave y Gemini) y manda los borradores de respuesta.
+    Si no se pueden leer ahora, lo dice y avisa de la fecha de los borradores guardados."""
+    from app import audience
+    from app.models import Video
+
+    problem = ""
+    try:
+        audience.analyze(db, jobs.get_ai_provider(db))
+    except audience.NoKey:
+        problem = "Falta la clave gratuita de YouTube (JARVIS → «Lo que JARVIS sabe de ti»)."
+    except (ProviderError, ValueError, httpx.HTTPError) as exc:
+        problem = str(exc)
+    replies = [audience_reply(db)]
+    report = audience.last_report(db) or {}
+    answers = [a for a in report.get("answers") or [] if a.get("reply")]
+    video = db.get(Video, video_id) if video_id else None
+    if video is not None:
+        mine = [a for a in answers if a.get("video") == video.title]
+        answers = mine
+    if problem:
+        when = f" Lo que ves es del {report['date']}." if report.get("date") else ""
+        replies.append(Reply(f"⚠️ No pude leer comentarios nuevos: {escape(problem)}{when}"))
+    if not answers:
+        if video is not None and not problem:
+            replies.append(Reply("✍️ Ese vídeo no tiene comentarios sin responder con «me gusta»."))
+        return replies
+    lines = [
+        f"✍️ <b>Borradores para responder</b> ({escape(report.get('date', ''))}). "
+        "Revísalos y pégalos en YouTube:"
+    ]
+    for a in answers[:3]:
+        line = f"\n💬 «{escape(a.get('text', '')[:200])}»\n👉 {escape(a['reply'])}"
+        if a.get("url"):
+            line += f"\n{escape(a['url'])}"
+        lines.append(line)
+    replies.append(Reply("\n".join(lines)))
+    return replies
 
 
 def rising_alerts(db: Session, now: datetime | None = None) -> list[Reply]:
@@ -1775,6 +1865,8 @@ def _button(db: Session, data: str) -> list[Reply]:
         return [monetization_reply(db)]
     if kind == "syscheck":
         return [system_check_reply(db)]
+    if kind == "comments":
+        return comment_drafts_reply(db, rest)
     if kind == "shortup":
         pid, _, number = rest.partition(":")
         if not (pid.isdigit() and number.isdigit()) or _project_or_none(db, pid) is None:
@@ -2205,6 +2297,7 @@ def tick(db: Session, now: datetime | None = None) -> list[Reply]:
         lambda: weekly_check(db, now),
         lambda: sunday_summary(db, now),
         lambda: rising_alerts(db, now),
+        lambda: comment_reminders(db, now),
         lambda: autopilot_tick(db, now),
     ]
     replies: list[Reply] = []

@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (18 de octubre de 2026: tu comunidad)
+
+- [The Reason Small Creators Grow Big (It's Not Views)](https://www.youtube.com/watch?v=8XA3ma7wgLg)
+  — por qué los canales pequeños crecen gracias a su comunidad, no solo a las visitas.
+- [3 New YouTube Comment Features: Standout, Heart, Pin](https://www.youtube.com/watch?v=TyAWkA546_I)
+  — cómo usar el corazón y el comentario fijado para animar a comentar.
+- [How to Reply to a Comment With a Short](https://www.youtube.com/shorts/Vbut4V_M4tY)
+  — responder a un comentario con un Short: una idea fácil para sacar Shorts nuevos.
+
 ## Nuevos (17 de octubre de 2026: cuántos Shorts subir)
 
 - [How Often to Upload Shorts to Grow on YouTube](https://www.youtube.com/shorts/nYPEjYjPGpc)
