@@ -16,7 +16,7 @@ from app.models import LEVELS, SCRIPT_TONES, STAGES, Project, StageResult
 from app.pipeline import end_screen
 from app.pipeline.ab_test import ab_plan
 from app.pipeline.humanize import script_issues
-from app.pipeline.monetization import AREAS, project_review
+from app.pipeline.monetization import AREAS, chosen_title, project_review, title_brands
 from app.pipeline.render import AUTO as AUTO_LOOK
 from app.pipeline.render import LOOKS, MUSIC_VOLUMES
 from app.pipeline.script import (
@@ -27,6 +27,7 @@ from app.pipeline.script import (
     rewrite_paragraph,
     with_stats,
 )
+from app.pipeline.seo import description_start
 from app.pipeline.storyboard import paragraphs_of, stale_scenes
 from app.pipeline.voice import pending_characters, take_key
 from app.providers.ai import ProviderError
@@ -656,12 +657,21 @@ def video_page(request: Request, db: DB, user: CurrentUser, project_id: int):
 def publish_page(request: Request, db: DB, user: CurrentUser, project_id: int):
     project = _project(db, project_id)
     visuals = jobs.get_result(db, project_id, "visuals") or {}
+    seo = jobs.get_result(db, project_id, "publish") or {}
+    title = chosen_title(
+        {"publish": seo, "script": jobs.get_result(db, project_id, "script")}, project
+    )
     return _stage_page(
         request,
         db,
         project,
         "publish",
         has_ai_images=any(e.get("ai") for e in visuals.get("items", {}).values()),
+        description_start=description_start(
+            seo.get("description"),
+            (seo.get("searches") or {}).get("keyword"),
+            title_brands(title),
+        ),
         ab=ab_plan(
             jobs.get_result(db, project_id, "publish"),
             jobs.get_result(db, project_id, "strategy"),

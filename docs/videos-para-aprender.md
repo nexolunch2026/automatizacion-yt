@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (19 de octubre de 2026: descripción y final del vídeo)
+
+- [How to Write a Description for YOUTUBE ▷ TIPS and EXAMPLES](https://www.youtube.com/watch?v=-zPbktLkD2U)
+  — cómo escribir la descripción, con ejemplos: va con el aviso nuevo de las 2 primeras líneas.
+- [What To Say At The End Of A YouTube Video](https://www.youtube.com/watch?v=6hMGSGjY32s)
+  — qué decir al final para que la gente no se vaya y pase a otro vídeo tuyo.
+- [6 Audience Retention Tactics Genius YouTubers Use](https://www.youtube.com/watch?v=LkpPB39UhdQ)
+  — seis trucos para que la gente vea más minutos (incluido el final).
+
 ## Nuevos (18 de octubre de 2026: tu comunidad)
 
 - [The Reason Small Creators Grow Big (It's Not Views)](https://www.youtube.com/watch?v=8XA3ma7wgLg)

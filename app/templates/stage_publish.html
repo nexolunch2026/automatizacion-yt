@@ -70,6 +70,19 @@
   </div>
   <pre class="copy-text description" id="descripcion">{{ seo.description }}</pre>
   <p class="muted small">{{ seo.description|length }}/5000 caracteres. Incluye capítulos con minutos, fuentes y créditos.</p>
+  {% if description_start and description_start.ok is not none %}
+  <div class="alert{{ ' ok' if description_start.ok else '' }}">
+    <p class="small"><strong>Así se ve en la búsqueda de YouTube</strong> (antes de «Mostrar más»):</p>
+    <p class="small">«{{ description_start.preview }}»</p>
+    {% if description_start.ok %}
+    <p class="muted small">✅ Dice de qué va el vídeo: bien.</p>
+    {% elif description_start.starts_badly %}
+    <p class="muted small">⚠️ Empieza con enlaces, hashtags o capítulos: pon antes una frase que diga de qué va el vídeo.</p>
+    {% else %}
+    <p class="muted small">⚠️ No nombra la marca ni lo que la gente busca. Pulsa «Volver a generar» o cambia la primera frase al pegarla en YouTube.</p>
+    {% endif %}
+  </div>
+  {% endif %}
 </div>
 
 <div class="two-col">

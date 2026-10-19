@@ -136,6 +136,14 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   (uno cada 2–3 días) con recordatorio de JARVIS para subir cada uno.
 - [x] **Recordatorio de comentarios** (0.81.0): dos días después de publicar, JARVIS recuerda
   responder los comentarios y manda los borradores por Telegram.
+- [x] **Descripción que se entiende en la búsqueda** (0.82.0): el control de calidad mira las
+  2 primeras líneas de la descripción (lo único que se ve sin «Mostrar más») y avisa si no
+  nombran la marca ni lo que la gente busca; en Publicación se ve cómo queda.
+- [ ] **Final sin despedida larga**: el control de calidad avisa si los últimos 20 s del guion
+  son solo despedida («suscríbete», «nos vemos») y propone terminar con la frase que lleva
+  al siguiente vídeo (la gente se va en cuanto nota que acaba).
+- [ ] **Mejor día para publicar**: con tus cifras de Rendimiento, decir qué día de la semana
+  consiguen más visitas tus vídeos en sus primeras 48 h y ponerlo en el plan de la semana.
 - [x] **Miniatura legible en el móvil** (0.65.0): comprobar el tamaño y el contraste del texto de
   cada miniatura vista a 168 px de ancho y avisar si no se lee bien.
 - [x] **Alertas de referencias** (0.64.0): JARVIS avisa por Telegram cuando un vídeo de tus canales de

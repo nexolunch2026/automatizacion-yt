@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-19 — Versión 0.82: la descripción se entiende en la búsqueda
+
+- En la búsqueda de YouTube solo se ven las **2 primeras líneas** de la descripción (unos
+  150 caracteres) antes de «Mostrar más». Ahí tiene que decir **de qué va el vídeo**.
+- En **Publicación**, debajo de la descripción, ahora ves **«Así se ve en la búsqueda de
+  YouTube»** con un ✅ si nombra la marca del título o lo que la gente busca.
+- Si no lo hace (o empieza con enlaces, hashtags o capítulos), sale ⚠️ y también un aviso en
+  el **control de calidad**: pulsa «Volver a generar» o cambia la primera frase al pegarla.
+- A partir de ahora Gemini escribe la primera frase de la descripción ya con la marca o el
+  tema de la búsqueda principal.
+- Ideas nuevas en la lista: «Final sin despedida larga» y «Mejor día para publicar».
+
 ## 2026-10-18 — Versión 0.81.1: radar de historias
 
 Tres historias nuevas y recientes en el **banco de historias** (pídeselas a JARVIS con

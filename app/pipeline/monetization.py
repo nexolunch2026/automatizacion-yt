@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Project, StageResult
 from app.pipeline.humanize import SHARE_WARN, script_issues
+from app.pipeline.seo import PREVIEW_CHARS, description_start
 
 OK, WARN, FAIL, PENDING = "ok", "warn", "fail", "pending"
 POINTS = {OK: 1.0, WARN: 0.5, FAIL: 0.0, PENDING: 0.0}
@@ -562,6 +563,35 @@ def _publish_checks(project: Project, results: dict, title: str) -> list[dict]:
                 "publicacion",
             )
         )
+        start = description_start(
+            seo.get("description"),
+            (seo.get("searches") or {}).get("keyword"),
+            title_brands(title),
+        )
+        if start["ok"] is not None:
+            if start["ok"]:
+                label, fix = "La descripción empieza diciendo de qué va", ""
+            elif start["starts_badly"]:
+                label = "La descripción empieza con enlaces, hashtags o capítulos"
+                fix = "Pon primero una frase que diga de qué va el vídeo."
+            else:
+                label = "El principio de la descripción no dice de qué va el vídeo"
+                fix = (
+                    "Pulsa «Volver a generar» en Publicación o cambia la primera frase para "
+                    "que nombre la marca o lo que la gente busca."
+                )
+            checks.append(
+                _check(
+                    "description",
+                    "publish",
+                    OK if start["ok"] else WARN,
+                    label,
+                    f"En la búsqueda solo se ven unos {PREVIEW_CHARS} caracteres: "
+                    f"«{start['preview']}».",
+                    fix,
+                    "publicacion",
+                )
+            )
         exact = seo.get("chapters") and seo.get("chapters_exact")
         checks.append(
             _check(

@@ -6,6 +6,8 @@ que coincidan con el vídeo. YouTube exige que el primero empiece en 0:00, que h
 3 y que cada uno dure 10 s o más.
 """
 
+import re
+import unicodedata
 from collections.abc import Callable
 
 from pydantic import BaseModel, Field
@@ -19,6 +21,7 @@ WORDS_PER_SECOND = 2.5
 MIN_CHAPTER_SECONDS = 10
 DESCRIPTION_LIMIT = 5000
 TAGS_LIMIT = 500
+PREVIEW_CHARS = 150  # lo que YouTube enseña de la descripción en la búsqueda, sin «Mostrar más»
 
 
 class SeoDraft(BaseModel):
@@ -146,13 +149,43 @@ def clean_hashtags(hashtags: list[str]) -> list[str]:
     return result
 
 
-def _words(text: str) -> set[str]:
-    import re
-    import unicodedata
-
+def _plain(text: str) -> str:
     plain = unicodedata.normalize("NFD", text.lower())
-    plain = "".join(ch for ch in plain if unicodedata.category(ch) != "Mn")
-    return {w for w in re.findall(r"\w+", plain) if len(w) > 3}
+    return "".join(ch for ch in plain if unicodedata.category(ch) != "Mn")
+
+
+def _words(text: str) -> set[str]:
+    return {w for w in re.findall(r"\w+", _plain(text)) if len(w) > 3}
+
+
+def description_preview(description: str | None) -> str:
+    """El principio de la descripción tal como se ve en la búsqueda (cortado por palabra)."""
+    text = " ".join((description or "").split())
+    if len(text) <= PREVIEW_CHARS:
+        return text
+    cut = text[:PREVIEW_CHARS].rsplit(" ", 1)[0]
+    return cut + "…"
+
+
+def description_start(description: str | None, keyword: str | None, names: list[str]) -> dict:
+    """¿Las dos primeras líneas de la descripción dicen de qué va el vídeo? Basta con que
+    nombren la marca del título (`names`, ya sin tildes) o la búsqueda principal.
+    `ok` es None si no se puede saber (sin descripción, o sin marca ni búsqueda)."""
+    preview = description_preview(description)
+    plain = _plain(preview)
+    words = _words(keyword or "")
+    names = [n for n in names if n]
+    if not preview or not (names or words):
+        return {"preview": preview, "ok": None, "starts_badly": False}
+    has_name = any(re.search(rf"\b{re.escape(n)}\b", plain) for n in names)
+    has_keyword = bool(words) and len(words & _words(preview)) >= min(2, len(words))
+    # Enlaces, hashtags o capítulos al principio: en la búsqueda no dicen nada.
+    starts_badly = bool(re.match(r"(#|https?:|www\.|⏱|\d+:\d\d)", plain))
+    return {
+        "preview": preview,
+        "ok": (has_name or has_keyword) and not starts_badly,
+        "starts_badly": starts_badly,
+    }
 
 
 def search_demand(keyword: str, title: str, lookup: Callable[[str], list[str]] | None) -> dict:
@@ -184,7 +217,8 @@ Prepara:
 - 3 títulos alternativos (máx. 70 caracteres), atractivos pero honestos: nada que el vídeo
   no cumpla. No inventes cifras de visitas ni de CTR.
 - Una introducción para la descripción (2–3 frases): gancho y qué descubrirá el espectador.
-  Natural, sin repetir palabras clave a la fuerza.
+  Natural, sin repetir palabras clave a la fuerza. La PRIMERA frase debe nombrar la marca
+  o el tema de la búsqueda principal: es lo único que se ve en la búsqueda.
 - 10–15 etiquetas, 3 hashtags y un comentario fijado con una pregunta que invite a opinar.
 - La categoría de YouTube más adecuada.
 - La búsqueda principal («keyword»): lo que alguien escribiría en YouTube para encontrarlo.
