@@ -139,8 +139,8 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [x] **Descripción que se entiende en la búsqueda** (0.82.0): el control de calidad mira las
   2 primeras líneas de la descripción (lo único que se ve sin «Mostrar más») y avisa si no
   nombran la marca ni lo que la gente busca; en Publicación se ve cómo queda.
-- [ ] **Final sin despedida larga**: el control de calidad avisa si los últimos 20 s del guion
-  son solo despedida («suscríbete», «nos vemos») y propone terminar con la frase que lleva
+- [x] **Final sin despedida larga** (0.83.0): el control de calidad avisa si el final del guion tiene
+  más de unos 12 s de despedida («suscríbete», «nos vemos») y propone terminar con la frase que lleva
   al siguiente vídeo (la gente se va en cuanto nota que acaba).
 - [ ] **Mejor día para publicar**: con tus cifras de Rendimiento, decir qué día de la semana
   consiguen más visitas tus vídeos en sus primeras 48 h y ponerlo en el plan de la semana.

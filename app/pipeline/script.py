@@ -278,7 +278,8 @@ SECTION_GUIDES = {
     "conclusion": "Cierra con la sección fija del canal, «La lección de la marca»: una idea "
     "práctica y propia que el espectador pueda aplicar (es la firma del canal).",
     "cta": "Una sola llamada a la acción, natural: invita a comentar con una pregunta concreta "
-    "y menciona otro vídeo del canal relacionado, sin rogar.",
+    "y menciona otro vídeo del canal relacionado, sin rogar. Termina con esa frase que lleva al "
+    "otro vídeo: nada de despedidas largas («suscríbete», «dale a like», «nos vemos»).",
 }
 
 

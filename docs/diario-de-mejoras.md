@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-20 — Versión 0.83: final sin despedida larga
+
+- En cuanto se oye «suscríbete», «dale a like» o «nos vemos», mucha gente **cierra el
+  vídeo**, y YouTube ya no le enseña otro tuyo.
+- El **control de calidad** ahora mira el final del guion: si la despedida dura **más de
+  unos 12 segundos**, sale un aviso ⚠️ con cuántos segundos son.
+- Arreglo: deja la despedida en **una frase** y termina con la frase que lleva a otro vídeo
+  tuyo (la tienes lista en **Publicación → Pantalla final**).
+- Si el final ya lleva a otro vídeo, sale ✅ «El final lleva a otro vídeo tuyo».
+- Los guiones nuevos ya se escriben así: Gemini termina con esa frase, sin despedidas largas.
+
 ## 2026-10-19 — Versión 0.82: la descripción se entiende en la búsqueda
 
 - En la búsqueda de YouTube solo se ven las **2 primeras líneas** de la descripción (unos

@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (20 de octubre de 2026: cómo terminar el vídeo)
+
+- [EVERYONE on YouTube Should Be Ending Videos This Way](https://www.youtube.com/watch?v=N2TsvfU6P2c)
+  — cómo terminar los vídeos para que la gente no se vaya: va con el aviso nuevo del final.
+- [How to Keep Viewers Watching on YouTube (Cards, End Screens & Playlists)](https://www.youtube.com/watch?v=G9zHI3cCnTs)
+  — tarjetas, pantalla final y listas para que vean otro vídeo tuyo después.
+- [How To Write A Killer Script That Keeps Viewers Hooked](https://www.youtube.com/watch?v=7I50PECz7SU)
+  — un guion que engancha de principio a fin, con un gancho en cinco partes.
+
 ## Nuevos (19 de octubre de 2026: descripción y final del vídeo)
 
 - [How to Write a Description for YOUTUBE ▷ TIPS and EXAMPLES](https://www.youtube.com/watch?v=-zPbktLkD2U)

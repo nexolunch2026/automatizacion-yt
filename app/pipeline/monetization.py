@@ -19,7 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Project, StageResult
-from app.pipeline.humanize import SHARE_WARN, script_issues
+from app.pipeline.humanize import SHARE_WARN, script_issues, sentences
 from app.pipeline.seo import PREVIEW_CHARS, description_start
 
 OK, WARN, FAIL, PENDING = "ok", "warn", "fail", "pending"
@@ -81,6 +81,47 @@ REHOOK = re.compile(
     r"(?:ya )?ver[aá]s|m[aá]s adelante|lo que (?:est[aá]|iba) a pasar|el giro",
     re.IGNORECASE,
 )
+
+
+FAREWELL_MAX_SECONDS = 12  # más de ~12 s de despedida al final: la gente se va antes
+FAREWELL_MAX_WORDS = 25  # una frase más larga ya es historia, no despedida
+# Frases de despedida o de pedir cosas (sin tildes): en cuanto se oyen, la gente se va.
+FAREWELL = re.compile(
+    r"\bsuscrib(?:e|ete|ir|irte|anse|eros)\b|\bcampanita\b|"
+    r"\bdale (?:a |al |un )?(?:like|me gusta)\b|\bnos vemos\b|\bhasta la proxima\b|"
+    r"\bgracias por (?:ver|llegar|quedarte|vernos)\b|\badios\b|\bchao\b|"
+    r"\bno olvides (?:suscrib|dar|darle|dejar|comentar|compartir|activar)|"
+    r"\bcomparte (?:este|el) video\b|\b(?:esto|eso) es todo por (?:hoy|ahora)\b|"
+    r"\by hasta aqui (?:el|la|este|esta) (?:video|historia|capitulo) de hoy\b"
+)
+# Frase que lleva a otro vídeo tuyo: es justo lo que conviene al final.
+NEXT_VIDEO = re.compile(
+    r"\b(?:te dejo|en pantalla|aqui arriba|haz clic|pincha)\b.*\b(?:video|historia)\b|"
+    r"\b(?:video|historia)\b.*\b(?:en pantalla|aqui arriba)\b"
+)
+
+
+def farewell_tail(script: dict) -> tuple[float, bool] | None:
+    """Segundos (aprox.) de despedida seguida al final del guion y si termina llevando a
+    otro vídeo. Mira las frases cortas del final hacia atrás hasta la primera que cuenta
+    algo. None si el guion no tiene texto."""
+    tail = []
+    for section in script.get("sections") or []:
+        for paragraph in section.get("paragraphs") or []:
+            tail += sentences(paragraph.get("text") or "")
+    if not tail:
+        return None
+    words, leads = 0, False
+    for sentence in reversed(tail):
+        plain = _plain(sentence)
+        if NEXT_VIDEO.search(plain):
+            leads = True
+            continue
+        size = len(sentence.split())
+        if size > FAREWELL_MAX_WORDS or not FAREWELL.search(plain):
+            break
+        words += size
+    return words / WORDS_PER_SECOND, leads
 
 
 def _mmss(seconds: float) -> str:
@@ -499,6 +540,32 @@ def _audience_checks(results: dict) -> list[dict]:
                 "Las frases cortas y sin muletillas se entienden mejor al oírlas y suenan "
                 "menos a texto hecho por máquina.",
                 "" if ok else "En el guion están marcadas en amarillo: pulsa «Hacerlo más humano».",
+                "guion",
+            )
+        )
+
+    ending = farewell_tail(script) if script else None
+    if ending:
+        seconds, leads = ending
+        ok = seconds <= FAREWELL_MAX_SECONDS
+        if not ok:
+            title = f"Despedida de {round(seconds)} s al final"
+        elif leads:
+            title = "El final lleva a otro vídeo tuyo"
+        else:
+            title = "Final sin despedida larga"
+        checks.append(
+            _check(
+                "ending",
+                "audience",
+                OK if ok else WARN,
+                title,
+                "En cuanto se oye «suscríbete» o «nos vemos», mucha gente cierra el vídeo y "
+                "YouTube no le enseña otro tuyo.",
+                ""
+                if ok
+                else "Deja la despedida en una frase y termina con la que lleva a otro vídeo "
+                "(en Publicación → Pantalla final tienes la frase lista).",
                 "guion",
             )
         )
