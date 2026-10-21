@@ -1284,6 +1284,11 @@ def week_plan_reply(db: Session) -> Reply:
         f"<i>Publicas los {day} a las {plan['publish_hour']}:00. Para cambiarlo di, por "
         "ejemplo: «publico los martes a las 19».</i>"
     )
+    from app import best_day
+
+    best = best_day.advice(db, plan["publish_day"])
+    if best and best["status"] == "best":
+        lines.append(f"📈 {escape(best['text'])}")
     return Reply("\n".join(lines), buttons=[[("👉 ¿Qué hago ahora?", "next")]])
 
 

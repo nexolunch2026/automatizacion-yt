@@ -142,7 +142,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [x] **Final sin despedida larga** (0.83.0): el control de calidad avisa si el final del guion tiene
   más de unos 12 s de despedida («suscríbete», «nos vemos») y propone terminar con la frase que lleva
   al siguiente vídeo (la gente se va en cuanto nota que acaba).
-- [ ] **Mejor día para publicar**: con tus cifras de Rendimiento, decir qué día de la semana
+- [x] **Mejor día para publicar** (0.84.0): con tus cifras de Rendimiento, decir qué día de la semana
   consiguen más visitas tus vídeos en sus primeras 48 h y ponerlo en el plan de la semana.
 - [x] **Miniatura legible en el móvil** (0.65.0): comprobar el tamaño y el contraste del texto de
   cada miniatura vista a 168 px de ancho y avisar si no se lee bien.

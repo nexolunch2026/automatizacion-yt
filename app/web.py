@@ -379,7 +379,7 @@ def delete_project(db: DB, user: CurrentUser, project_id: int):
 
 @router.get("/semana")
 def week_page(request: Request, db: DB, user: CurrentUser):
-    from app import coach
+    from app import best_day, coach
     from app.agenda import WEEKDAYS
 
     day, hour = coach.publish_slot(db)
@@ -388,6 +388,7 @@ def week_page(request: Request, db: DB, user: CurrentUser):
         "week.html",
         days=coach.week_days(db),
         plan=coach.weekly_plan(db),
+        best=best_day.advice(db, day),
         weekdays=WEEKDAYS,
         publish_day=day,
         publish_hour=hour,

@@ -38,4 +38,19 @@
   <p>🎬 {{ plan.long }}</p>
   <p class="muted small">También se lo puedes preguntar a JARVIS: «plan de la semana» o «publico los sábados a las 6».</p>
 </div>
+
+{% if best %}
+<div class="card">
+  <h3>📈 Tu mejor día para publicar</h3>
+  <p>{{ best.text }}</p>
+  {% if best.status == 'best' and best.day != publish_day %}
+  <form method="post" action="/semana">
+    <input type="hidden" name="day" value="{{ best.day }}">
+    <input type="hidden" name="hour" value="{{ publish_hour }}">
+    <button class="btn small">Publicar los {{ weekdays[best.day] }} a las {{ publish_hour }}:00</button>
+  </form>
+  {% endif %}
+  <p class="muted small">Sale de tus cifras de Rendimiento: las visitas de cada vídeo largo en sus primeras 48 horas, según el día en que se publicó.</p>
+</div>
+{% endif %}
 {% endblock %}

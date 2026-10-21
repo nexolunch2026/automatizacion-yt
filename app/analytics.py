@@ -212,8 +212,9 @@ def video_rows(db: Session, now: datetime | None = None) -> list[dict]:
             published = datetime.fromisoformat(video.published[:16])
             if "T" in video.published:
                 published += datetime.now().astimezone().utcoffset() or timedelta()  # hora local
+            weekday = published.weekday()  # 0 = lunes
         except ValueError:
-            published = stats[0].taken_at
+            published, weekday = stats[0].taken_at, None  # sin fecha: no se sabe el día
         days = max((now - published).total_seconds() / 86400, 1 / 24)
         project = db.get(Project, video.project_id) if video.project_id else None
         thumb = (jobs.get_result(db, project.id, "thumbnail") or {}) if project else {}
@@ -251,6 +252,8 @@ def video_rows(db: Session, now: datetime | None = None) -> list[dict]:
                 "history": list(daily.items())[-30:],
                 "updated": last.taken_at,  # cuándo se tomó la última cifra
                 "exact_time": "T" in video.published,  # se sabe la hora de publicación
+                "weekday": weekday,
+                "is_short": bool(project and project.duration == "Short"),
             }
         )
     if rows:

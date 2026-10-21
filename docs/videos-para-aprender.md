@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (21 de octubre de 2026: qué día y cada cuánto publicar)
+
+- [The Best Time to Post on YouTube — 1 Million Videos + Shorts Analyzed](https://www.youtube.com/watch?v=tVk78cgwjQc)
+  — el mejor día y hora según un millón de vídeos: compáralo con lo que dicen tus cifras en Semana.
+- [How Often Should You REALLY Upload in 2026?](https://www.youtube.com/watch?v=4k00yfxDnuk)
+  — cada cuánto subir siendo un canal pequeño.
+- [How to Stay Consistent on YouTube (Even With a 9–5 Job)](https://www.youtube.com/watch?v=uo7f5TDMFTs)
+  — cómo ser constante cuando trabajas: trucos para no quemarte.
+
 ## Nuevos (20 de octubre de 2026: cómo terminar el vídeo)
 
 - [EVERYONE on YouTube Should Be Ending Videos This Way](https://www.youtube.com/watch?v=N2TsvfU6P2c)

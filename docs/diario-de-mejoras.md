@@ -2,6 +2,19 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-21 — Versión 0.84: tu mejor día para publicar
+
+- En la página **📅 Semana** hay una tarjeta nueva: **«📈 Tu mejor día para publicar»**.
+- Mira tus cifras de **Rendimiento**: cuántas visitas consigue cada vídeo largo en sus
+  **primeras 48 horas**, según el día de la semana en que salió.
+- Si un día te va claramente mejor (al menos un 30 % más que los otros días), te lo dice y
+  aparece un botón para **probar a publicar ese día** con un clic. Un solo vídeo con suerte
+  no decide: hacen falta al menos 6 vídeos largos y 3 en cada día que compara.
+- Si aún hay pocos vídeos, o casi siempre publicas el mismo día, te lo explica (y te
+  sugiere probar otro día un par de semanas si quieres saberlo).
+- Si algo falla al leer las cifras, la página Semana y JARVIS siguen funcionando igual.
+- JARVIS también lo dice en **«plan de la semana»** cuando hay un día mejor.
+
 ## 2026-10-20 — Versión 0.83: final sin despedida larga
 
 - En cuanto se oye «suscríbete», «dale a like» o «nos vemos», mucha gente **cierra el
