@@ -2210,12 +2210,17 @@ def briefing(db: Session, now: datetime | None = None) -> list[Reply]:
         for job in db.scalars(select(Job).where(Job.stage == "edit", Job.status == "done"))
         if job.finished_at and (now - job.finished_at).days < 7
     )
-    step = "\n".join(x for x in (coach.today_text(db, now), coach.first_step_text(db)) if x)
     buttons = [
         [("👉 ¿Qué hago ahora?", "next"), ("💡 Ideas para hoy", "ideas")],
         [("💰 Monetización", "money"), ("🛫 Piloto", "autopilot")],
     ]
-    short_key = coach.weekly_plan(db, now).get("today_short_key")
+    try:  # el plan del día es un extra: si falla, el «buenos días» sale igual
+        step = "\n".join(x for x in (coach.today_text(db, now), coach.first_step_text(db)) if x)
+        short_key = coach.weekly_plan(db, now).get("today_short_key")
+    except Exception:
+        log.exception("No se pudo preparar el plan del día para el «buenos días»")
+        db.rollback()
+        step, short_key = "⚠️ Hoy no pude preparar el plan del día (mira «plan de la semana»).", None
     if short_key:
         buttons.insert(0, [("✅ Ya subí el Short de hoy", f"shortup:{short_key}")])
     return [

@@ -321,12 +321,20 @@ def forget_uploaded_shorts(db: Session, project_id: int) -> None:
     set_setting(db, UPLOADED_KEY, json.dumps(sorted(keys)))
 
 
-def mark_short_uploaded(db: Session, project_id: int, number: int, done: bool = True) -> None:
-    """Apunta (o desapunta) que ya subiste ese Short: el calendario pasa al siguiente."""
+UPLOADED_DAY_KEY = "shorts_uploaded_day"  # día en que apuntaste el último Short subido
+
+
+def mark_short_uploaded(
+    db: Session, project_id: int, number: int, done: bool = True, now: datetime | None = None
+) -> None:
+    """Apunta (o desapunta) que ya subiste ese Short: el calendario pasa al siguiente, y
+    ese día ya no pide otro."""
     keys = uploaded_shorts(db)
     key = f"{project_id}:{number}"
     keys = keys | {key} if done else keys - {key}
     set_setting(db, UPLOADED_KEY, json.dumps(sorted(keys)))
+    day = (now or datetime.now()).strftime("%Y-%m-%d") if done else ""
+    set_setting(db, UPLOADED_DAY_KEY, day)
 
 
 def _shorts_queue(db: Session) -> list[dict]:
@@ -364,6 +372,8 @@ def weekly_plan(db: Session, now: datetime | None = None) -> dict:
             long_text = "No hay ningún vídeo en marcha: empieza uno hoy («banco de ideas»)."
     shorts = _shorts_queue(db)
     upcoming = [(now.weekday() + i) % 7 for i in range(7)]
+    if get_setting(db, UPLOADED_DAY_KEY) == now.strftime("%Y-%m-%d"):
+        upcoming = upcoming[1:]  # el Short de hoy ya está subido: el siguiente, otro día
     short_days = [d for d in upcoming if d in SHORTS_DAYS]
     schedule = [(d, s["title"], s["key"]) for d, s in zip(short_days, shorts, strict=False)]
     return {

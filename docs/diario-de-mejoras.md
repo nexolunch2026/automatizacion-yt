@@ -2,6 +2,19 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-21 — Versión 0.84.1: revisión de salud
+
+Revisión de los cambios de la semana (0.78 a 0.84) con los revisores de errores escondidos,
+de Python y de seguridad. Seguridad: todo bien. Se arreglaron dos fallos:
+
+- **«✅ Ya subí el Short de hoy»**: al pulsarlo, JARVIS y la página Semana te pedían
+  **otro Short ese mismo día**. Ahora ese día queda hecho y el siguiente pasa al próximo
+  día de Shorts. (Si lo desmarcas, hoy vuelve a tocar.)
+- **El «buenos días» de JARVIS**: si fallaba algo al preparar el plan del día, el mensaje
+  de la mañana **no llegaba en todo el día**. Ahora llega igual, con un aviso de que el plan
+  no se pudo preparar.
+- Los avisos de CodeQL de GitHub siguen sin poder leerse desde aquí (GitHub no da permiso).
+
 ## 2026-10-21 — Versión 0.84: tu mejor día para publicar
 
 - En la página **📅 Semana** hay una tarjeta nueva: **«📈 Tu mejor día para publicar»**.

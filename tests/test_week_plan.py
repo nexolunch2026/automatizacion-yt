@@ -136,3 +136,34 @@ def test_marks_reset_when_shorts_are_made_again_and_bad_data_is_ignored(logged_i
         set_setting(db, "telegram_chats", '[{"id": 1, "name": "Simón"}]')
         stale = assistant.handle(db, Incoming(chat_id=1, button="shortup:1:9"), trusted=True)
         assert "ya no existe" in stale[0].text
+
+
+def test_marking_todays_short_does_not_ask_for_another_today(logged_in, ai):  # noqa: F811
+    make_project(logged_in, "manual")
+    with SessionLocal() as db:
+        _final_video(db, 1, shorts=["El error de Kodak", "La cámara escondida", "1975"])
+        assert coach.weekly_plan(db, MONDAY)["today_short_key"] == "1:1"
+        coach.mark_short_uploaded(db, 1, 1, now=MONDAY)
+        plan = coach.weekly_plan(db, MONDAY)
+        assert plan["today_short"] is None and plan["today_short_key"] is None
+        assert plan["shorts"][0] == ("miércoles", "La cámara escondida")
+        assert "Short" not in coach.today_text(db, MONDAY)
+        # Al día siguiente que toca Short, ya sale el siguiente.
+        wednesday = MONDAY.replace(day=7)
+        assert coach.weekly_plan(db, wednesday)["today_short"] == "La cámara escondida"
+        # Si lo desapunta, hoy vuelve a tocar ese Short.
+        coach.mark_short_uploaded(db, 1, 1, done=False, now=MONDAY)
+        assert coach.weekly_plan(db, MONDAY)["today_short_key"] == "1:1"
+
+
+def test_briefing_still_arrives_if_the_day_plan_fails(logged_in, ai, monkeypatch):  # noqa: F811
+    def broken(db, now=None):
+        raise KeyError("sections")
+
+    make_project(logged_in, "manual")
+    monkeypatch.setattr(coach, "weekly_plan", broken)
+    with SessionLocal() as db:
+        set_setting(db, "telegram_chats", '[{"id": 1, "name": "Simón"}]')
+        replies = assistant.briefing(db, MONDAY.replace(hour=10))
+    assert replies and "Buenos días" in replies[0].text
+    assert "no pude preparar el plan del día" in replies[0].text
