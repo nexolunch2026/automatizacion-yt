@@ -29,6 +29,7 @@ from app.pipeline.script import (
 )
 from app.pipeline.seo import description_start
 from app.pipeline.storyboard import paragraphs_of, stale_scenes
+from app.pipeline.thumbnail import title_repeat
 from app.pipeline.voice import pending_characters, take_key
 from app.providers.ai import ProviderError
 from app.providers.voice import ELEVEN_MODELS, SPEEDS, VOICE_IDS, VOICES, ElevenLabsVoices
@@ -684,7 +685,27 @@ def publish_page(request: Request, db: DB, user: CurrentUser, project_id: int):
 @router.get("/miniatura")
 def thumbnail_page(request: Request, db: DB, user: CurrentUser, project_id: int):
     project = _project(db, project_id)
-    return _stage_page(request, db, project, "thumbnail", preview=youtube_preview(db, project))
+    title = chosen_title(
+        {
+            "publish": jobs.get_result(db, project_id, "publish"),
+            "script": jobs.get_result(db, project_id, "script"),
+        },
+        project,
+    )
+    thumbs = jobs.get_result(db, project_id, "thumbnail") or {}
+    repeats = [
+        title_repeat(v.get("text") if isinstance(v, dict) else "", title)
+        for v in thumbs.get("variants") or []
+    ]
+    return _stage_page(
+        request,
+        db,
+        project,
+        "thumbnail",
+        preview=youtube_preview(db, project),
+        title_repeats=repeats,
+        compared_title=title,
+    )
 
 
 def youtube_preview(db, project: Project) -> dict:

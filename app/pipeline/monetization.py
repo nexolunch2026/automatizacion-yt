@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 from app.models import Project, StageResult
 from app.pipeline.humanize import SHARE_WARN, script_issues, sentences
 from app.pipeline.seo import PREVIEW_CHARS, description_start
+from app.pipeline.thumbnail import title_repeat
 
 OK, WARN, FAIL, PENDING = "ok", "warn", "fail", "pending"
 POINTS = {OK: 1.0, WARN: 0.5, FAIL: 0.0, PENDING: 0.0}
@@ -684,6 +685,31 @@ def _publish_checks(project: Project, results: dict, title: str) -> list[dict]:
             link="miniatura",
         )
     )
+    variants = (thumb or {}).get("variants") or []
+    selected = (thumb or {}).get("selected")
+    picked = (
+        variants[selected] if isinstance(selected, int) and 0 <= selected < len(variants) else None
+    )
+    repeat = title_repeat(picked.get("text"), title) if isinstance(picked, dict) else None
+    if repeat and repeat["ok"] is not None:
+        words = ", ".join(f"«{w}»" for w in repeat["repeated"])
+        checks.append(
+            _check(
+                "thumb_title",
+                "publish",
+                OK if repeat["ok"] else WARN,
+                "La miniatura añade algo al título"
+                if repeat["ok"]
+                else "El texto de la miniatura repite el título",
+                "Título y miniatura se ven juntos: si dicen lo mismo, se desperdicia uno."
+                + ("" if repeat["ok"] else f" Repite: {words}."),
+                ""
+                if repeat["ok"]
+                else "En Miniatura, cambia el texto por algo que el título no diga (una "
+                "cifra, una emoción o una pregunta) o elige otra.",
+                "miniatura",
+            )
+        )
     if project.duration != "Short":
         made = results.get("shorts") or {}
         if not made.get("shorts"):

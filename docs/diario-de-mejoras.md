@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-22 — Versión 0.85: la miniatura añade algo al título
+
+- En YouTube, el **título y la miniatura se ven juntos**. Si dicen lo mismo, se desperdicia
+  uno de los dos: la miniatura debería añadir algo (una cifra, una emoción, una pregunta).
+- En la página **Miniatura**, debajo de cada una, ahora sale 🏷️ **«Añade algo al título»**
+  o **«Repite el título»** con las palabras que repite.
+- El **control de calidad** también avisa si la miniatura que elegiste repite el título.
+  Arreglo: cambia el texto en Miniatura o elige otra de las 3.
+- Gemini ya recibe la instrucción de no repetir el título al escribir los textos.
+- Ideas nuevas en la lista: «Gancho con un dato concreto» y «Miniatura floja según el CTR».
+
 ## 2026-10-21 — Versión 0.84.1: revisión de salud
 
 Revisión de los cambios de la semana (0.78 a 0.84) con los revisores de errores escondidos,

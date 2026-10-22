@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (22 de octubre de 2026: título y miniatura juntos)
+
+- [Titles & Thumbnails](https://www.youtube.com/watch?v=ubFTkoJkNX4)
+  — vídeo de YouTube sobre cómo pensar el título y la miniatura, que es lo primero que se ve.
+- [Fixing YOUR Titles & Thumbnails](https://www.youtube.com/watch?v=2TaFhoumDlc)
+  — arreglando títulos y miniaturas de otros canales: ves errores típicos y cómo corregirlos.
+- [Should you use Text on your YouTube Thumbnails?](https://www.youtube.com/watch?v=HuBY657mEaQ)
+  — cuándo poner texto en la miniatura y cuándo es mejor no ponerlo.
+
 ## Nuevos (21 de octubre de 2026: qué día y cada cuánto publicar)
 
 - [The Best Time to Post on YouTube — 1 Million Videos + Shorts Analyzed](https://www.youtube.com/watch?v=tVk78cgwjQc)

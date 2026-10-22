@@ -41,6 +41,11 @@
     <p class="small {{ 'status-done' if v.mobile.ok else 'mobile-warn' }}">📱
       {% if v.mobile.ok %}Se lee bien en pequeño{% else %}{{ v.mobile.problems|join(' · ') }}{% endif %}</p>
     {% endif %}
+    {% set repeat = title_repeats[loop.index0] if title_repeats and loop.index0 < title_repeats|length else none %}
+    {% if repeat and repeat.ok is not none %}
+    <p class="small {{ 'status-done' if repeat.ok else 'mobile-warn' }}" title="Comparado con el título «{{ compared_title }}»">🏷️
+      {% if repeat.ok %}Añade algo al título{% else %}Repite el título ({{ repeat.repeated|join(', ') }}): mejor algo que el título no diga{% endif %}</p>
+    {% endif %}
     <div class="row-actions">
       {% if thumbs.selected == loop.index0 %}
       <span class="badge ok">✓ Elegida</span>

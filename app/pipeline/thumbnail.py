@@ -9,6 +9,7 @@
 
 import random
 import re
+import unicodedata
 from collections.abc import Callable
 from pathlib import Path
 
@@ -51,7 +52,9 @@ Idea de miniatura de la estrategia: {thumb.get("concept", "")} — texto sugerid
 «{thumb.get("text", "")}». Gancho del vídeo: {concept.get("hook", "")}
 
 Escribe 3 textos DISTINTOS para la miniatura:
-- De 2 a 4 palabras, que despierten curiosidad sin repetir el título.
+- De 2 a 4 palabras, que despierten curiosidad sin repetir el título: se ven juntos, así
+  que la miniatura debe añadir algo (una cifra, una emoción, una pregunta) que el título
+  no dice.
 - Uno con una cifra o un año si el tema lo permite (solo si es real y está en el guion).
 - Honestos: nada que el vídeo no cuente.
 - Indica en «highlight» la palabra que irá en rojo (la más fuerte)."""
@@ -312,6 +315,32 @@ def mobile_check(text: str, font_ratio: float, portrait: bool = False) -> dict:
     if words > MAX_WORDS:
         problems.append(f"{words} palabras: mejor 2–4")
     return {"ok": not problems, "px": px, "problems": problems}
+
+
+# Palabras cortas o de relleno que no cuentan como «repetir el título».
+TITLE_SKIP = {"como", "para", "porque", "cuando", "donde", "esta", "este", "todo", "toda",
+              "nadie", "sobre", "entre", "desde", "hasta", "nunca", "historia"}  # fmt: skip
+
+
+def _content_words(text) -> list[str]:
+    plain = unicodedata.normalize("NFD", str(text or "").lower())
+    plain = "".join(ch for ch in plain if unicodedata.category(ch) != "Mn")
+    words = re.findall(r"[a-zñ0-9]+", plain)
+    return [w for w in words if (len(w) >= 4 or w.isdigit()) and w not in TITLE_SKIP]
+
+
+def title_repeat(text: str, title: str) -> dict:
+    """¿El texto de la miniatura repite el título? Título y miniatura se ven juntos: si
+    dicen lo mismo, se desperdicia la miniatura. Avisa si repite 2 palabras del título o
+    si todo lo que dice ya está en el título. `ok` es None si no hay con qué comparar
+    (sin título o con un texto sin palabras largas, como «¡YA!»)."""
+    mine = list(dict.fromkeys(_content_words(text)))
+    in_title = set(_content_words(title))
+    if not mine or not in_title:
+        return {"ok": None, "repeated": []}
+    repeated = [w for w in mine if w in in_title]
+    ok = not repeated or (len(repeated) < 2 and len(repeated) < len(mine))
+    return {"ok": ok, "repeated": repeated}
 
 
 # ---------------------------------------------------------------- etapa completa

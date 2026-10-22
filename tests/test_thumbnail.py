@@ -167,3 +167,61 @@ def test_thumbnail_page_shows_mobile_legibility(logged_in, monkeypatch):
         variants = jobs.get_result(db, 1, "thumbnail")["variants"]
     assert all("mobile" in v for v in variants)
     assert "Se lee bien en pequeño" in logged_in.get("/proyectos/1/miniatura").text
+
+
+def test_title_repeat():
+    title = "La caída de Kodak: cómo perdió la cámara digital"
+    assert thumbnail.title_repeat("KODAK 1975", title) == {"ok": True, "repeated": ["kodak"]}
+    assert thumbnail.title_repeat("LO TENÍAN TODO", title) == {"ok": True, "repeated": []}
+    only_brand = thumbnail.title_repeat("¡KODAK!", title)
+    assert not only_brand["ok"] and only_brand["repeated"] == ["kodak"]  # no añade nada
+    twice = thumbnail.title_repeat("Cámara DIGITAL perdida", title)
+    assert not twice["ok"] and twice["repeated"] == ["camara", "digital"]
+    nothing = {"ok": None, "repeated": []}  # sin nada que comparar no se dice «bien»
+    assert thumbnail.title_repeat("", title) == nothing
+    assert thumbnail.title_repeat("¡YA!", title) == nothing
+    assert thumbnail.title_repeat("KODAK", None) == nothing
+    assert thumbnail.title_repeat(None, title) == nothing
+
+
+def test_quality_check_skips_odd_thumbnail_data():
+    from types import SimpleNamespace
+
+    from app.pipeline.monetization import _publish_checks
+
+    project = SimpleNamespace(duration="Largo")
+    for thumb in (
+        {"selected": "0", "variants": [{"text": "KODAK"}]},
+        {"selected": 5, "variants": [{"text": "KODAK"}]},
+        {"selected": 0, "variants": [None]},
+        {"selected": 0},
+    ):
+        checks = _publish_checks(project, {"thumbnail": thumb}, "La caída de Kodak")
+        assert "thumb_title" not in [c["key"] for c in checks]
+
+
+def test_thumbnail_page_and_quality_check_warn_when_text_repeats_the_title(logged_in, monkeypatch):
+    import copy
+
+    from app.models import StageResult
+    from app.pipeline.monetization import project_review
+
+    make_video_project(logged_in, monkeypatch)  # título del vídeo: «Título 0-0»
+    with SessionLocal() as db:
+        row = db.query(StageResult).filter_by(project_id=1, stage="thumbnail").one()
+        data = copy.deepcopy(row.data)
+        data["variants"][0]["text"] = "EL TÍTULO 0"
+        row.data = data
+        db.commit()
+    page = logged_in.get("/proyectos/1/miniatura").text
+    assert "Repite el título (titulo, 0)" in page and "Añade algo al título" in page
+    logged_in.post("/proyectos/1/miniatura/elegir", data={"index": 0})
+    with SessionLocal() as db:
+        project = db.get(jobs.Project, 1)
+        check = next(c for c in project_review(db, project)["checks"] if c["key"] == "thumb_title")
+    assert check["status"] == "warn" and "«titulo»" in check["detail"]
+    logged_in.post("/proyectos/1/miniatura/elegir", data={"index": 1})  # «63.000 millones»
+    with SessionLocal() as db:
+        project = db.get(jobs.Project, 1)
+        check = next(c for c in project_review(db, project)["checks"] if c["key"] == "thumb_title")
+    assert check["status"] == "ok"

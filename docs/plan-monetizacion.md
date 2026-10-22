@@ -136,6 +136,14 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   (uno cada 2–3 días) con recordatorio de JARVIS para subir cada uno.
 - [x] **Recordatorio de comentarios** (0.81.0): dos días después de publicar, JARVIS recuerda
   responder los comentarios y manda los borradores por Telegram.
+- [x] **Miniatura que complementa el título** (0.85.0): título y miniatura se ven juntos;
+  en Miniatura y en el control de calidad, avisar si el texto de la miniatura repite el
+  título en vez de añadir algo (una cifra, una emoción, una pregunta).
+- [ ] **Gancho con un dato concreto**: el control de calidad avisa si la primera frase del
+  guion no tiene nada concreto (una cifra, un año, un nombre o una pregunta) y propone
+  reescribirla con «Otra forma».
+- [ ] **Miniatura floja según el CTR**: si el % de clics que apuntas en Rendimiento es bajo
+  (menos del 3 %) a los 7 días, JARVIS propone cambiar a otra de tus 3 miniaturas.
 - [x] **Descripción que se entiende en la búsqueda** (0.82.0): el control de calidad mira las
   2 primeras líneas de la descripción (lo único que se ve sin «Mostrar más») y avisa si no
   nombran la marca ni lo que la gente busca; en Publicación se ve cómo queda.
