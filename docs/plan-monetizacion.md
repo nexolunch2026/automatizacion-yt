@@ -139,7 +139,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [x] **Miniatura que complementa el título** (0.85.0): título y miniatura se ven juntos;
   en Miniatura y en el control de calidad, avisar si el texto de la miniatura repite el
   título en vez de añadir algo (una cifra, una emoción, una pregunta).
-- [ ] **Gancho con un dato concreto**: el control de calidad avisa si la primera frase del
+- [x] **Gancho con un dato concreto** (0.86.0): el control de calidad avisa si la primera frase del
   guion no tiene nada concreto (una cifra, un año, un nombre o una pregunta) y propone
   reescribirla con «Otra forma».
 - [ ] **Miniatura floja según el CTR**: si el % de clics que apuntas en Rendimiento es bajo

@@ -125,6 +125,59 @@ def farewell_tail(script: dict) -> tuple[float, bool] | None:
     return words / WORDS_PER_SECOND, leads
 
 
+# Palabras que ya son un dato concreto aunque no lleven cifras.
+NUMBER_WORDS = re.compile(
+    r"\b(?:mil|miles|millon|millones|billon|billones|cien|cientos|doble|triple|mitad|"
+    r"dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|veinte|treinta|cuarenta|cincuenta)\b"
+)
+
+
+# Palabras con las que suele empezar una frase: con mayúscula, pero no son nombres.
+OPENERS = {"el", "la", "los", "las", "un", "una", "unos", "unas", "este", "esta", "esto",
+           "estos", "estas", "ese", "esa", "eso", "hoy", "ayer", "nadie", "nada", "todo",
+           "todos", "nunca", "siempre", "hay", "fue", "era", "en", "de", "con", "por",
+           "para", "si", "y", "pero", "cuando", "como", "que", "lo", "le", "se", "su",
+           "sus", "mi", "tu", "imagina", "piensa", "alguna", "algo", "muchos", "pocos",
+           "a", "al", "del", "yo", "tú", "nosotros", "ellos", "dijo", "es"}  # fmt: skip
+NAME = re.compile(r"[A-ZÁÉÍÓÚÑ][\wáéíóúñÁÉÍÓÚÑ]*")
+MIN_WORDS = 3  # «EE.» o «Sr.» sueltos son trozos de una abreviatura, no frases
+
+
+def first_sentence(script: dict) -> str:
+    """La primera frase que oirá el espectador (la del gancho)."""
+    for section in script.get("sections") or []:
+        for paragraph in section.get("paragraphs") or []:
+            found = sentences(str(paragraph.get("text") or ""))
+            if found:
+                first = found[0]
+                for rest in found[1:]:  # abreviaturas («EE. UU.»): se junta con lo siguiente
+                    if len(first.split()) >= MIN_WORDS:
+                        break
+                    first += " " + rest
+                return first
+    return ""
+
+
+def is_concrete(sentence: str) -> bool:
+    """¿La frase tiene algo concreto? Una cifra, un año, dinero o un nombre propio. Las
+    frases vagas («Esta es una historia increíble») no enganchan, y una pregunta solo
+    engancha si también es concreta («¿Cómo perdió Kodak 30.000 millones?»)."""
+    if re.search(r"\d|[€$%]", sentence) or NUMBER_WORDS.search(_plain(sentence)):
+        return True
+    for match in NAME.finditer(sentence):
+        word = match.group()
+        before = sentence[: match.start()].rstrip()
+        if word.isupper() and len(word) >= 2:  # siglas: IBM, BBVA, SEAT
+            return True
+        if before and before[-1] in '«"“:—¡¿(-.!?':
+            continue  # mayúscula por empezar cita o frase, no por ser un nombre
+        if not before and _plain(word) in OPENERS:
+            continue  # primera palabra corriente («Esta», «Hoy»…)
+        if len(word) >= 2:
+            return True
+    return False
+
+
 def _mmss(seconds: float) -> str:
     return f"{int(seconds // 60)}:{int(seconds % 60):02d}"
 
@@ -499,6 +552,27 @@ def _audience_checks(results: dict) -> list[dict]:
                 ""
                 if good
                 else "Empieza con lo más intrigante, sin saludar ni decir «en este vídeo».",
+                "guion",
+            )
+        )
+
+    opening = first_sentence(script) if script else ""
+    if opening:
+        concrete = is_concrete(opening)
+        checks.append(
+            _check(
+                "hook_fact",
+                "audience",
+                OK if concrete else WARN,
+                "La primera frase tiene un dato concreto"
+                if concrete
+                else "La primera frase es vaga",
+                f"Primera frase: «{opening[:160]}». Una cifra, un año o un nombre enganchan "
+                "más que una frase general.",
+                ""
+                if concrete
+                else "Cambia la primera frase del guion por el dato más sorprendente de la "
+                "historia (o pulsa «Otra forma» en ese párrafo).",
                 "guion",
             )
         )

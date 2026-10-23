@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (23 de octubre de 2026: la primera frase)
+
+- [Give me 15 mins, and I'll make your hooks impossible to skip](https://www.youtube.com/watch?v=2byPP_9F0-Q)
+  — cómo escribir ganchos que no se saltan: va con el aviso nuevo de la primera frase.
+- [The best YouTube intro according to 63 audience retention graphs](https://www.youtube.com/watch?v=s1jmSon6Z4w)
+  — qué principio funciona mejor, mirando 63 gráficas de retención reales.
+- [Your YouTube Hooks Are Losing Viewers in 15 Seconds (Fix This First)](https://www.youtube.com/watch?v=lbl4fy7dH0A)
+  — por qué se va la gente en los primeros 15 segundos y cómo evitarlo.
+
 ## Nuevos (22 de octubre de 2026: título y miniatura juntos)
 
 - [Titles & Thumbnails](https://www.youtube.com/watch?v=ubFTkoJkNX4)

@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-23 — Versión 0.86: la primera frase engancha con un dato
+
+- La **primera frase** del vídeo decide si la gente se queda. Una cifra, un año o un nombre
+  (la marca) enganchan mucho más que «Esta es una historia increíble». Una pregunta solo
+  cuenta si también es concreta («¿Cómo perdió Kodak 30.000 millones?»).
+- El **control de calidad** ahora mira la primera frase del guion y avisa ⚠️ **«La primera
+  frase es vaga»** si no tiene nada concreto, y te la enseña.
+- Arreglo: cambia esa frase por el dato más sorprendente de la historia (o pulsa «Otra
+  forma» en ese párrafo del **Guion**).
+- Los guiones nuevos ya empiezan así: Gemini pone algo concreto en la primera frase.
+
 ## 2026-10-22 — Versión 0.85: la miniatura añade algo al título
 
 - En YouTube, el **título y la miniatura se ven juntos**. Si dicen lo mismo, se desperdicia

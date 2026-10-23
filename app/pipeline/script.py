@@ -264,7 +264,8 @@ RULES = """Reglas:
 # Lo que hacen los mejores canales de documentales faceless en cada parte del vídeo.
 SECTION_GUIDES = {
     "hook": "Estructura del gancho (los primeros 30 s deciden si se quedan): 1) una frase "
-    "inesperada que meta al espectador en el momento de más tensión; 2) qué está en juego, "
+    "inesperada que meta al espectador en el momento de más tensión, y que ya lleve algo "
+    "concreto (una cifra, un año, un nombre o una pregunta); 2) qué está en juego, "
     "con un dato concreto; 3) una promesa: algo que solo descubrirá si se queda hasta el final.",
     "promise": "Di en una o dos frases qué va a entender el espectador al terminar. Nada de "
     "«suscríbete» aquí.",
