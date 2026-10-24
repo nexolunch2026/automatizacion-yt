@@ -597,6 +597,75 @@ def comment_reminders(db: Session, now: datetime | None = None) -> list[Reply]:
     ]
 
 
+CTR_LOW = 3.0  # menos del 3 % de clics: la miniatura (o el título) no convence
+CTR_AFTER = timedelta(days=7)  # antes, el CTR aún baila mucho
+CTR_MAX_PER_RUN = 2  # la primera vez puede haber varios vídeos: no mandarlos todos de golpe
+
+
+def _ctr_reply(db: Session, video) -> Reply:
+    project = db.get(Project, video.project_id) if video.project_id else None
+    ctr = f"{video.ctr:.1f}".replace(".", ",")
+    text = (
+        f"🖼️ El CTR que apuntaste de «{escape(video.title or 'tu vídeo')}» es del "
+        f"<b>{ctr} %</b>: de cada 100 personas que ven la miniatura, menos de 3 hacen clic. "
+        "Suele querer decir que la miniatura (o el título) no convence.\nCambiar la miniatura "
+        "es lo más rápido para conseguir más clics: en YouTube Studio → Contenido → el vídeo "
+        "→ Miniatura, sube otra."
+    )
+    if project is None:
+        return Reply(text)
+    thumbs = jobs.get_result(db, project.id, "thumbnail") or {}
+    folder = project_dir(project.id) / "miniaturas"
+    files = [
+        v for v in thumbs.get("variants") or [] if v.get("file") and (folder / v["file"]).exists()
+    ]
+    if files:
+        text += f" Aquí tienes tus {len(files)} para elegir otra:"
+        buttons = [[(f"🖼️ Ver mis {len(files)} miniaturas", f"thumbs:{project.id}")]]
+    else:
+        text += " Si quieres, te hago 3 nuevas:"
+        buttons = [[("🔄 Hacer 3 miniaturas", f"rethumb:{project.id}")]]
+    return Reply(text, buttons=buttons)
+
+
+def ctr_alerts(db: Session, now: datetime | None = None) -> list[Reply]:
+    """Si un vídeo de 7 días o más tiene el CTR bajo (lo apuntas en Rendimiento), JARVIS
+    propone cambiar la miniatura por otra de las 3. Una vez por vídeo."""
+    from app.models import Video
+
+    now = now or datetime.now()
+    if not linked_chats(db):
+        return []
+    try:
+        last = datetime.fromisoformat(get_setting(db, "ctr_checked") or "")
+    except ValueError:
+        last = None
+    if last and now - last < timedelta(hours=1):
+        return []
+    set_setting(db, "ctr_checked", now.isoformat(timespec="minutes"))
+    alerted = list(_json_setting(db, "ctr_alerted", []))
+    done = set(alerted)
+    replies, sent = [], []
+    for video in db.scalars(select(Video).where(Video.ctr.is_not(None))):
+        when = _published_at(video)
+        if video.video_id in done or when is None or video.ctr >= CTR_LOW:
+            continue
+        if now - when < CTR_AFTER:
+            continue
+        try:  # se prepara el mensaje antes de apuntarlo: si falla, se intenta otra hora
+            replies.append(_ctr_reply(db, video))
+        except Exception:
+            log.exception("No se pudo preparar el aviso de CTR de %s", video.video_id)
+            db.rollback()
+            continue
+        sent.append(video.video_id)
+        if len(sent) >= CTR_MAX_PER_RUN:
+            break  # los demás, en la próxima vuelta (cada hora)
+    if sent:
+        _save_json(db, "ctr_alerted", [*alerted, *sent][-500:])
+    return replies
+
+
 def comment_drafts_reply(db: Session, video_id: str = "") -> list[Reply]:
     """Lee los comentarios (si hay clave y Gemini) y manda los borradores de respuesta.
     Si no se pueden leer ahora, lo dice y avisa de la fecha de los borradores guardados."""
@@ -2308,6 +2377,7 @@ def tick(db: Session, now: datetime | None = None) -> list[Reply]:
         lambda: sunday_summary(db, now),
         lambda: rising_alerts(db, now),
         lambda: comment_reminders(db, now),
+        lambda: ctr_alerts(db, now),
         lambda: autopilot_tick(db, now),
     ]
     replies: list[Reply] = []

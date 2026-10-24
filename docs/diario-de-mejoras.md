@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-24 — Versión 0.87: JARVIS avisa si la miniatura no convence
+
+- El **CTR** es cuántas personas de cada 100 hacen clic al ver tu miniatura. Lo copias de
+  YouTube Studio en **Rendimiento**.
+- Si un vídeo lleva **7 días o más** y su CTR es **menor del 3 %**, JARVIS te escribe por
+  **Telegram**: cambiar la miniatura es lo más rápido para conseguir más clics.
+- El mensaje trae el botón **«🖼️ Ver mis 3 miniaturas»** para elegir otra (o **«🔄 Hacer 3
+  miniaturas»** si ese vídeo aún no tenía). Luego súbela tú en YouTube Studio → Contenido →
+  el vídeo → Miniatura.
+- Avisa **una vez por vídeo** (como mucho 2 avisos cada hora) y nunca cambia nada en
+  YouTube por su cuenta.
+
 ## 2026-10-23 — Versión 0.86: la primera frase engancha con un dato
 
 - La **primera frase** del vídeo decide si la gente se queda. Una cifra, un año o un nombre

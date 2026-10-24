@@ -142,7 +142,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [x] **Gancho con un dato concreto** (0.86.0): el control de calidad avisa si la primera frase del
   guion no tiene nada concreto (una cifra, un año, un nombre o una pregunta) y propone
   reescribirla con «Otra forma».
-- [ ] **Miniatura floja según el CTR**: si el % de clics que apuntas en Rendimiento es bajo
+- [x] **Miniatura floja según el CTR** (0.87.0): si el % de clics que apuntas en Rendimiento es bajo
   (menos del 3 %) a los 7 días, JARVIS propone cambiar a otra de tus 3 miniaturas.
 - [x] **Descripción que se entiende en la búsqueda** (0.82.0): el control de calidad mira las
   2 primeras líneas de la descripción (lo único que se ve sin «Mostrar más») y avisa si no

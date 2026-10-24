@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (24 de octubre de 2026: el CTR y la miniatura)
+
+- [5 YouTube Thumbnail Rules to Boost Click-Through Rate (CTR)](https://www.youtube.com/watch?v=TdWo2LBQGz8)
+  — cinco reglas de miniatura para que más gente haga clic: va con el aviso nuevo de JARVIS.
+- [Why Your Click-Through Rate Sucks and How to Fix It](https://www.youtube.com/watch?v=z_ta-I0NSoo)
+  — por qué el CTR sale bajo y qué cambiar primero.
+- [Exposing YouTube’s BIGGEST lie: Click Through Rate](https://www.youtube.com/watch?v=jlFDJ4sWIZM)
+  — por qué un CTR bajo no siempre es malo: ayuda a no agobiarse con la cifra.
+
 ## Nuevos (23 de octubre de 2026: la primera frase)
 
 - [Give me 15 mins, and I'll make your hooks impossible to skip](https://www.youtube.com/watch?v=2byPP_9F0-Q)
