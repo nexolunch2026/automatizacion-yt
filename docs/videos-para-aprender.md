@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (25 de octubre de 2026: el ritmo de la narración)
+
+- [The Documentary Narration Structure Every Voice Actor Needs to Know](https://www.youtube.com/watch?v=bOpe5eSgzbc)
+  — cómo se narra un documental (no se lee todo igual): ayuda a escribir para la voz.
+- [How to do Voice Overs - Pacing Techniques](https://www.youtube.com/watch?v=dqAcFx3YLj0)
+  — técnicas de ritmo: cuándo ir más deprisa y cuándo frenar. Va con el aviso nuevo.
+- [Marking Up Scripts for Audio Narration [Voice Over]](https://www.youtube.com/watch?v=lyca2Dw6Jxk)
+  — cómo marcar el guion (pausas, palabras fuertes) para que la narración suene mejor.
+
 ## Nuevos (24 de octubre de 2026: el CTR y la miniatura)
 
 - [5 YouTube Thumbnail Rules to Boost Click-Through Rate (CTR)](https://www.youtube.com/watch?v=TdWo2LBQGz8)

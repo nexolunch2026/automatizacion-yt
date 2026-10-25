@@ -178,6 +178,63 @@ def is_concrete(sentence: str) -> bool:
     return False
 
 
+PACE_SLOW = 120  # menos de 120 palabras por minuto: suena lento y la gente se aburre
+PACE_FAST = 190  # más de 190: cuesta seguir la historia (lo normal en documental, 140–170;
+# las voces sin silencios de sobra van algo más rápidas, por eso el margen)
+PACE_MIN_SECONDS = 20  # con menos narración grabada, la cifra no dice nada
+
+
+SPEED_ORDER = ["Rápida", "Normal", "Lenta"]  # de más deprisa a más despacio (Voz)
+
+
+def voice_pace(script: dict, voice: dict) -> int | None:
+    """Palabras por minuto de la narración grabada. Solo cuentan las grabaciones que siguen
+    al día (mismo texto, voz y velocidad: si cambiaste un párrafo y no lo regrabaste, no
+    cuenta). None si no hay bastante grabado al día para saberlo, o si la voz es inglesa
+    (estas cifras son para narración en español)."""
+    from app.pipeline.voice import take_key
+
+    if not isinstance(voice, dict) or str(voice.get("voice") or "").startswith("en_"):
+        return None
+    texts = {
+        p.get("id"): str(p.get("text") or "")
+        for section in script.get("sections") or []
+        if isinstance(section, dict)
+        for p in section.get("paragraphs") or []
+        if isinstance(p, dict) and isinstance(p.get("id"), str)
+    }
+    name, speed, model = voice.get("voice") or "", voice.get("speed") or "", voice.get("model")
+    total_words, seconds = 0, 0.0
+    for take in voice.get("takes") or []:
+        if not isinstance(take, dict) or not isinstance(take.get("paragraph_id"), str):
+            continue
+        text = texts.get(take["paragraph_id"])
+        if text is None or take.get("key") != take_key(text, name, speed, model or ""):
+            continue  # párrafo borrado o cambiado después de grabar
+        try:
+            take_seconds = float(take.get("seconds") or 0)
+        except (TypeError, ValueError):
+            continue
+        if take_seconds > 0:
+            total_words += len(text.split())
+            seconds += take_seconds
+    if seconds < PACE_MIN_SECONDS or not total_words:
+        return None
+    return round(total_words / seconds * 60)
+
+
+def pace_fix(pace: int, speed: str) -> str:
+    """Qué hacer si la voz va muy deprisa o muy lenta, según la velocidad que ya tiene."""
+    step = 1 if pace > PACE_FAST else -1  # deprisa: hacia «Lenta»; lenta: hacia «Rápida»
+    current = SPEED_ORDER.index(speed) if speed in SPEED_ORDER else 1
+    target = current + step
+    if 0 <= target < len(SPEED_ORDER):
+        return f"En Voz, elige la velocidad «{SPEED_ORDER[target]}» y vuelve a grabar."
+    if step > 0:
+        return "Ya está en «Lenta»: parte las frases largas del guion para que respire más."
+    return "Ya está en «Rápida»: quita frases de relleno del guion para darle más ritmo."
+
+
 def _mmss(seconds: float) -> str:
     return f"{int(seconds // 60)}:{int(seconds % 60):02d}"
 
@@ -642,6 +699,31 @@ def _audience_checks(results: dict) -> list[dict]:
                 else "Deja la despedida en una frase y termina con la que lleva a otro vídeo "
                 "(en Publicación → Pantalla final tienes la frase lista).",
                 "guion",
+            )
+        )
+
+    voice_data = results.get("voice") or {}
+    pace = voice_pace(script, voice_data) if script else None
+    if pace is not None:
+        speed = voice_data.get("speed") or ""
+        if pace > PACE_FAST:
+            status, title = WARN, f"La voz va deprisa: {pace} palabras por minuto"
+            fix = pace_fix(pace, speed)
+        elif pace < PACE_SLOW:
+            status, title = WARN, f"La voz va lenta: {pace} palabras por minuto"
+            fix = pace_fix(pace, speed)
+        else:
+            status, title, fix = OK, f"Ritmo de la voz: {pace} palabras por minuto", ""
+        checks.append(
+            _check(
+                "pace_voice",
+                "audience",
+                status,
+                title,
+                "En documental suena natural entre 140 y 170 palabras por minuto: mucho "
+                "más rápido cuesta seguirlo y mucho más lento aburre.",
+                fix,
+                "voz",
             )
         )
 

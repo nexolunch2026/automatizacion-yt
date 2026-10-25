@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-25 — Versión 0.88: el ritmo de la voz
+
+- Una narración demasiado **deprisa** cuesta seguirla; demasiado **lenta**, aburre. En
+  documental suena natural entre **140 y 170 palabras por minuto**.
+- El **control de calidad** ahora mide la voz que ya grabaste y te dice a cuántas palabras
+  por minuto va (✅ si está bien). Solo cuenta lo grabado con el texto actual: si cambiaste
+  un párrafo y no lo regrabaste, ese no se mide.
+- Si va muy deprisa (más de 190) o muy lenta (menos de 120), sale ⚠️ con el arreglo: en
+  **Voz**, te dice qué velocidad elegir («Lenta», «Normal» o «Rápida») según la que ya
+  tienes; si ya está al límite, te dice qué cambiar en el guion.
+- Ideas nuevas en la lista: «Subtítulos que se leen en el móvil» y «¿Qué miniatura ganó?».
+
 ## 2026-10-24 — Versión 0.87: JARVIS avisa si la miniatura no convence
 
 - El **CTR** es cuántas personas de cada 100 hacen clic al ver tu miniatura. Lo copias de
