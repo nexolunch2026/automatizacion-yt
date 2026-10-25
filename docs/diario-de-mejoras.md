@@ -2,6 +2,28 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-25 — Versión 0.88.1: radar de historias
+
+Tres historias nuevas y recientes en el **banco de historias** (pídeselas a JARVIS con
+«banco de ideas»):
+
+- **Getty Images** (Mundo, ascenso y caída): el gran archivo de fotos entró en quiebra el
+  21 de octubre con unos 1.460 millones de dólares de deuda (y la IA como telón de fondo).
+- **Inside** (España, ascenso y caída): la cadena de moda murciana pidió concurso en enero
+  con 69 millones de deuda; ahora hay una oferta para salvar 184 tiendas.
+- **TV Azteca** (Latinoamérica, investigación): la televisora de Salinas Pliego, en concurso
+  mercantil desde julio, con pelea con sus acreedores en tres países.
+
+Fuentes: [Getty, SEC](https://www.sec.gov/Archives/edgar/data/0001898496/000121390026111193/ea030922501ex99-1.htm),
+[Reuters vía GV Wire](https://gvwire.com/2026/10/21/getty-images-files-for-us-bankruptcy-advances-restructuring-plan/),
+[Bloomberg](https://bloomberg.com/news/articles/2026-10-21/getty-files-for-bankruptcy-in-process-that-will-take-it-private),
+[Modaes](https://www.modaes.com/empresas/inside-abre-etapa-strong-capital-and-founds-rescata-la-empresa-con-una-oferta-vinculante),
+[Lexpress Franchise](https://lexpress-franchise.com/es/ultimas-noticias/inside-oferta-compra-para-sacarla-concurso-acreedores-strong-capital/),
+[Atlántico Hoy](https://www.atlanticohoy.com/empresas/inside-busca-comprador-cadena-ropa-presente-en-canarias-encara-oferta-474-millones_1568929_102.html),
+[Expansión](https://expansion.mx/empresas/2026/07/07/tv-azteca-es-declarada-oficialmente-concurso-mercantil),
+[El Imparcial](https://www.elimparcial.com/dinero/2026/07/07/jueza-declara-a-tv-azteca-de-ricardo-salinas-pliego-en-concurso-mercantil-tendra-hasta-365-dias-para-evitar-la-quiebra/),
+[La Jornada](https://www.jornada.com.mx/noticia/2026/09/24/politica/filiales-de-tv-azteca-presentan-demandan-de-concurso-mercantil).
+
 ## 2026-10-25 — Versión 0.88: el ritmo de la voz
 
 - Una narración demasiado **deprisa** cuesta seguirla; demasiado **lenta**, aburre. En

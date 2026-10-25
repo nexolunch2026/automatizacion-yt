@@ -540,6 +540,24 @@ IDEAS: list[dict] = [
         "region": "Mundo",
         "hook": "En 2026 se declaró en quiebra y Disney ofreció 20 millones por una licencia.",
     },
+    {
+        "topic": "Getty Images: el gran archivo de fotos que se quedó sin dinero",
+        "format": "auge_caida",
+        "region": "Mundo",
+        "hook": "En octubre de 2026 entró en quiebra con unos 1.460 millones de dólares de deuda.",
+    },
+    {
+        "topic": "Inside: la cadena de moda murciana que acabó en concurso de acreedores",
+        "format": "auge_caida",
+        "region": "España",
+        "hook": "Pidió el concurso en enero de 2026 con 69 millones de euros de deuda.",
+    },
+    {
+        "topic": "TV Azteca: la televisora de Salinas Pliego en concurso mercantil",
+        "format": "investigacion",
+        "region": "Latinoamérica",
+        "hook": "En julio de 2026 una jueza la declaró en concurso mercantil por su deuda.",
+    },
 ]
 
 
