@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (26 de octubre de 2026: subtítulos)
+
+- [How To Upload SRT File to Youtube Video](https://www.youtube.com/watch?v=VEnTjASjGlw)
+  — cómo subir a YouTube el archivo de subtítulos (.srt) que hace el programa.
+- [How to Add Subtitles to a YouTube Video in 2026](https://www.youtube.com/watch?v=ZQjZqQjtpz0)
+  — guía actual para añadir subtítulos en YouTube Studio.
+- [How to upload subtitles to YouTube videos - SubRip Subtitle files (SRT)](https://www.youtube.com/watch?v=120YHSw6GLY)
+  — paso a paso con archivos .srt, por si el anterior no te queda claro.
+
 ## Nuevos (25 de octubre de 2026: el ritmo de la narración)
 
 - [The Documentary Narration Structure Every Voice Actor Needs to Know](https://www.youtube.com/watch?v=bOpe5eSgzbc)

@@ -413,23 +413,109 @@ def _timestamp(seconds: float) -> str:
     return f"{h:02}:{m:02}:{s:02},{ms:03}"
 
 
-def build_srt(segments: list[tuple[str, float, float]], max_words: int = 10) -> str:
-    """Subtítulos a partir de (texto, inicio, fin) de cada párrafo, en trozos cortos
-    repartidos según el número de palabras."""
-    entries, n = [], 1
+SRT_LINE_CHARS = 42  # más letras por línea no caben bien en el móvil
+SRT_MAX_LINES = 2
+SRT_MAX_CPS = 20  # letras por segundo: más deprisa no da tiempo a leerlo
+
+
+SRT_MIN_SECONDS = 1.0  # un trozo más corto casi no se ve: se junta con el siguiente
+CLOSERS = "\"'»”’)]"  # comillas o paréntesis de cierre tras el punto: «fin.»
+
+
+def _two_lines(text: str) -> str:
+    """Parte el texto en dos líneas que quepan (42 letras), lo más parecidas posible."""
+    if len(text) <= SRT_LINE_CHARS:
+        return text
+    middle = len(text) // 2
+    spaces = [i for i, ch in enumerate(text) if ch == " "]
+    if not spaces:
+        return text
+    fit = [i for i in spaces if i <= SRT_LINE_CHARS and len(text) - i - 1 <= SRT_LINE_CHARS]
+    cut = min(fit or spaces, key=lambda i: abs(i - middle))
+    return f"{text[:cut]}\n{text[cut + 1 :]}"
+
+
+def _fits(words: list[tuple[str, float, float]]) -> bool:
+    """¿Caben estas palabras en 2 líneas de 42 letras?"""
+    text = " ".join(word for word, _, _ in words)
+    return all(len(line) <= SRT_LINE_CHARS for line in _two_lines(text).split("\n"))
+
+
+def _cues(text: str, start: float, end: float) -> list[list[tuple[str, float, float]]]:
+    """Agrupa las palabras de un párrafo en trozos de subtítulo que se leen bien."""
+    cues: list[list[tuple[str, float, float]]] = []
+    cue: list[tuple[str, float, float]] = []
+    for item in word_times(text, start, end):
+        if cue and not _fits([*cue, item]):
+            cues.append(cue)
+            cue = []
+        cue.append(item)
+        last = item[0].rstrip(CLOSERS)[-1:] or item[0][-1]
+        length = len(" ".join(word for word, _, _ in cue))
+        if last in ".!?…" or (last in ",;:" and length >= SRT_LINE_CHARS):
+            cues.append(cue)  # mejor cortar donde la voz hace una pausa
+            cue = []
+    if cue:
+        cues.append(cue)
+    merged: list[list[tuple[str, float, float]]] = []
+    for cue in cues:  # «Sí.» suelto pasa en un suspiro: se junta con lo siguiente
+        if merged and merged[-1][-1][2] - merged[-1][0][1] < SRT_MIN_SECONDS:
+            if _fits(merged[-1] + cue):
+                merged[-1] = merged[-1] + cue
+                continue
+        merged.append(cue)
+    return merged
+
+
+def build_srt(segments: list[tuple[str, float, float]]) -> str:
+    """Subtítulos a partir de (texto, inicio, fin) de cada párrafo: trozos de hasta 2 líneas
+    de 42 letras (lo que se lee bien en el móvil), cortando mejor donde hay un punto o una
+    coma, y con el tiempo de cada palabra según su longitud."""
+    entries, previous_end = [], 0.0
     for text, start, end in segments:
-        words = text.split()
-        if not words:
-            continue
-        chunks = [words[i : i + max_words] for i in range(0, len(words), max_words)]
-        per_word = (end - start) / len(words)
-        t = start
-        for chunk in chunks:
-            t_end = t + per_word * len(chunk)
-            entries.append(f"{n}\n{_timestamp(t)} --> {_timestamp(t_end)}\n{' '.join(chunk)}\n")
-            n += 1
-            t = t_end
+        for cue in _cues(text, start, end):
+            begin = max(cue[0][1], previous_end)  # nunca hacia atrás ni encima del anterior
+            finish = max(cue[-1][2], begin + 0.001)
+            previous_end = finish
+            line = _two_lines(" ".join(word for word, _, _ in cue))
+            stamp = f"{_timestamp(begin)} --> {_timestamp(finish)}"
+            entries.append(f"{len(entries) + 1}\n{stamp}\n{line}\n")
     return "\n".join(entries)
+
+
+def srt_problems(text: str) -> dict:
+    """Trozos de los subtítulos difíciles de leer en el móvil: líneas largas, más de 2
+    líneas, demasiado rápidos o dañados (sin tiempos o sin texto).
+    {"cues": total, "long": n, "fast": n, "broken": n, "hard": n}, donde «hard» son los
+    trozos con algún problema (sin contar dos veces)."""
+    cues = long = fast = broken = hard = 0
+    for block in re.split(r"\n\s*\n", text.strip()):
+        lines = block.strip().splitlines()
+        if not lines:
+            continue
+        cues += 1
+        times = lines[1] if len(lines) > 1 else ""
+        body = lines[2:]
+        try:
+            begin, finish = (_seconds(t.strip()) for t in times.split("-->"))
+        except ValueError:
+            begin = finish = None
+        if begin is None or finish is None or finish <= begin or not body:
+            broken += 1
+            hard += 1
+            continue
+        too_long = len(body) > SRT_MAX_LINES or any(len(line) > SRT_LINE_CHARS for line in body)
+        chars = sum(len(line) for line in body)
+        too_fast = chars / (finish - begin) > SRT_MAX_CPS
+        long += too_long
+        fast += too_fast
+        hard += too_long or too_fast
+    return {"cues": cues, "long": long, "fast": fast, "broken": broken, "hard": hard}
+
+
+def _seconds(stamp: str) -> float:
+    h, m, rest = stamp.replace(",", ".").split(":")
+    return int(h) * 3600 + int(m) * 60 + float(rest)
 
 
 def word_times(text: str, start: float, end: float) -> list[tuple[str, float, float]]:

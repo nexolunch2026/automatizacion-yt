@@ -138,7 +138,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   responder los comentarios y manda los borradores por Telegram.
 - [x] **Ritmo de la voz** (0.88.0): el control de calidad mide las palabras por minuto de
   la narración grabada y avisa si va demasiado deprisa o demasiado lenta.
-- [ ] **Subtítulos que se leen en el móvil**: avisar si alguna línea de los subtítulos es
+- [x] **Subtítulos que se leen en el móvil** (0.89.0): avisar si alguna línea de los subtítulos es
   demasiado larga o pasa demasiado rápido para leerla, y partirla mejor al montar.
 - [ ] **¿Qué miniatura ganó?**: dos semanas después de publicar, JARVIS recuerda mirar en
   YouTube Studio el resultado de «Probar y comparar» y apuntar la ganadora (para aprender qué

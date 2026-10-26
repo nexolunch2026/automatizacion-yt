@@ -73,6 +73,19 @@
 {% endif %}
 {% endfor %}
 
+{% if srt_check and srt_check.error %}
+<p class="alert">📝 No pude leer el archivo de subtítulos para comprobarlo (quizá lo tiene
+  abierto otro programa). Vuelve a montar el vídeo si al subirlo YouTube da error.</p>
+{% elif srt_check and srt_check.cues %}
+{% set hard = srt_check.hard %}
+<p class="{{ 'alert' if hard else 'alert ok' }}">📝 Subtítulos (.srt para YouTube):
+  {% if hard %}{{ hard }} de {{ srt_check.cues }} trozos se leen mal en el móvil
+  ({% set parts = [] %}{% if srt_check.long %}{% set _ = parts.append(srt_check.long ~ ' demasiado largos') %}{% endif %}{% if srt_check.fast %}{% set _ = parts.append(srt_check.fast ~ ' pasan muy deprisa') %}{% endif %}{% if srt_check.broken %}{% set _ = parts.append(srt_check.broken ~ ' dañados') %}{% endif %}{{ parts|join(', ') }}).
+  {% if srt_check.long or srt_check.broken %}Vuelve a montar el vídeo: ahora se parten en trozos de 2 líneas cortas.{% endif %}
+  {% if srt_check.fast %}Si pasan deprisa, la voz va rápida: mira «Ritmo de la voz» en el control de calidad.{% endif %}
+  {% else %}se leen bien en el móvil (2 líneas cortas como mucho).{% endif %}</p>
+{% endif %}
+
 
 <div class="card" id="musica">
   <h2>Biblioteca de música</h2>

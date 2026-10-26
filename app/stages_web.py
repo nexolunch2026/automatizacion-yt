@@ -1,6 +1,7 @@
 """Páginas de cada etapa del proyecto: investigación, estrategia y guion."""
 
 import copy
+import logging
 import re
 from pathlib import Path
 from typing import Annotated
@@ -18,7 +19,7 @@ from app.pipeline.ab_test import ab_plan
 from app.pipeline.humanize import script_issues
 from app.pipeline.monetization import AREAS, chosen_title, project_review, title_brands
 from app.pipeline.render import AUTO as AUTO_LOOK
-from app.pipeline.render import LOOKS, MUSIC_VOLUMES
+from app.pipeline.render import LOOKS, MUSIC_VOLUMES, srt_problems
 from app.pipeline.script import (
     AUTO,
     FORMATS,
@@ -36,6 +37,7 @@ from app.providers.voice import ELEVEN_MODELS, SPEEDS, VOICE_IDS, VOICES, Eleven
 from app.settings_store import api_key_hint, get_api_key
 from app.templating import render
 
+log = logging.getLogger(__name__)
 router = APIRouter(prefix="/proyectos/{project_id}")
 
 # Dirección de cada etapa en la web.
@@ -630,6 +632,17 @@ def play_music(db: DB, user: CurrentUser, project_id: int, name: str):
     return FileResponse(MUSIC_DIR / name)
 
 
+def _srt_check(path: Path) -> dict | None:
+    """Cómo se leen en el móvil los subtítulos del último montaje (None si no hay)."""
+    if not path.exists():
+        return None
+    try:
+        return srt_problems(path.read_text(encoding="utf-8-sig"))
+    except (OSError, UnicodeDecodeError):  # bloqueado (antivirus, OneDrive) o dañado
+        log.warning("No se pudieron leer los subtítulos %s", path, exc_info=True)
+        return {"error": True}
+
+
 @router.get("/video")
 def video_page(request: Request, db: DB, user: CurrentUser, project_id: int):
     project = _project(db, project_id)
@@ -649,6 +662,7 @@ def video_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         looks=LOOKS,
         has_ai_images=any(e.get("ai") for e in visuals.get("items", {}).values()),
         has_srt=(folder / "subtitulos.srt").exists(),
+        srt_check=_srt_check(folder / "subtitulos.srt"),
         has_credits=(folder / "creditos.txt").exists()
         and (folder / "creditos.txt").read_text(encoding="utf-8").strip() != "",
     )

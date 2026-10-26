@@ -289,9 +289,53 @@ def test_render_refuses_when_script_changed(produced):
 
 
 def test_build_srt_splits_long_paragraphs():
-    srt = build_srt([("uno dos tres cuatro", 0.0, 4.0)], max_words=2)
-    assert "00:00:00,000 --> 00:00:02,000\nuno dos" in srt
-    assert "00:00:02,000 --> 00:00:04,000\ntres cuatro" in srt
+    from app.pipeline.render import srt_problems
+
+    text = (
+        "Kodak inventó la cámara digital en 1975, pero la escondió en un cajón durante años "
+        "porque temía que acabara con su negocio de carretes. Al final, eso la hundió."
+    )
+    srt = build_srt([(text, 0.0, 10.0)])
+    cues = [block.splitlines() for block in srt.strip().split("\n\n")]
+    assert cues[0][1].startswith("00:00:00,000 --> ") and cues[-1][1].endswith("00:00:10,000")
+    for cue in cues:
+        assert len(cue) <= 4 and all(len(line) <= 42 for line in cue[2:])  # 2 líneas cortas
+    assert any(cue[-1].endswith("carretes.") for cue in cues)  # corta en el punto
+    assert srt_problems(srt)["hard"] == 0
+    assert build_srt([("", 0.0, 1.0)]) == ""
+
+
+def test_srt_lines_always_fit_and_short_cues_merge():
+    from app.pipeline.render import _two_lines, srt_problems
+
+    text = "a" * 39 + " " + "b" * 9 + " " + "c" * 34  # no cabe en 2 líneas de 42
+    srt = build_srt([(text, 0.0, 30.0)])
+    assert srt_problems(srt)["long"] == 0  # se parte en más trozos
+    assert _two_lines("a" * 30 + " " + "b" * 20) == "a" * 30 + "\n" + "b" * 20
+    srt = build_srt([("Sí. Kodak dudó durante años antes de decidir nada.", 0.0, 4.0)])
+    first = srt.split("\n\n")[0].splitlines()
+    assert first[2].startswith("Sí. Kodak")  # «Sí.» solo pasaría en un suspiro
+    quoted = build_srt([("Dijo «fin.» Y se fue de la empresa para siempre jamás.", 0.0, 20.0)])
+    assert quoted.split("\n\n")[0].splitlines()[2] == "Dijo «fin.»"
+    overlapping = build_srt([("Uno dos tres.", 0.0, 2.0), ("Cuatro cinco seis.", 1.0, 3.0)])
+    assert srt_problems(overlapping)["broken"] == 0
+    assert "00:00:02,000 --> 00:00:03,000" in overlapping  # no empieza antes del anterior
+
+
+def test_srt_problems_finds_long_and_fast_cues():
+    from app.pipeline.render import srt_problems
+
+    old = (
+        "1\n00:00:00,000 --> 00:00:01,000\n"
+        "Esta línea es demasiado larga para leerla bien en el móvil de un vistazo\n\n"
+        "2\n00:00:01,000 --> 00:00:04,000\nCorta\n\nbasura"
+    )
+    found = srt_problems(old)
+    assert (found["cues"], found["long"], found["fast"], found["hard"]) == (3, 1, 1, 2)
+    assert found["broken"] == 1  # «basura»: dañado, no «bien»
+    assert srt_problems("")["cues"] == 0
+    bad_time = "1\n00:00:00 --> nada\nHola\n"
+    assert srt_problems(bad_time) == {"cues": 1, "long": 0, "fast": 0, "broken": 1, "hard": 1}
 
 
 def test_stock_key_settings(logged_in, monkeypatch):
@@ -305,3 +349,15 @@ def test_stock_key_settings(logged_in, monkeypatch):
     monkeypatch.setattr(settings_web, "check_stock_key", reject)
     r = logged_in.post("/configuracion/stock/pixabay", data={"api_key": "mala"})
     assert r.status_code == 400 and "no es válida" in r.text
+
+
+def test_video_page_says_how_subtitles_read_on_mobile(with_script):  # noqa: F811
+    folder = project_dir(1) / "video"
+    folder.mkdir(parents=True, exist_ok=True)
+    old = "1\n00:00:00,000 --> 00:00:01,000\n" + "palabra " * 12 + "\n"
+    (folder / "subtitulos.srt").write_text(old, encoding="utf-8")
+    page = with_script.get("/proyectos/1/video").text
+    assert "1 de 1 trozos se leen mal en el móvil" in page and "Vuelve a montar" in page
+    good = build_srt([("Kodak inventó la cámara digital en 1975.", 0.0, 4.0)])
+    (folder / "subtitulos.srt").write_text(good, encoding="utf-8")
+    assert "se leen bien en el móvil" in with_script.get("/proyectos/1/video").text

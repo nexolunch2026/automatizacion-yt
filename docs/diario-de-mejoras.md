@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-26 — Versión 0.89: subtítulos que se leen en el móvil
+
+- El archivo de **subtítulos (.srt)** que subes a YouTube ahora se hace en trozos de **2
+  líneas cortas como mucho** (lo que cabe bien en el móvil), cortando donde la voz hace
+  una pausa (en los puntos y las comas).
+- Cada trozo dura lo que tarda la voz en decirlo, palabra a palabra, así no se adelanta
+  ni se atrasa.
+- En la página **Vídeo**, debajo del vídeo, sale 📝 si los subtítulos se leen bien o
+  cuántos trozos se leen mal (demasiado largos o muy deprisa).
+- Si tienes un vídeo montado antes de esta versión, **vuelve a montarlo** para que sus
+  subtítulos salgan con el formato nuevo.
+
 ## 2026-10-25 — Versión 0.88.1: radar de historias
 
 Tres historias nuevas y recientes en el **banco de historias** (pídeselas a JARVIS con
