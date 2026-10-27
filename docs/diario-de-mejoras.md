@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-27 — Versión 0.90: ¿qué miniatura ganó?
+
+- «**Probar y comparar**» de YouTube Studio prueba tus 3 miniaturas unas dos semanas y te
+  dice cuál gana.
+- **Dos semanas después** de publicar, JARVIS te escribe por **Telegram** con las 3
+  miniaturas y te pregunta cuál ganó. Pulsa **«🏆 La 1/2/3»** (o **«🤷 No lo probé»**).
+- Con dos o más apuntadas, JARVIS te dice **qué estilo gana en tu canal** (dónde va el
+  texto y si lleva una cifra), para hacer las próximas así.
+- Avisa una vez por vídeo y solo si el vídeo tiene 2 o 3 miniaturas para comparar.
+- Ideas nuevas: la lista ya está hecha; la próxima noche se añaden otras 3.
+
 ## 2026-10-26 — Versión 0.89: subtítulos que se leen en el móvil
 
 - El archivo de **subtítulos (.srt)** que subes a YouTube ahora se hace en trozos de **2

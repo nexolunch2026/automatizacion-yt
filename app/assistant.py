@@ -666,6 +666,107 @@ def ctr_alerts(db: Session, now: datetime | None = None) -> list[Reply]:
     return replies
 
 
+AB_AFTER = timedelta(days=14)  # «Probar y comparar» dura hasta 14 días
+AB_UNTIL = timedelta(days=21)  # pasadas 3 semanas ya no se recuerda
+
+
+def ab_reminders(db: Session, now: datetime | None = None) -> list[Reply]:
+    """Dos semanas después de publicar, recuerda mirar qué miniatura ganó en «Probar y
+    comparar» y apuntarla con un botón (una vez por vídeo)."""
+    from app import thumb_wins
+    from app.models import Video
+
+    now = now or datetime.now()
+    if not linked_chats(db):
+        return []
+    try:
+        last = datetime.fromisoformat(get_setting(db, "ab_checked") or "")
+    except ValueError:
+        last = None
+    if last and now - last < timedelta(hours=1):
+        return []
+    set_setting(db, "ab_checked", now.isoformat(timespec="minutes"))
+    reminded = list(_json_setting(db, "ab_reminded", []))
+    done = set(reminded) | set(thumb_wins.winners(db))
+    pending = dict(_json_setting(db, "ab_pending", {}))  # cómo eran al preguntar
+    replies, sent = [], []
+    for video in db.scalars(select(Video).where(Video.project_id.is_not(None))):
+        when = _published_at(video)
+        if video.video_id in done or when is None or not AB_AFTER <= now - when <= AB_UNTIL:
+            continue
+        thumbs = jobs.get_result(db, video.project_id, "thumbnail") or {}
+        variants = [v for v in thumbs.get("variants") or [] if isinstance(v, dict)][:3]
+        if len(variants) < 2:
+            continue  # con una sola miniatura no hay nada que comparar
+        folder = project_dir(video.project_id) / "miniaturas"
+        photos = [folder / v["file"] for v in variants if (folder / v.get("file", "")).is_file()]
+        texts = "\n".join(
+            f"{n}. «{escape(v.get('text') or '')}»" for n, v in enumerate(variants, 1)
+        )
+        replies.append(
+            Reply(
+                "🏆 Ya pasaron dos semanas desde que publicaste "
+                f"«{escape(video.title or 'tu vídeo')}». Si usaste <b>Probar y comparar</b>, "
+                "YouTube Studio ya dice qué miniatura ganó (Contenido → el vídeo → Probar y "
+                "comparar). ¿Cuál fue?\n" + texts,
+                photos=photos if len(photos) == len(variants) else [],
+                buttons=[
+                    [
+                        (f"🏆 La {n}", f"abwin:{video.video_id}:{n}")
+                        for n in range(1, len(variants) + 1)
+                    ],
+                    [("🤷 No lo probé", f"abwin:{video.video_id}:0")],
+                ],
+            )
+        )
+        sent.append(video.video_id)
+        pending[video.video_id] = [
+            {"text": str(v.get("text") or ""), "layout": str(v.get("layout") or "")}
+            for v in variants
+        ]
+    if sent:
+        _save_json(db, "ab_reminded", [*reminded, *sent][-500:])
+        _save_json(db, "ab_pending", dict(list(pending.items())[-100:]))
+    return replies
+
+
+def ab_winner_reply(db: Session, rest: str) -> list[Reply]:
+    """Botón «🏆 La n»: apunta la miniatura ganadora y dice qué estilo gana en el canal."""
+    from app import thumb_wins
+    from app.models import Video
+
+    video_id, _, number = rest.rpartition(":")
+    video = db.get(Video, video_id) if video_id else None
+    if video is None or not (number.isascii() and number.isdigit()):
+        return [Reply("Ese vídeo ya no está en Rendimiento.")]
+    n = int(number)
+    # Las miniaturas tal como eran al preguntar (si se rehicieron después, la «2» es otra).
+    shown = _json_setting(db, "ab_pending", {}).get(video.video_id)
+    if isinstance(shown, list) and all(isinstance(v, dict) for v in shown):
+        variants = shown
+    else:
+        thumbs = (
+            (jobs.get_result(db, video.project_id, "thumbnail") or {}) if video.project_id else {}
+        )
+        variants = [v for v in thumbs.get("variants") or [] if isinstance(v, dict)][:3]
+    if n > len(variants):
+        return [Reply("Esa miniatura ya no existe (quizá se volvieron a hacer).")]
+    thumb_wins.record(db, video.video_id, n, variants[n - 1] if n else None)
+    if not n:
+        return [Reply("👍 Apuntado. La próxima vez prueba las 3 en «Probar y comparar».")]
+    lesson = thumb_wins.lesson(db)
+    return [
+        Reply(
+            f"🏆 Apuntado: ganó la {n} («{escape(variants[n - 1].get('text') or '')}»)."
+            + (
+                f"\n📈 {escape(lesson)}"
+                if lesson
+                else "\nCon dos o tres más ya verás qué estilo gana."
+            )
+        )
+    ]
+
+
 def comment_drafts_reply(db: Session, video_id: str = "") -> list[Reply]:
     """Lee los comentarios (si hay clave y Gemini) y manda los borradores de respuesta.
     Si no se pueden leer ahora, lo dice y avisa de la fecha de los borradores guardados."""
@@ -1939,6 +2040,8 @@ def _button(db: Session, data: str) -> list[Reply]:
         return [monetization_reply(db)]
     if kind == "syscheck":
         return [system_check_reply(db)]
+    if kind == "abwin":
+        return ab_winner_reply(db, rest)
     if kind == "comments":
         return comment_drafts_reply(db, rest)
     if kind == "shortup":
@@ -2378,6 +2481,7 @@ def tick(db: Session, now: datetime | None = None) -> list[Reply]:
         lambda: rising_alerts(db, now),
         lambda: comment_reminders(db, now),
         lambda: ctr_alerts(db, now),
+        lambda: ab_reminders(db, now),
         lambda: autopilot_tick(db, now),
     ]
     replies: list[Reply] = []

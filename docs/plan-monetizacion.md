@@ -140,7 +140,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   la narración grabada y avisa si va demasiado deprisa o demasiado lenta.
 - [x] **Subtítulos que se leen en el móvil** (0.89.0): avisar si alguna línea de los subtítulos es
   demasiado larga o pasa demasiado rápido para leerla, y partirla mejor al montar.
-- [ ] **¿Qué miniatura ganó?**: dos semanas después de publicar, JARVIS recuerda mirar en
+- [x] **¿Qué miniatura ganó?** (0.90.0): dos semanas después de publicar, JARVIS recuerda mirar en
   YouTube Studio el resultado de «Probar y comparar» y apuntar la ganadora (para aprender qué
   estilo funciona en tu canal).
 - [x] **Miniatura que complementa el título** (0.85.0): título y miniatura se ven juntos;

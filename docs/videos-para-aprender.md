@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (27 de octubre de 2026: probar miniaturas)
+
+- [How To Setup a YouTube A/B Thumbnail Test (Step by Step)](https://www.youtube.com/watch?v=BQOLnmUFFFE)
+  — cómo poner las 3 miniaturas en «Probar y comparar», paso a paso.
+- [How to See Youtube Thumbnail Test Results (Step by Step)](https://www.youtube.com/watch?v=mFvWDS5b0bU)
+  — dónde ver qué miniatura ganó: justo lo que te pregunta JARVIS a las dos semanas.
+- [YouTube Thumbnail Test and Compare Tutorial](https://www.youtube.com/watch?v=_n23Y1kwSoA)
+  — tutorial corto de la herramienta, por si quieres verlo todo junto.
+
 ## Nuevos (26 de octubre de 2026: subtítulos)
 
 - [How To Upload SRT File to Youtube Video](https://www.youtube.com/watch?v=VEnTjASjGlw)
