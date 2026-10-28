@@ -136,6 +136,15 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   (uno cada 2–3 días) con recordatorio de JARVIS para subir cada uno.
 - [x] **Recordatorio de comentarios** (0.81.0): dos días después de publicar, JARVIS recuerda
   responder los comentarios y manda los borradores por Telegram.
+- [x] **Miniaturas que aprenden de las ganadoras** (0.91.0): al hacer miniaturas nuevas,
+  usar lo que ganó en «Probar y comparar» (cifras o solo palabras) y turnar la posición del
+  texto entre vídeos para que la prueba sea justa.
+- [ ] **Tarjeta a mitad del vídeo**: en Publicación, en qué minuto poner una tarjeta de
+  YouTube que lleve a otro vídeo tuyo (cuando el guion habla de algo parecido) y con qué
+  texto.
+- [ ] **Título y miniatura aptos para anunciantes**: el control de calidad también revisa
+  palabras delicadas en el título, la descripción y el texto de la miniatura (no solo en el
+  guion), porque es lo primero que mira YouTube.
 - [x] **Ritmo de la voz** (0.88.0): el control de calidad mide las palabras por minuto de
   la narración grabada y avisa si va demasiado deprisa o demasiado lenta.
 - [x] **Subtítulos que se leen en el móvil** (0.89.0): avisar si alguna línea de los subtítulos es

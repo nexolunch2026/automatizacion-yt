@@ -362,6 +362,7 @@ def _run_publish(db: Session, project: Project, progress, params: dict) -> dict:
 
 
 def _run_thumbnail(db: Session, project: Project, progress, params: dict) -> dict:
+    from app import thumb_wins
     from app.pipeline.thumbnail import run_thumbnail
 
     script = _require(db, project, "script", "Primero hay que escribir el guion.")
@@ -370,6 +371,11 @@ def _run_thumbnail(db: Session, project: Project, progress, params: dict) -> dic
     except ProviderError:
         ai = None  # sin Gemini también se pueden hacer, con textos sencillos
     use_ai_image = params.get("ai_image", True) and not params.get("texts")
+    try:  # lo que ganó en «Probar y comparar»: es una ayuda, si falla se hacen igual
+        hint = thumb_wins.prompt_hint(db)
+    except Exception:
+        log.warning("No se pudo leer qué miniaturas ganaron", exc_info=True)
+        hint = ""
     folder = project_dir(project.id)
     data = run_thumbnail(
         project,
@@ -383,6 +389,8 @@ def _run_thumbnail(db: Session, project: Project, progress, params: dict) -> dic
         images=get_image_providers(db) if use_ai_image else None,
         texts=params.get("texts"),
         portrait=is_portrait(project),
+        hint=hint,
+        rotate=project.id - 1,  # turna la posición del texto entre proyectos
     )
     if ai is not None:
         remember_working_model(db, ai)

@@ -2,6 +2,19 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-28 — Versión 0.91: las miniaturas aprenden de las que ganaron
+
+- Cuando apuntas en JARVIS qué miniatura ganó en «Probar y comparar», el programa ya lo
+  **usa al hacer las miniaturas nuevas**.
+- Si en tu canal suelen ganar las miniaturas **con una cifra** (o **solo con palabras**),
+  Gemini lo sabe y escribe así al menos dos de los tres textos.
+- La **posición del texto** (izquierda, abajo o centro) ahora se **turna** entre vídeos, para
+  que en «Probar y comparar» no gane siempre la misma solo por ir en la primera miniatura.
+  Así lo que te dice JARVIS sobre la posición es de fiar.
+- Hace falta tener al menos **2 ganadoras apuntadas**; antes de eso todo sigue igual.
+- Ideas nuevas en la lista: «Tarjeta a mitad del vídeo» y «Título y miniatura aptos para
+  anunciantes».
+
 ## 2026-10-27 — Versión 0.90: ¿qué miniatura ganó?
 
 - «**Probar y comparar**» de YouTube Studio prueba tus 3 miniaturas unas dos semanas y te

@@ -98,3 +98,68 @@ def test_lesson_needs_two_winners_and_finds_the_style(logged_in):
 
         assert get_setting(db, thumb_wins.KEY + "_danado") == "roto"
         assert list(thumb_wins.winners(db)) == ["f"]
+
+
+def test_new_thumbnails_learn_from_the_winners(logged_in, monkeypatch):
+    from tests.test_thumbnail import make_video_project
+
+    seen = []
+    real_prompt = __import__("app.pipeline.thumbnail", fromlist=["_prompt"])._prompt
+
+    def spy(project, strategy, script, hint=""):
+        seen.append(hint)
+        return real_prompt(project, strategy, script, hint)
+
+    monkeypatch.setattr("app.pipeline.thumbnail._prompt", spy)
+    with SessionLocal() as db:
+        assert thumb_wins.prompt_hint(db) == "" and thumb_wins.preference(db)["layout"] == ""
+        thumb_wins.record(db, "a", 2, VARIANTS[1])  # «1975», abajo
+        thumb_wins.record(db, "b", 2, {"text": "63.000 MILLONES", "layout": "bottom"})
+        assert "con una cifra" in thumb_wins.prompt_hint(db)
+        assert thumb_wins.preference(db)["layout"] == "bottom"
+    make_video_project(logged_in, monkeypatch)  # hace las miniaturas con lo aprendido
+    assert seen and "con una cifra" in seen[-1]
+    with SessionLocal() as db:
+        from app import jobs
+
+        data = jobs.get_result(db, 1, "thumbnail")
+    # La posición se turna por proyecto (no va primero la ganadora): el 1 empieza igual.
+    assert [v["layout"] for v in data["variants"]] == ["left", "bottom", "center"]
+
+
+def test_layouts_rotate_by_project_and_bad_data_does_not_break(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from app.pipeline import thumbnail
+
+    monkeypatch.setattr(thumbnail, "compose", lambda *a, **k: None)
+    project = SimpleNamespace(title="T", language="español", channel=None)
+    texts = [{"text": "UNO", "highlight": "UNO"}] * 3
+
+    def layouts(rotate, portrait=False):
+        data = thumbnail.run_thumbnail(project, {}, {"title": "T"}, {"items": {}}, tmp_path,
+                                       tmp_path / "m", None, lambda *a: None, texts=texts,
+                                       rotate=rotate, portrait=portrait)  # fmt: skip
+        return [v["layout"] for v in data["variants"]]
+
+    assert layouts(0) == ["left", "bottom", "center"]
+    assert layouts(2) == ["center", "left", "bottom"]
+    assert layouts(0, portrait=True) == ["bottom", "bottom", "center"]  # lo que se dibuja
+    with SessionLocal() as db:
+        set_setting(db, thumb_wins.KEY, '{"a": {"n": 1, "layout": ["x"]}, "b": {"n": 2}}')
+        assert thumb_wins.preference(db)["layout"] == ""
+
+
+def test_words_only_hint():
+    from types import SimpleNamespace
+
+    from app.pipeline.thumbnail import _prompt
+
+    with SessionLocal() as db:
+        thumb_wins.record(db, "a", 1, {"text": "EL FIN", "layout": "left"})
+        thumb_wins.record(db, "b", 3, {"text": "¿POR QUÉ?", "layout": "center"})
+        hint = thumb_wins.prompt_hint(db)
+    assert "solo con palabras" in hint
+    project = SimpleNamespace(title="T", language="español", channel=None)
+    assert hint in _prompt(project, {}, {"title": "T"}, hint)
+    assert "suelen ganar" not in _prompt(project, {}, {"title": "T"})

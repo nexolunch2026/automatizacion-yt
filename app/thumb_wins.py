@@ -59,24 +59,60 @@ def record(db: Session, video_id: str, n: int, variant: dict | None) -> None:
     set_setting(db, KEY, json.dumps(data, ensure_ascii=False))
 
 
-def lesson(db: Session) -> str:
-    """Qué estilo de miniatura suele ganar en el canal, o "" si aún hay pocas apuntadas."""
+def preference(db: Session) -> dict:
+    """Lo que suele ganar: {"count", "layout" (o ""), "layout_times", "number" (True, False
+    o None si no hay mayoría), "numbers"}. Solo cuenta con 2 o más ganadoras."""
     won = [w for w in winners(db).values() if w.get("n")]
+    found = {"count": len(won), "layout": "", "layout_times": 0, "number": None, "numbers": 0}
     if len(won) < MIN_FOR_LESSON:
-        return ""
+        return found
     layouts: dict[str, int] = {}
     for w in won:
-        if w.get("layout") in LAYOUT_NAMES:
+        if isinstance(w.get("layout"), str) and w["layout"] in LAYOUT_NAMES:
             layouts[w["layout"]] = layouts.get(w["layout"], 0) + 1
     layout, times = max(layouts.items(), key=lambda item: item[1]) if layouts else ("", 0)
-    parts = []
     if times > len(won) / 2:
-        parts.append(f"{times} de {len(won)} ganadoras llevan el {LAYOUT_NAMES[layout]}")
+        found |= {"layout": layout, "layout_times": times}
     numbers = sum(1 for w in won if w.get("number"))
+    found["numbers"] = numbers
     if numbers > len(won) / 2:
-        parts.append(f"{numbers} de {len(won)} llevan una cifra")
+        found["number"] = True
     elif numbers == 0:
+        found["number"] = False
+    return found
+
+
+def lesson(db: Session) -> str:
+    """Qué estilo de miniatura suele ganar en el canal, o "" si aún hay pocas apuntadas."""
+    found = preference(db)
+    won = found["count"]
+    if won < MIN_FOR_LESSON:
+        return ""
+    parts = []
+    if found["layout"]:
+        parts.append(
+            f"{found['layout_times']} de {won} ganadoras llevan el {LAYOUT_NAMES[found['layout']]}"
+        )
+    if found["number"] is True:
+        parts.append(f"{found['numbers']} de {won} llevan una cifra")
+    elif found["number"] is False:
         parts.append("ninguna lleva cifras: en tu canal ganan las palabras")
     if not parts:
-        return f"Llevas {len(won)} ganadoras apuntadas y aún no se repite un estilo claro."
+        return f"Llevas {won} ganadoras apuntadas y aún no se repite un estilo claro."
     return "En tu canal, " + " y ".join(parts) + "."
+
+
+def prompt_hint(db: Session) -> str:
+    """Una frase para Gemini al escribir los textos de las miniaturas ("" si no se sabe)."""
+    found = preference(db)
+    if found["number"] is True:
+        return (
+            "En este canal suelen ganar las miniaturas con una cifra: que al menos dos de "
+            "los textos lleven una cifra o un año real del guion."
+        )
+    if found["number"] is False:
+        return (
+            "En este canal suelen ganar las miniaturas solo con palabras (sin cifras): que "
+            "al menos dos de los textos sean solo palabras."
+        )
+    return ""

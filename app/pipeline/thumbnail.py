@@ -40,7 +40,7 @@ class ThumbTexts(BaseModel):
 # ---------------------------------------------------------------- textos
 
 
-def _prompt(project: Project, strategy: dict, script: dict) -> str:
+def _prompt(project: Project, strategy: dict, script: dict, hint: str = "") -> str:
     concept = {}
     if strategy and strategy.get("selected"):
         concept = strategy["concepts"][strategy["selected"]["concept"]]
@@ -57,7 +57,9 @@ Escribe 3 textos DISTINTOS para la miniatura:
   no dice.
 - Uno con una cifra o un año si el tema lo permite (solo si es real y está en el guion).
 - Honestos: nada que el vídeo no cuente.
-- Indica en «highlight» la palabra que irá en rojo (la más fuerte)."""
+- Indica en «highlight» la palabra que irá en rojo (la más fuerte).""" + (
+        f"\n- {hint}" if hint else ""
+    )
 
 
 def fallback_texts(project: Project, strategy: dict, script: dict) -> list[ThumbText]:
@@ -75,11 +77,13 @@ def fallback_texts(project: Project, strategy: dict, script: dict) -> list[Thumb
     return texts
 
 
-def make_texts(project: Project, strategy: dict, script: dict, ai: AIProvider | None) -> list:
+def make_texts(
+    project: Project, strategy: dict, script: dict, ai: AIProvider | None, hint: str = ""
+) -> list:
     texts: list[ThumbText] = []
     if ai is not None:
         try:
-            texts = ai.generate_json(_prompt(project, strategy, script), ThumbTexts).texts
+            texts = ai.generate_json(_prompt(project, strategy, script, hint), ThumbTexts).texts
         except ProviderError:
             texts = []
     texts = [t for t in texts if t.text.strip()][:3]
@@ -358,7 +362,12 @@ def run_thumbnail(
     images=None,
     texts: list[dict] | None = None,
     portrait: bool = False,
+    hint: str = "",
+    rotate: int = 0,
 ) -> dict:
+    """`hint`: lo que suele ganar en el canal (para Gemini). `rotate`: cuánto se turnan las
+    posiciones del texto (izquierda, abajo, centro) entre proyectos, para que en «Probar y
+    comparar» no gane siempre la misma posición solo por ir en la primera miniatura."""
     progress(10, "Eligiendo las imágenes más llamativas del vídeo")
     size = PORTRAIT if portrait else LANDSCAPE
     backgrounds: list[Path | None] = list(candidate_images(visuals, visuals_folder))
@@ -386,10 +395,12 @@ def run_thumbnail(
         while len(chosen) < 3:
             chosen.append(chosen[-1])
     else:
-        chosen = make_texts(project, strategy, script, ai)
+        chosen = make_texts(project, strategy, script, ai, hint)
 
     variants = []
-    for i, (layout, text) in enumerate(zip(LAYOUTS, chosen, strict=False)):
+    shift = rotate % len(LAYOUTS)
+    layouts = LAYOUTS[shift:] + LAYOUTS[:shift]
+    for i, (layout, text) in enumerate(zip(layouts, chosen, strict=False)):
         progress(65 + i * 10, f"Componiendo la miniatura {i + 1} de 3")
         background = backgrounds[i % len(backgrounds)]
         name = f"miniatura-{i + 1}.jpg"
@@ -400,7 +411,7 @@ def run_thumbnail(
                 "file": name,
                 "text": text.text,
                 "highlight": text.highlight,
-                "layout": layout,
+                "layout": "bottom" if portrait and layout == "left" else layout,  # lo dibujado
                 "source": sources[i % len(sources)],
                 "mobile": mobile_check(text.text, drawn.get("font_ratio", 0), portrait),
             }

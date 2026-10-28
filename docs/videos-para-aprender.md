@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (28 de octubre de 2026: miniaturas de documental)
+
+- [Your thumbnail has 2 seconds... or it fails](https://www.youtube.com/watch?v=wPWzpBh6cwc)
+  — la miniatura tiene 2 segundos para convencer: qué mirar para que se entienda al vuelo.
+- [Create a VIRAL Documentary Thumbnail in Photoshop](https://www.youtube.com/watch?v=UyEh-bRVJLE)
+  — cómo se hace una miniatura de documental que llama la atención (sirve la idea aunque no uses Photoshop).
+- [How to Make Crime Documentary Thumbnails (Step-by-Step)](https://www.youtube.com/watch?v=diLifUYwth4)
+  — miniaturas oscuras y con intriga, como las de caídas y escándalos de marcas.
+
 ## Nuevos (27 de octubre de 2026: probar miniaturas)
 
 - [How To Setup a YouTube A/B Thumbnail Test (Step by Step)](https://www.youtube.com/watch?v=BQOLnmUFFFE)
