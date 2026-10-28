@@ -2,6 +2,22 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-28 — Versión 0.91.1: revisión de salud
+
+Revisión de los cambios de la semana (0.85 a 0.91) con los revisores de errores escondidos,
+de Python y de seguridad. Seguridad: todo bien. Se arreglaron tres fallos:
+
+- **«¿Qué miniatura ganó?»**: si rehacías las miniaturas **después de publicar** (por
+  ejemplo con el botón del aviso de CTR), JARVIS preguntaba por las nuevas, aunque YouTube
+  había probado las de antes, y se apuntaba una ganadora equivocada. Ahora en ese caso no
+  pregunta.
+- Un vídeo con datos raros en sus miniaturas **frenaba los avisos de todos los demás**.
+  Ahora se salta solo ese, y llegan como mucho 2 avisos cada hora.
+- **«La primera frase es vaga»** no salía con frases como «Aquel día todo cambió» o «Hace
+  años, nadie imaginaba…». Ahora sí; la marca del título al empezar («Kodak inventó…») sigue
+  contando como dato concreto.
+- Los avisos de CodeQL de GitHub siguen sin poder leerse desde aquí (GitHub no da permiso).
+
 ## 2026-10-28 — Versión 0.91: las miniaturas aprenden de las que ganaron
 
 - Cuando apuntas en JARVIS qué miniatura ganó en «Probar y comparar», el programa ya lo

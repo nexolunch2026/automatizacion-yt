@@ -22,7 +22,9 @@ def setup(db, days_ago=15, vid="kodak"):
     folder.mkdir(parents=True, exist_ok=True)
     for v in VARIANTS:
         (folder / v["file"]).write_bytes(b"jpg")
-    db.add(StageResult(project_id=1, stage="thumbnail", data={"variants": VARIANTS}))
+    made = NOW - timedelta(days=days_ago + 1)  # las miniaturas se hicieron antes de publicar
+    db.add(StageResult(project_id=1, stage="thumbnail", data={"variants": VARIANTS},
+                       updated_at=made))  # fmt: skip
     published = (NOW - timedelta(days=days_ago)).strftime("%Y-%m-%d")
     db.add(Video(video_id=vid, title="La caída de Kodak", published=published, project_id=1))
     db.commit()
@@ -163,3 +165,38 @@ def test_words_only_hint():
     project = SimpleNamespace(title="T", language="español", channel=None)
     assert hint in _prompt(project, {}, {"title": "T"}, hint)
     assert "suelen ganar" not in _prompt(project, {}, {"title": "T"})
+
+
+def test_thumbnails_remade_after_publishing_are_not_asked(logged_in, ai):  # noqa: F811
+    make_project(logged_in, "manual")
+    with SessionLocal() as db:
+        setup(db)
+        row = db.query(StageResult).filter_by(project_id=1, stage="thumbnail").one()
+        row.updated_at = NOW - timedelta(days=3)  # rehechas tras publicar (botón del CTR)
+        db.commit()
+        set_setting(db, "telegram_chats", '[{"id": 1, "name": "Simón"}]')
+        assert assistant.ab_reminders(db, NOW) == []  # YouTube probó otras: no se pregunta
+        assert assistant.ab_reminders(db, NOW + timedelta(hours=2)) == []  # ni se repite
+
+
+def test_one_broken_video_does_not_stop_the_others_and_two_per_run(logged_in, ai):  # noqa: F811
+    from tests.test_projects import project_data
+
+    make_project(logged_in, "manual")
+    for _ in range(3):
+        logged_in.post("/proyectos/nuevo", data=project_data(automation_mode="manual"))
+    with SessionLocal() as db:
+        setup(db)  # proyecto 1, vídeo «kodak»
+        published = (NOW - timedelta(days=15)).strftime("%Y-%m-%d")
+        made = NOW - timedelta(days=16)
+        for pid in (2, 3, 4):
+            data = {"variants": VARIANTS if pid != 2 else [{"file": None, "text": None}] * 2}
+            db.add(StageResult(project_id=pid, stage="thumbnail", data=data, updated_at=made))
+            db.add(Video(video_id=f"v{pid}", title=f"V{pid}", published=published,
+                         project_id=pid))  # fmt: skip
+        db.commit()
+        set_setting(db, "telegram_chats", '[{"id": 1, "name": "Simón"}]')
+        first_run = assistant.ab_reminders(db, NOW)
+        assert len(first_run) == 2  # como mucho 2 por vuelta
+        later = assistant.ab_reminders(db, NOW + timedelta(hours=2))
+        assert len(first_run) + len(later) == 4  # también el de datos raros (sin fotos)

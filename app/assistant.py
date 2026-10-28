@@ -35,7 +35,7 @@ from app import (
     yt_research,
 )
 from app.media import project_dir
-from app.models import DURATIONS, STAGES, Channel, Job, Project, User
+from app.models import DURATIONS, STAGES, Channel, Job, Project, StageResult, User
 from app.pipeline.monetization import project_review, summary_text
 from app.pipeline.render import run_ffmpeg
 from app.pipeline.script import guess_format
@@ -670,6 +670,48 @@ AB_AFTER = timedelta(days=14)  # «Probar y comparar» dura hasta 14 días
 AB_UNTIL = timedelta(days=21)  # pasadas 3 semanas ya no se recuerda
 
 
+AB_MAX_PER_RUN = 2  # no mandar muchos de golpe
+
+
+def _ab_reminder(db: Session, video, when: datetime) -> tuple[Reply | None, list[dict]]:
+    """El aviso de un vídeo, o None si no hay nada que preguntar: menos de 2 miniaturas, o
+    se rehicieron después de publicar (YouTube probó las de antes, que ya no están)."""
+    row = db.scalar(
+        select(StageResult).where(
+            StageResult.project_id == video.project_id, StageResult.stage == "thumbnail"
+        )
+    )
+    variants = [v for v in ((row.data if row else None) or {}).get("variants") or []
+                if isinstance(v, dict)][:3]  # fmt: skip
+    if len(variants) < 2:
+        return None, []
+    if row.updated_at:  # SQLite guarda la hora en UTC; «when» va en hora local
+        changed = row.updated_at + (datetime.now().astimezone().utcoffset() or timedelta())
+        if changed > when + timedelta(hours=1):
+            return None, []
+    folder = project_dir(video.project_id) / "miniaturas"
+    files = [str(v.get("file") or "") for v in variants]
+    photos = [folder / f for f in files if f and (folder / f).is_file()]
+    texts = "\n".join(
+        f"{n}. «{escape(str(v.get('text') or ''))}»" for n, v in enumerate(variants, 1)
+    )
+    reply = Reply(
+        "🏆 Ya pasaron dos semanas desde que publicaste "
+        f"«{escape(video.title or 'tu vídeo')}». Si usaste <b>Probar y comparar</b>, "
+        "YouTube Studio ya dice qué miniatura ganó (Contenido → el vídeo → Probar y "
+        "comparar). ¿Cuál fue?\n" + texts,
+        photos=photos if len(photos) == len(variants) else [],
+        buttons=[
+            [(f"🏆 La {n}", f"abwin:{video.video_id}:{n}") for n in range(1, len(variants) + 1)],
+            [("🤷 No lo probé", f"abwin:{video.video_id}:0")],
+        ],
+    )
+    shown = [
+        {"text": str(v.get("text") or ""), "layout": str(v.get("layout") or "")} for v in variants
+    ]
+    return reply, shown
+
+
 def ab_reminders(db: Session, now: datetime | None = None) -> list[Reply]:
     """Dos semanas después de publicar, recuerda mirar qué miniatura ganó en «Probar y
     comparar» y apuntarla con un botón (una vez por vídeo)."""
@@ -694,36 +736,20 @@ def ab_reminders(db: Session, now: datetime | None = None) -> list[Reply]:
         when = _published_at(video)
         if video.video_id in done or when is None or not AB_AFTER <= now - when <= AB_UNTIL:
             continue
-        thumbs = jobs.get_result(db, video.project_id, "thumbnail") or {}
-        variants = [v for v in thumbs.get("variants") or [] if isinstance(v, dict)][:3]
-        if len(variants) < 2:
-            continue  # con una sola miniatura no hay nada que comparar
-        folder = project_dir(video.project_id) / "miniaturas"
-        photos = [folder / v["file"] for v in variants if (folder / v.get("file", "")).is_file()]
-        texts = "\n".join(
-            f"{n}. «{escape(v.get('text') or '')}»" for n, v in enumerate(variants, 1)
-        )
-        replies.append(
-            Reply(
-                "🏆 Ya pasaron dos semanas desde que publicaste "
-                f"«{escape(video.title or 'tu vídeo')}». Si usaste <b>Probar y comparar</b>, "
-                "YouTube Studio ya dice qué miniatura ganó (Contenido → el vídeo → Probar y "
-                "comparar). ¿Cuál fue?\n" + texts,
-                photos=photos if len(photos) == len(variants) else [],
-                buttons=[
-                    [
-                        (f"🏆 La {n}", f"abwin:{video.video_id}:{n}")
-                        for n in range(1, len(variants) + 1)
-                    ],
-                    [("🤷 No lo probé", f"abwin:{video.video_id}:0")],
-                ],
+        try:  # un vídeo con datos raros no puede frenar los avisos de los demás
+            reply, shown = _ab_reminder(db, video, when)
+        except Exception:
+            log.exception(
+                "No se pudo preparar el aviso de miniatura ganadora de %s", video.video_id
             )
-        )
-        sent.append(video.video_id)
-        pending[video.video_id] = [
-            {"text": str(v.get("text") or ""), "layout": str(v.get("layout") or "")}
-            for v in variants
-        ]
+            db.rollback()
+            continue
+        sent.append(video.video_id)  # también si no se pregunta: no se vuelve a mirar
+        if reply is not None:
+            replies.append(reply)
+            pending[video.video_id] = shown
+            if len(replies) >= AB_MAX_PER_RUN:
+                break  # los demás, en la próxima vuelta (cada hora)
     if sent:
         _save_json(db, "ab_reminded", [*reminded, *sent][-500:])
         _save_json(db, "ab_pending", dict(list(pending.items())[-100:]))

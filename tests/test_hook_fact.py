@@ -21,7 +21,6 @@ def check(s):
         "Perdieron miles de millones sin que nadie lo viera.",
         "¿Cómo perdió Kodak la cámara digital?",
         "Un ingeniero de Kodak inventó la cámara digital.",
-        "Kodak inventó la cámara digital y la escondió.",
         "IBM lo tuvo todo.",
         "El 40 % de sus clientes se fue en un mes.",
     ],
@@ -39,10 +38,21 @@ def test_concrete_openings(sentence):
         "¿Alguna vez te has preguntado cómo funciona el mundo?",
         "Dijo: «Nunca más» y se fue.",
         "Esto es increíble, de verdad. ¿Lo sabías?",
+        "Aquel día todo cambió.",
+        "Hace años, nadie imaginaba el desastre.",
+        "Cuenta la leyenda que todo empezó en un garaje.",
     ],
 )
 def test_vague_openings(sentence):
     assert not is_concrete(sentence)
+
+
+def test_brand_from_the_title_counts_as_first_word():
+    assert is_concrete("Kodak inventó la cámara digital y la escondió.", ["kodak"])
+    assert not is_concrete("Kodak inventó la cámara digital y la escondió.")
+    s = script("Kodak lo tenía todo y lo perdió.")
+    s["title"] = "La caída de Kodak"
+    assert check(s)["status"] == "ok"
 
 
 def test_quality_check_warns_on_vague_first_sentence():

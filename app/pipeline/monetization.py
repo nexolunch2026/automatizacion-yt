@@ -132,13 +132,6 @@ NUMBER_WORDS = re.compile(
 )
 
 
-# Palabras con las que suele empezar una frase: con mayúscula, pero no son nombres.
-OPENERS = {"el", "la", "los", "las", "un", "una", "unos", "unas", "este", "esta", "esto",
-           "estos", "estas", "ese", "esa", "eso", "hoy", "ayer", "nadie", "nada", "todo",
-           "todos", "nunca", "siempre", "hay", "fue", "era", "en", "de", "con", "por",
-           "para", "si", "y", "pero", "cuando", "como", "que", "lo", "le", "se", "su",
-           "sus", "mi", "tu", "imagina", "piensa", "alguna", "algo", "muchos", "pocos",
-           "a", "al", "del", "yo", "tú", "nosotros", "ellos", "dijo", "es"}  # fmt: skip
 NAME = re.compile(r"[A-ZÁÉÍÓÚÑ][\wáéíóúñÁÉÍÓÚÑ]*")
 MIN_WORDS = 3  # «EE.» o «Sr.» sueltos son trozos de una abreviatura, no frases
 
@@ -158,10 +151,12 @@ def first_sentence(script: dict) -> str:
     return ""
 
 
-def is_concrete(sentence: str) -> bool:
+def is_concrete(sentence: str, names: list[str] | tuple = ()) -> bool:
     """¿La frase tiene algo concreto? Una cifra, un año, dinero o un nombre propio. Las
     frases vagas («Esta es una historia increíble») no enganchan, y una pregunta solo
-    engancha si también es concreta («¿Cómo perdió Kodak 30.000 millones?»)."""
+    engancha si también es concreta («¿Cómo perdió Kodak 30.000 millones?»). La primera
+    palabra siempre va en mayúscula, así que solo cuenta como nombre si es una sigla o una
+    de `names` (las marcas del título, sin tildes)."""
     if re.search(r"\d|[€$%]", sentence) or NUMBER_WORDS.search(_plain(sentence)):
         return True
     for match in NAME.finditer(sentence):
@@ -171,8 +166,8 @@ def is_concrete(sentence: str) -> bool:
             return True
         if before and before[-1] in '«"“:—¡¿(-.!?':
             continue  # mayúscula por empezar cita o frase, no por ser un nombre
-        if not before and _plain(word) in OPENERS:
-            continue  # primera palabra corriente («Esta», «Hoy»…)
+        if not before and _plain(word) not in names:
+            continue  # «Aquel», «Hace», «Esta»…: mayúscula solo por empezar la frase
         if len(word) >= 2:
             return True
     return False
@@ -615,7 +610,7 @@ def _audience_checks(results: dict) -> list[dict]:
 
     opening = first_sentence(script) if script else ""
     if opening:
-        concrete = is_concrete(opening)
+        concrete = is_concrete(opening, title_brands(script.get("title") or ""))
         checks.append(
             _check(
                 "hook_fact",
