@@ -139,7 +139,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [x] **Miniaturas que aprenden de las ganadoras** (0.91.0): al hacer miniaturas nuevas,
   usar lo que ganó en «Probar y comparar» (cifras o solo palabras) y turnar la posición del
   texto entre vídeos para que la prueba sea justa.
-- [ ] **Tarjeta a mitad del vídeo**: en Publicación, en qué minuto poner una tarjeta de
+- [x] **Tarjeta a mitad del vídeo** (0.92.0): en Publicación, en qué minuto poner una tarjeta de
   YouTube que lleve a otro vídeo tuyo (cuando el guion habla de algo parecido) y con qué
   texto.
 - [ ] **Título y miniatura aptos para anunciantes**: el control de calidad también revisa

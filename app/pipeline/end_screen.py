@@ -68,3 +68,66 @@ def suggest(db: Session, project: Project) -> list[dict]:
         }
         for p in picks
     ]
+
+
+CARD_FROM = 60  # antes del primer minuto, una tarjeta se lleva a la gente demasiado pronto
+CARD_UNTIL = 0.8  # el último 20 % ya lo cubre la pantalla final
+TEASER_CHARS = 30  # YouTube corta el texto de la tarjeta a unos 30 caracteres
+
+
+def _teaser(title: str) -> str:
+    """Texto corto para la tarjeta («Mira también…» si cabe, si no el título recortado)."""
+    if len(title) <= TEASER_CHARS:
+        return title
+    cut = title[: TEASER_CHARS - 1].rsplit(" ", 1)[0]
+    return (cut or title[: TEASER_CHARS - 1]) + "…"
+
+
+def card(db: Session, project: Project, script: dict | None, voice: dict | None) -> dict | None:
+    """En qué minuto poner una tarjeta de YouTube que lleve a otro vídeo tuyo: donde el
+    guion habla de algo parecido a ese vídeo; si no hay nada parecido, a mitad del vídeo
+    con el que más visitas tiene. None si no hay guion o vídeos tuyos publicados."""
+    from app.pipeline.monetization import title_brands
+    from app.pipeline.seo import format_time, paragraph_starts
+
+    if not script or not script.get("sections"):
+        return None
+    videos = [v for v in db.scalars(select(Video)) if v.project_id != project.id and v.title]
+    if not videos:
+        return None
+    starts, total = paragraph_starts(script, voice)
+    texts = {p["id"]: p["text"] for section in script["sections"] for p in section["paragraphs"]}
+    window = [pid for pid, t in starts.items() if CARD_FROM <= t <= total * CARD_UNTIL]
+    if not window:
+        return None  # vídeo demasiado corto para una tarjeta
+    views = _views(db)
+    best = None  # (palabras en común, visitas, párrafo, vídeo, palabras)
+    for pid in window:
+        mine = words(texts.get(pid, ""))
+        for video in videos:
+            shared = mine & words(video.title)
+            # Una sola palabra en común solo vale si es el nombre del título (la marca).
+            related = len(shared) >= 2 or bool(shared & set(title_brands(video.title)))
+            key = (len(shared), views.get(video.video_id, 0))
+            if related and (best is None or key > best[0]):
+                best = (key, pid, video, shared)
+    if best:
+        _, pid, video, shared = best
+        reason = "Ahí el guion habla de " + ", ".join(f"«{w}»" for w in sorted(shared)[:3]) + "."
+    else:
+        video = max(videos, key=lambda v: (views.get(v.video_id, 0), v.published or ""))
+        pid = min(window, key=lambda p: abs(starts[p] - total / 2))
+        reason = (
+            "A mitad del vídeo, con tu vídeo que más visitas tiene."
+            if views.get(video.video_id)
+            else "A mitad del vídeo, con tu vídeo más reciente (aún no hay cifras de visitas)."
+        )
+    recorded = {t.get("paragraph_id") for t in (voice or {}).get("takes") or []}
+    return {
+        "time": format_time(starts[pid]),
+        "exact": bool(texts) and set(texts) <= recorded,  # todos los párrafos grabados
+        "title": video.title,
+        "url": f"https://youtu.be/{video.video_id}",
+        "teaser": _teaser(video.title),
+        "reason": reason,
+    }

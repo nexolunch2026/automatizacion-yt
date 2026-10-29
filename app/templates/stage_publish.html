@@ -120,6 +120,25 @@
   {% endif %}
 </div>
 
+<div class="card" id="tarjeta">
+  <h3>🔗 Tarjeta a mitad del vídeo</h3>
+  {% if card and card.error %}
+  <p class="alert">No pude calcular el minuto de la tarjeta: al guion o a la voz les falta algo.
+    Vuelve a generar la voz y recarga esta página.</p>
+  {% elif card %}
+  <p>En el minuto <strong>{{ card.time }}</strong>{% if not card.exact %} (aproximado: graba la voz para saberlo exacto){% endif %},
+    pon una tarjeta a <a href="{{ card.url }}" target="_blank" rel="noopener"><strong>{{ card.title }}</strong></a>.</p>
+  <p class="muted small">{{ card.reason }}</p>
+  <p class="small">Texto de la tarjeta: <span class="copy-text" id="tarjeta-texto">{{ card.teaser }}</span>
+    <button class="btn small secondary" data-copy="tarjeta-texto">Copiar</button></p>
+  <p class="muted small">En YouTube Studio → Editor → «Tarjetas» → Vídeo: elige ese vídeo, pon el minuto y pega el texto.
+    La gente que se interesa por ese tema pasa a otro vídeo tuyo en vez de irse.</p>
+  {% else %}
+  <p class="muted small">Cuando tengas vídeos publicados (en Rendimiento) y el guion dure más de un par de minutos,
+    aquí te diré en qué minuto poner una tarjeta que lleve a otro vídeo tuyo.</p>
+  {% endif %}
+</div>
+
 <div class="card" id="ab">
   <h3>🧪 Probar y comparar (A/B de títulos y miniaturas)</h3>
   <p class="muted small">YouTube enseña cada opción a una parte del público durante hasta 14 días y se queda

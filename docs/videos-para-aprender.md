@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (29 de octubre de 2026: tarjetas)
+
+- [YouTube Info Cards tutorial (NEW workflow)](https://www.youtube.com/watch?v=PxwXfelj4KI)
+  — cómo poner tarjetas con el YouTube Studio de ahora, y por qué no ponerlas al principio.
+- [How to Add Cards & End Cards to YouTube Videos](https://www.youtube.com/watch?v=VCjeXecLhvY)
+  — tarjetas y pantalla final juntas, paso a paso.
+- [How To Get More Views & Watch Time FAST with YouTube Cards & End Screens.](https://www.youtube.com/watch?v=aiiQ5RWQYzc)
+  — cómo usarlas para que la gente vea más vídeos tuyos seguidos.
+
 ## Nuevos (28 de octubre de 2026: miniaturas de documental)
 
 - [Your thumbnail has 2 seconds... or it fails](https://www.youtube.com/watch?v=wPWzpBh6cwc)

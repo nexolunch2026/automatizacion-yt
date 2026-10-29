@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-29 — Versión 0.92: tarjeta a mitad del vídeo
+
+- Una **tarjeta** de YouTube es el aviso pequeño que sale arriba a la derecha y lleva a
+  otro vídeo. Bien puesta, la gente pasa a otro vídeo tuyo en vez de irse.
+- En **Publicación** hay una sección nueva, **«🔗 Tarjeta a mitad del vídeo»**: te dice
+  en qué **minuto** ponerla y a **qué vídeo tuyo** llevar.
+- Elige el momento en que el guion **habla de algo parecido** a uno de tus vídeos; si no
+  hay ninguno, a mitad del vídeo con el que más visitas tiene. Nunca en el primer minuto.
+- Trae el **texto de la tarjeta** listo para copiar y los pasos en YouTube Studio
+  (Editor → Tarjetas). Si aún no grabaste la voz, el minuto es aproximado.
+
 ## 2026-10-28 — Versión 0.91.1: revisión de salud
 
 Revisión de los cambios de la semana (0.85 a 0.91) con los revisores de errores escondidos,

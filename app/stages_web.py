@@ -693,7 +693,22 @@ def publish_page(request: Request, db: DB, user: CurrentUser, project_id: int):
             jobs.get_result(db, project_id, "thumbnail"),
         ),
         end_screen=end_screen.suggest(db, project),
+        card=_card(db, project),
     )
+
+
+def _card(db, project: Project) -> dict | None:
+    """La tarjeta sugerida; si los datos guardados están a medias, se apunta y se dice."""
+    try:
+        return end_screen.card(
+            db,
+            project,
+            jobs.get_result(db, project.id, "script"),
+            jobs.get_result(db, project.id, "voice"),
+        )
+    except (KeyError, TypeError, ValueError, AttributeError):
+        log.warning("No se pudo calcular la tarjeta del proyecto %s", project.id, exc_info=True)
+        return {"error": True}
 
 
 @router.get("/miniatura")
