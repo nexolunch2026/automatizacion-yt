@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-30 — Versión 0.93: miniatura y textos aptos para anunciantes
+
+- Para los anunciantes, la **miniatura** y los textos de YouTube cuentan tanto como el
+  título. El **control de calidad** ahora también los revisa: el texto de la miniatura
+  elegida, la descripción, las etiquetas, los hashtags y el comentario fijado.
+- Una palabrota o un tema delicado («masacre», «terrorismo»…) en la **miniatura elegida**
+  sale en **rojo**; si aún no elegiste, avisa en amarillo para que elijas otra.
+- En la **descripción, las etiquetas o el comentario fijado**: palabrotas en rojo y temas
+  delicados en amarillo, diciendo **dónde** están. Las fuentes y los enlaces que pone el
+  programa no cuentan.
+- Arreglado: la palabrota «coño» no se detectaba (la «ñ» se convertía en «n»).
+
 ## 2026-10-29 — Versión 0.92: tarjeta a mitad del vídeo
 
 - Una **tarjeta** de YouTube es el aviso pequeño que sale arriba a la derecha y lleva a

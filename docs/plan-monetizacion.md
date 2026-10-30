@@ -142,7 +142,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [x] **Tarjeta a mitad del vídeo** (0.92.0): en Publicación, en qué minuto poner una tarjeta de
   YouTube que lleve a otro vídeo tuyo (cuando el guion habla de algo parecido) y con qué
   texto.
-- [ ] **Título y miniatura aptos para anunciantes**: el control de calidad también revisa
+- [x] **Título y miniatura aptos para anunciantes** (0.93.0): el control de calidad también revisa
   palabras delicadas en el título, la descripción y el texto de la miniatura (no solo en el
   guion), porque es lo primero que mira YouTube.
 - [x] **Ritmo de la voz** (0.88.0): el control de calidad mide las palabras por minuto de

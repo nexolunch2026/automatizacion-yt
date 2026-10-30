@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (30 de octubre de 2026: no perder anuncios)
+
+- [Advertiser-friendly Content Guidelines & Yellow Monetization Icons](https://www.youtube.com/watch?v=shmGG87ZELI)
+  — qué contenido aceptan los anunciantes y qué significa el símbolo amarillo del dólar.
+- [YouTube Yellow Icon Explained](https://www.youtube.com/watch?v=LMbt4HZA5bU)
+  — qué hacer si a un vídeo le sale el símbolo amarillo (anuncios limitados) y cómo pedir revisión.
+- [Your Advertiser Friendly Content Guidelines Profanity Update Questions Answered!](https://www.youtube.com/watch?v=FiyWqkT1uDA)
+  — las palabrotas: dónde quitan anuncios (título, miniatura, principio) y dónde no tanto.
+
 ## Nuevos (29 de octubre de 2026: tarjetas)
 
 - [YouTube Info Cards tutorial (NEW workflow)](https://www.youtube.com/watch?v=PxwXfelj4KI)

@@ -67,8 +67,9 @@ SENSITIVE = {
 
 
 def _plain(text: str) -> str:
-    text = unicodedata.normalize("NFD", text.lower())
-    return "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
+    """Minúsculas y sin tildes, pero con la «ñ» (si no, «coño» sería «cono»)."""
+    text = unicodedata.normalize("NFD", text.lower().replace("ñ", "\0"))
+    return "".join(ch for ch in text if unicodedata.category(ch) != "Mn").replace("\0", "ñ")
 
 
 def _words(text: str) -> list[str]:
@@ -370,6 +371,111 @@ def _ads_checks(project: Project, results: dict, title: str) -> list[dict]:
     elif results.get("script"):
         checks.append(
             _check("friendly", "ads", OK, "Lenguaje apto para anunciantes", "Sin palabrotas.")
+        )
+    checks += _publish_words_check(results)
+    return checks
+
+
+def _as_text(value) -> str:
+    """Texto de un campo que puede ser una lista (etiquetas) o una cadena."""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return " ".join(str(item) for item in value)
+    return ""
+
+
+def _own_description(description: str) -> str:
+    """La descripción sin lo que añade el programa (las fuentes y los enlaces)."""
+    text = description.split("📚 Fuentes")[0]
+    return re.sub(r"https?://\S+|www\.\S+", " ", text)
+
+
+def _publish_words_check(results: dict) -> list[dict]:
+    """Lo primero que mira YouTube (y los anunciantes) no es solo el guion: también el
+    texto de la miniatura, la descripción, las etiquetas y el comentario fijado."""
+    checks = []
+    thumb = results.get("thumbnail") if isinstance(results.get("thumbnail"), dict) else {}
+    variants = [v for v in thumb.get("variants") or [] if isinstance(v, dict)]
+    selected = thumb.get("selected")
+    chosen = isinstance(selected, int) and 0 <= selected < len(variants)
+    texts = [str(v.get("text") or "") for v in ([variants[selected]] if chosen else variants)]
+    if any(t.strip() for t in texts):
+        bad, sensitive = flagged_words(" ".join(texts))
+        found = ", ".join(sorted(set(bad + sensitive)))
+        if found and chosen:
+            checks.append(
+                _check(
+                    "friendly_thumb",
+                    "ads",
+                    FAIL,
+                    "Palabras que quitan anuncios en la miniatura",
+                    f"Encontradas: {found}. La miniatura cuenta tanto como el título.",
+                    "En Miniatura, cambia el texto por palabras neutras o elige otra.",
+                    "miniatura",
+                )
+            )
+        elif found:
+            checks.append(
+                _check(
+                    "friendly_thumb",
+                    "ads",
+                    WARN,
+                    "Alguna miniatura tiene palabras que quitan anuncios",
+                    f"Encontradas: {found}. Si eliges esa, YouTube limitará los anuncios.",
+                    "En Miniatura, elige otra o cambia su texto.",
+                    "miniatura",
+                )
+            )
+        else:
+            checks.append(
+                _check(
+                    "friendly_thumb",
+                    "ads",
+                    OK,
+                    "Texto de la miniatura apto para anunciantes",
+                    "Sin palabrotas ni temas delicados.",
+                )
+            )
+
+    seo = results.get("publish") if isinstance(results.get("publish"), dict) else {}
+    fields = {
+        "la descripción": _own_description(_as_text(seo.get("description"))),
+        "las etiquetas": _as_text(seo.get("tags")) + " " + _as_text(seo.get("hashtags")),
+        "el comentario fijado": _as_text(seo.get("pinned_comment")),
+    }
+    if any(text.strip() for text in fields.values()):
+        bad, sensitive, places = [], [], []
+        for place, text in fields.items():
+            b, sen = flagged_words(text)
+            if b or sen:
+                places.append(place)
+            bad += b
+            sensitive += sen
+        where = " y ".join(places)
+        if bad:
+            status, title = FAIL, f"Palabrotas en {where}"
+            fix = "Cámbialas en Publicación antes de copiar los textos a YouTube."
+        elif sensitive:
+            status, title = WARN, f"Temas delicados en {where}"
+            fix = "Quítalos de las etiquetas y cuéntalo con tono informativo en la descripción."
+        else:
+            status, title, fix = (
+                OK,
+                "Descripción, etiquetas y comentario aptos para anunciantes",
+                "",
+            )
+        found = ", ".join(sorted(set(bad + sensitive)))
+        checks.append(
+            _check(
+                "friendly_texts",
+                "ads",
+                status,
+                title,
+                f"Encontradas: {found}." if found else "Sin palabrotas ni temas delicados.",
+                fix,
+                "publicacion" if found else "",
+            )
         )
     return checks
 
