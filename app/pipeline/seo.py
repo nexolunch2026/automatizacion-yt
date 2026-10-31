@@ -64,6 +64,35 @@ def paragraph_starts(script: dict, voice: dict | None) -> tuple[dict[str, float]
     return starts, max(t - PAUSE, 0.0)
 
 
+# Nombres de capítulo que no dicen nada (en minúsculas y sin tildes).
+GENERIC_CHAPTERS = {"introduccion", "intro", "desarrollo", "parte", "conclusion", "climax",
+                    "final", "gancho", "promesa", "inicio", "comienzo", "contexto", "resumen",
+                    "llamada a la accion", "cierre", "desenlace"}  # fmt: skip
+
+
+ARTICLES = {"el", "la", "los", "las", "un", "una", "lo"}
+FILLER_WORDS = {"capitulo", "seccion", "parte"}
+
+
+def is_generic_chapter(title: str) -> bool:
+    """«Desarrollo», «El final», «Parte 2», «Capítulo 3»…: no cuentan qué pasa en esa
+    parte. Un año suelto («1975») sí cuenta algo."""
+    words = [w for w in re.findall(r"[a-z0-9ñ]+", _plain(title)) if w not in ARTICLES]
+    if not words:
+        return True
+    if " ".join(words) in GENERIC_CHAPTERS:
+        return True
+    # «Parte 2» no dice nada; un año («1975») sí.
+    rest = [w for w in words if w not in FILLER_WORDS and not (w.isdigit() and len(w) < 4)]
+    return not rest and any(w in FILLER_WORDS for w in words)
+
+
+def generic_chapters(chapters: list[dict]) -> list[str]:
+    """Los nombres de capítulo genéricos de una descripción ya preparada."""
+    names = [str(c.get("title") or "").strip() for c in chapters]
+    return [name or "(sin nombre)" for name in names if is_generic_chapter(name)]
+
+
 def build_chapters(script: dict, voice: dict | None) -> list[tuple[float, str]]:
     """Capítulos: la introducción (gancho, promesa, intro) en 0:00 y luego cada sección.
     Las secciones muy cortas se unen a la anterior; la llamada final no es capítulo."""
@@ -74,8 +103,13 @@ def build_chapters(script: dict, voice: dict | None) -> list[tuple[float, str]]:
             continue
         start = starts[section["paragraphs"][0]["id"]]
         if section["kind"] in ("hook", "promise", "intro"):
+            name = (section.get("title") or "").strip()
             if not chapters:
-                chapters.append((0.0, "Introducción"))
+                chapters.append(
+                    (0.0, name if name and not is_generic_chapter(name) else "Introducción")
+                )
+            elif chapters[0][1] == "Introducción" and name and not is_generic_chapter(name):
+                chapters[0] = (0.0, name)  # mejor el primer título con gancho
             continue
         title = (section.get("title") or "").strip() or "Parte"
         if chapters and start - chapters[-1][0] < MIN_CHAPTER_SECONDS:

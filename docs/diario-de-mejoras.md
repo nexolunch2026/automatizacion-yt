@@ -2,6 +2,19 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-10-31 — Versión 0.94: capítulos con nombres que enganchan
+
+- Los **capítulos** (los minutos de la descripción) salen en la barra del vídeo y en la
+  búsqueda de Google. Un nombre como «1975: la cámara escondida» hace que la gente salte
+  ahí; «Desarrollo» o «Parte 2» no dicen nada.
+- Gemini ya escribe los títulos de las partes del guion **pensando en los capítulos**:
+  cortos, con un nombre, una fecha o un dato.
+- El primer capítulo ya no se llama siempre «Introducción»: si el gancho tiene un título
+  con gancho, se usa ese.
+- El **control de calidad** avisa si algún capítulo tiene un nombre genérico y te dice
+  cuál. Arreglo: cámbialo al pegar la descripción en YouTube.
+- Ideas nuevas en la lista: «Mejor hora para publicar» y «¿Cómo va mi último vídeo?».
+
 ## 2026-10-30 — Versión 0.93: miniatura y textos aptos para anunciantes
 
 - Para los anunciantes, la **miniatura** y los textos de YouTube cuentan tanto como el

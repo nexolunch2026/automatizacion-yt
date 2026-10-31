@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (31 de octubre de 2026: capítulos)
+
+- [How To Add Chapters To Your Videos Using Timestamps (2026)](https://www.youtube.com/watch?v=XDXng4Y9P1o)
+  — cómo funcionan los capítulos en la descripción (el programa ya los escribe; tú solo los nombras bien).
+- [How to Add Chapters & Timestamps to YouTube Videos Automatic & Manual Methods](https://www.youtube.com/watch?v=wKGZvE5iDhE)
+  — capítulos automáticos frente a los que pones tú: por qué conviene ponerlos tú.
+- [How to Add Chapters to YouTube Videos Using Timestamps](https://www.youtube.com/watch?v=T2kBBqoSFDY)
+  — otro paso a paso corto, por si el primero no te queda claro.
+
 ## Nuevos (30 de octubre de 2026: no perder anuncios)
 
 - [Advertiser-friendly Content Guidelines & Yellow Monetization Icons](https://www.youtube.com/watch?v=shmGG87ZELI)

@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Project, StageResult
 from app.pipeline.humanize import SHARE_WARN, script_issues, sentences
-from app.pipeline.seo import PREVIEW_CHARS, description_start
+from app.pipeline.seo import PREVIEW_CHARS, description_start, generic_chapters
 from app.pipeline.thumbnail import title_repeat
 
 OK, WARN, FAIL, PENDING = "ok", "warn", "fail", "pending"
@@ -914,6 +914,32 @@ def _publish_checks(project: Project, results: dict, title: str) -> list[dict]:
                     f"En la búsqueda solo se ven unos {PREVIEW_CHARS} caracteres: "
                     f"«{start['preview']}».",
                     fix,
+                    "publicacion",
+                )
+            )
+        stored = seo.get("chapters")
+        items = [c for c in stored if isinstance(c, dict)] if isinstance(stored, list) else []
+        generic = generic_chapters(items)
+        if items:
+            checks.append(
+                _check(
+                    "chapter_names",
+                    "publish",
+                    WARN if generic else OK,
+                    "Capítulos con nombres que no dicen nada"
+                    if generic
+                    else "Ningún capítulo tiene un nombre genérico",
+                    "Los capítulos salen en la búsqueda de Google y en la barra del vídeo: un "
+                    "nombre concreto hace que la gente salte ahí en vez de irse."
+                    + (
+                        " Genéricos: " + ", ".join(f"«{g}»" for g in generic) + "."
+                        if generic
+                        else ""
+                    ),
+                    ""
+                    if not generic
+                    else "Al pegar la descripción en YouTube, cambia esos nombres por lo que pasa "
+                    "en esa parte (p. ej. «1975: la cámara escondida»).",
                     "publicacion",
                 )
             )

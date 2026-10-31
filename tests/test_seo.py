@@ -85,7 +85,9 @@ def test_short_sections_merge_into_previous():
     }
     titles = [t for _, t in build_chapters(script, None)]
     assert "B" not in titles or "A" in titles  # A empieza muy cerca de 0:00 y no puede ir sola
-    assert titles[0] == "Introducción"
+    assert titles[0] == "G"  # el gancho tiene nombre propio: mejor que «Introducción»
+    script["sections"][0]["title"] = "Gancho"
+    assert build_chapters(script, None)[0][1] == "Introducción"  # genérico: el de siempre
 
 
 def test_description_has_chapters_sources_credits_and_limit():

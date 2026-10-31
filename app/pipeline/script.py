@@ -294,7 +294,10 @@ Haz el ESQUEMA del guion. Tiene exactamente {len(plan)} secciones, en este orden
 {slots}
 
 Para cada sección da un título corto y 2–4 ideas o datos de la investigación que
-cubrirá. Las secciones de desarrollo deben tratar aspectos distintos, sin repetirse, y
+cubrirá. Los títulos serán los CAPÍTULOS del vídeo en YouTube (salen en la búsqueda de
+Google): de 2 a 6 palabras, concretos y con gancho, con un nombre, una fecha o un dato
+(«1975: la cámara escondida»), nunca genéricos como «Desarrollo», «Introducción» o
+«Conclusión». Las secciones de desarrollo deben tratar aspectos distintos, sin repetirse, y
 avanzar hacia el clímax.
 
 INVESTIGACIÓN:

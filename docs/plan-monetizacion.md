@@ -136,6 +136,13 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   (uno cada 2–3 días) con recordatorio de JARVIS para subir cada uno.
 - [x] **Recordatorio de comentarios** (0.81.0): dos días después de publicar, JARVIS recuerda
   responder los comentarios y manda los borradores por Telegram.
+- [x] **Capítulos con nombres que enganchan** (0.94.0): los títulos de las secciones del
+  guion se piden pensando en los capítulos de YouTube, y el control de calidad avisa si
+  algún capítulo se llama «Desarrollo», «Introducción» o «Parte 2».
+- [ ] **Mejor hora para publicar**: como el mejor día, pero con la hora (de tus vídeos con
+  hora exacta de publicación), para ajustar la hora del plan de la semana.
+- [ ] **«¿Cómo va mi último vídeo?» a JARVIS**: visitas, me gusta y comentarios del último
+  vídeo comparados con lo normal en tu canal a la misma edad, con un consejo.
 - [x] **Miniaturas que aprenden de las ganadoras** (0.91.0): al hacer miniaturas nuevas,
   usar lo que ganó en «Probar y comparar» (cifras o solo palabras) y turnar la posición del
   texto entre vídeos para que la prueba sea justa.
