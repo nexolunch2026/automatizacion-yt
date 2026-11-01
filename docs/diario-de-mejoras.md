@@ -2,6 +2,28 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-01 — Versión 0.95.1: radar de historias
+
+Tres historias nuevas en el **banco de historias** (pídeselas a JARVIS con «banco de ideas»):
+
+- **First Brands** (Mundo, investigación): el gigante de autopartes de EE. UU. (marcas como
+  FRAM o Autolite) se hundió y su fundador fue acusado de un fraude de miles de millones.
+- **Vivanta** (España, ascenso y caída): la cadena de clínicas dentales, en concurso de
+  acreedores; Donte Group ofreció comprar la red y Vitaldent se queda con varias clínicas.
+- **LEC LEE** (Latinoamérica, ascenso y caída): los pioneros del blue jean en Colombia se
+  salvaron de la quiebra con el apoyo del 81,8 % de sus acreedores. Es de mayo: esta semana
+  no encontré ninguna historia latinoamericana reciente confirmada en dos fuentes.
+
+Fuentes: [Bloomberg](https://www.bloomberg.com/news/articles/2026-01-29/first-brands-founder-patrick-james-indicted-by-us-prosecutors),
+[Transport Topics](https://www.ttnews.com/articles/first-brands-founder-indict),
+[Departamento de Justicia de EE. UU.](https://www.justice.gov/usao-sdny/pr/first-brands-executives-charged-multibillion-dollar-fraud),
+[Menorca.info](https://www.menorca.info/menorca/local/2026/09/16/2710173/clinica-vivanta-palma-cerrara-atendera-clientes-menorca-1.html),
+[Mallorca.com](https://www.mallorca.com/en/magazin/news/vivanta-closure-palma),
+[Concursal.es](https://www.concursal.es/),
+[Supersociedades](https://www.supersociedades.gov.co/noticias/-/asset_publisher/atwl/content/superintendencia-de-sociedades-confirm%C3%B3-acuerdo-de-reorganizaci%C3%B3n-de-la-sociedad-luis-eduardo-caicedo-s.a.-lec-lee-),
+[ABC Economía](https://abceconomia.co/2026/05/21/supersociedades-salva-a-lec-lee-aprueban-reorganizacion/),
+[Blu Radio](https://www.bluradio.com/economia/lec-lee-se-salva-de-la-quiebra-supersociedades-confirma-acuerdo-de-reorganizacion-rg10).
+
 ## 2026-11-01 — Versión 0.95: tu mejor hora para publicar
 
 - La tarjeta de **📅 Semana** ahora se llama **«Tu mejor día y hora para publicar»**: además

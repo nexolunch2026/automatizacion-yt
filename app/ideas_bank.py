@@ -558,6 +558,24 @@ IDEAS: list[dict] = [
         "region": "Latinoamérica",
         "hook": "En julio de 2026 una jueza la declaró en concurso mercantil por su deuda.",
     },
+    {
+        "topic": "First Brands: el gigante de las autopartes que se hundió entre facturas falsas",
+        "format": "investigacion",
+        "region": "Mundo",
+        "hook": "En enero de 2026 acusaron a su fundador de un fraude de miles de millones.",
+    },
+    {
+        "topic": "Vivanta: la cadena de clínicas dentales que acabó en concurso de acreedores",
+        "format": "auge_caida",
+        "region": "España",
+        "hook": "En 2026 su dueño, el grupo Aestes, entró en concurso de acreedores.",
+    },
+    {
+        "topic": "LEC LEE: los pioneros del blue jean en Colombia que esquivaron la quiebra",
+        "format": "auge_caida",
+        "region": "Latinoamérica",
+        "hook": "En mayo de 2026 se salvó con el apoyo del 81,8 % de sus acreedores.",
+    },
 ]
 
 
