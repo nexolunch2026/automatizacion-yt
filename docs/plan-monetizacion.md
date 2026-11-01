@@ -139,7 +139,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [x] **Capítulos con nombres que enganchan** (0.94.0): los títulos de las secciones del
   guion se piden pensando en los capítulos de YouTube, y el control de calidad avisa si
   algún capítulo se llama «Desarrollo», «Introducción» o «Parte 2».
-- [ ] **Mejor hora para publicar**: como el mejor día, pero con la hora (de tus vídeos con
+- [x] **Mejor hora para publicar** (0.95.0): como el mejor día, pero con la hora (de tus vídeos con
   hora exacta de publicación), para ajustar la hora del plan de la semana.
 - [ ] **«¿Cómo va mi último vídeo?» a JARVIS**: visitas, me gusta y comentarios del último
   vídeo comparados con lo normal en tu canal a la misma edad, con un consejo.

@@ -2,6 +2,16 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-01 — Versión 0.95: tu mejor hora para publicar
+
+- La tarjeta de **📅 Semana** ahora se llama **«Tu mejor día y hora para publicar»**: además
+  del día, mira a qué **hora** consiguen más visitas tus vídeos en sus primeras 48 horas.
+- Compara franjas: **mañana, mediodía, tarde y noche**. Si una va claramente mejor (al
+  menos un 30 % más), te lo dice y sale un botón para **publicar a esa hora** con un clic.
+- Usa las mismas reglas que el día: hacen falta 6 vídeos largos con hora exacta y 3 en cada
+  franja que compara. Si casi siempre publicas a la misma hora, te lo explica.
+- JARVIS también lo dice en **«plan de la semana»** cuando hay una hora mejor.
+
 ## 2026-10-31 — Versión 0.94: capítulos con nombres que enganchan
 
 - Los **capítulos** (los minutos de la descripción) salen en la barra del vídeo y en la

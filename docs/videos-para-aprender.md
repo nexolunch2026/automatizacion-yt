@@ -4,6 +4,13 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (1 de noviembre de 2026: a qué hora publicar)
+
+- [WHEN YOUR VIEWERS ARE ON YOUTUBE/BEST TIME TO UPLOAD YOUTUBE VIDEOS](https://www.youtube.com/watch?v=H9tSzA0S748)
+  — dónde ver en YouTube Studio cuándo está conectada tu audiencia, para comparar con lo que te dice la Semana.
+- [How to Know When Your Viewers are on Youtube](https://www.youtube.com/watch?v=MFZB3QiO_Cg)
+  — el mismo gráfico explicado de otra forma: sube el vídeo un par de horas antes de que lleguen.
+
 ## Nuevos (31 de octubre de 2026: capítulos)
 
 - [How To Add Chapters To Your Videos Using Timestamps (2026)](https://www.youtube.com/watch?v=XDXng4Y9P1o)

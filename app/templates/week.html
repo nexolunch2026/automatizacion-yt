@@ -39,18 +39,28 @@
   <p class="muted small">También se lo puedes preguntar a JARVIS: «plan de la semana» o «publico los sábados a las 6».</p>
 </div>
 
-{% if best %}
+{% if best or best_hour %}
 <div class="card">
-  <h3>📈 Tu mejor día para publicar</h3>
-  <p>{{ best.text }}</p>
-  {% if best.status == 'best' and best.day != publish_day %}
+  <h3>📈 Tu mejor día y hora para publicar</h3>
+  {% if best %}<p>{{ best.text }}</p>{% endif %}
+  {% if best and best.status == 'best' and best.day != publish_day %}
   <form method="post" action="/semana">
     <input type="hidden" name="day" value="{{ best.day }}">
     <input type="hidden" name="hour" value="{{ publish_hour }}">
     <button class="btn small">Publicar los {{ weekdays[best.day] }} a las {{ publish_hour }}:00</button>
   </form>
   {% endif %}
-  <p class="muted small">Sale de tus cifras de Rendimiento: las visitas de cada vídeo largo en sus primeras 48 horas, según el día en que se publicó.</p>
+  {% if best_hour and best_hour.text %}
+  <p>🕒 {{ best_hour.text }}</p>
+  {% if best_hour.status == 'best' and best_hour.change %}
+  <form method="post" action="/semana">
+    <input type="hidden" name="day" value="{{ publish_day }}">
+    <input type="hidden" name="hour" value="{{ best_hour.hour }}">
+    <button class="btn small">Publicar a las {{ best_hour.hour }}:00</button>
+  </form>
+  {% endif %}
+  {% endif %}
+  <p class="muted small">Sale de tus cifras de Rendimiento: las visitas de cada vídeo largo en sus primeras 48 horas, según el día y la hora en que se publicó.</p>
 </div>
 {% endif %}
 {% endblock %}

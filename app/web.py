@@ -383,12 +383,14 @@ def week_page(request: Request, db: DB, user: CurrentUser):
     from app.agenda import WEEKDAYS
 
     day, hour = coach.publish_slot(db)
+    best, best_hour = best_day.advice_both(db, day, hour)
     return render(
         request,
         "week.html",
         days=coach.week_days(db),
         plan=coach.weekly_plan(db),
-        best=best_day.advice(db, day),
+        best=best,
+        best_hour=best_hour,
         weekdays=WEEKDAYS,
         publish_day=day,
         publish_hour=hour,

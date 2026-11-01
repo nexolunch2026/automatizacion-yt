@@ -12,7 +12,7 @@ import difflib
 import json
 import logging
 import re
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import httpx
 from pydantic import BaseModel, Field
@@ -210,8 +210,8 @@ def video_rows(db: Session, now: datetime | None = None) -> list[dict]:
         last = stats[-1]
         try:  # «2026-10-03T15:00» (UTC, de YouTube) o solo la fecha
             published = datetime.fromisoformat(video.published[:16])
-            if "T" in video.published:
-                published += datetime.now().astimezone().utcoffset() or timedelta()  # hora local
+            if "T" in video.published:  # a la hora local de ese día (con su horario de verano)
+                published = published.replace(tzinfo=UTC).astimezone().replace(tzinfo=None)
             weekday = published.weekday()  # 0 = lunes
         except ValueError:
             published, weekday = stats[0].taken_at, None  # sin fecha: no se sabe el día
@@ -253,6 +253,7 @@ def video_rows(db: Session, now: datetime | None = None) -> list[dict]:
                 "updated": last.taken_at,  # cuándo se tomó la última cifra
                 "exact_time": "T" in video.published,  # se sabe la hora de publicación
                 "weekday": weekday,
+                "hour": published.hour if weekday is not None and "T" in video.published else None,
                 "is_short": bool(project and project.duration == "Short"),
             }
         )

@@ -1482,9 +1482,11 @@ def week_plan_reply(db: Session) -> Reply:
     )
     from app import best_day
 
-    best = best_day.advice(db, plan["publish_day"])
+    best, hour = best_day.advice_both(db, plan["publish_day"], plan["publish_hour"])
     if best and best["status"] == "best":
         lines.append(f"📈 {escape(best['text'])}")
+    if hour and hour["status"] == "best":
+        lines.append(f"🕒 {escape(hour['text'])}")
     return Reply("\n".join(lines), buttons=[[("👉 ¿Qué hago ahora?", "next")]])
 
 

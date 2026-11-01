@@ -91,7 +91,7 @@ def test_week_page_and_jarvis_show_the_best_day(logged_in):
         text = assistant.week_plan_reply(db).text
     assert "en jueves" in text and "prueba a cambiar al jueves" in text
     page = logged_in.get("/semana").text
-    assert "Tu mejor día para publicar" in page and "Publicar los jueves a las 18:00" in page
+    assert "Tu mejor día y hora para publicar" in page and "Publicar los jueves a las 18:00" in page
     logged_in.post("/semana", data={"day": 3, "hour": 18})
     page = logged_in.get("/semana").text
     assert "Ya publicas ese día" in page and "Publicar los jueves a las" not in page
@@ -103,4 +103,61 @@ def test_week_page_works_when_analytics_fail(logged_in, monkeypatch):
 
     monkeypatch.setattr("app.analytics.video_rows", broken)
     page = logged_in.get("/semana")
-    assert page.status_code == 200 and "Tu mejor día para publicar" not in page.text
+    assert page.status_code == 200 and "Tu mejor día y hora para publicar" not in page.text
+
+
+def hrow(hour, views, **extra):
+    return row(0, views, hour=hour, **extra)
+
+
+def test_best_hour_by_bands():
+    from app.best_day import best_hour
+
+    rows = [hrow(h, v) for h, v in ((9, 100), (10, 90), (11, 110), (20, 300), (21, 280), (20, 320))]
+    found = best_hour(rows, 10)
+    assert found["status"] == "best" and found["hour"] == 20 and found["change"]
+    assert "por la noche" in found["text"] and "prueba a las 20:00" in found["text"]
+    same_band = best_hour(rows, 19)
+    assert same_band["status"] == "best" and not same_band["change"]
+    assert "Ya publicas en esa franja" in same_band["text"]
+    assert best_hour(rows[:3], 10)["status"] == "few"
+    one = [hrow(20, v) for v in (100, 120, 90, 95, 130, 110)]
+    assert best_hour(one, 20)["status"] == "one_band"
+    flat = [hrow(h, v) for h, v in ((9, 100), (10, 110), (11, 90), (20, 105), (21, 120), (20, 95))]
+    assert best_hour(flat, 20)["status"] == "same"
+    # Sin hora exacta (solo la fecha) no cuenta.
+    no_hour = [hrow(None, v) for v in (100,) * 6]
+    assert best_hour(no_hour, 20)["status"] == "few"
+
+
+def test_week_page_and_jarvis_show_the_best_hour(logged_in, monkeypatch):
+    from app import analytics, assistant, coach
+
+    pairs = ((9, 100), (10, 90), (11, 110), (20, 400), (21, 380), (20, 420))
+    rows = [hrow(h, v, video_id=f"h{i}") for i, (h, v) in enumerate(pairs)]
+    monkeypatch.setattr(analytics, "video_rows", lambda db: rows)  # sin depender de la zona
+    with SessionLocal() as db:
+        coach.set_publish_slot(db, 0, 10)
+        text = assistant.week_plan_reply(db).text
+    assert "🕒" in text and "por la noche" in text
+    page = logged_in.get("/semana").text
+    assert "Publicar a las 20:00" in page
+
+
+def test_hours_use_the_local_offset_of_that_date(logged_in):
+    from datetime import UTC
+
+    with SessionLocal() as db:
+        add(db, "julio", "2026-07-05T18:00", 100, None)
+        db.commit()
+        row = next(r for r in video_rows(db) if r["video_id"] == "julio")
+    local = datetime(2026, 7, 5, 18, tzinfo=UTC).astimezone()
+    assert row["hour"] == local.hour and row["weekday"] == local.weekday()
+
+
+def test_spread_videos_are_not_called_one_band():
+    from app.best_day import best_hour
+
+    rows = [hrow(h, 100) for h in (9, 10, 13, 14, 20, 21, 3, 4)]  # 2 por franja (y madrugada)
+    found = best_hour(rows, 20)
+    assert found["status"] == "few" and "pocos vídeos en cada franja" in found["text"]
