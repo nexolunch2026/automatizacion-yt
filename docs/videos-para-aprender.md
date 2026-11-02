@@ -4,6 +4,13 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (2 de noviembre de 2026: leer tus cifras)
+
+- [YouTube Analytics Explained: CTR, Retention & Why More Views Can Mislead](https://www.youtube.com/watch?v=3kJuMcPUZB8)
+  — por qué las visitas solas engañan y qué mirar junto a ellas (clics y retención).
+- [The Entire YouTube Algorithm for Small Channels Explained in 300 Seconds…](https://www.youtube.com/watch?v=KUjh33YPlX0)
+  — en 5 minutos, cómo decide YouTube a quién enseñar los vídeos de un canal pequeño.
+
 ## Nuevos (1 de noviembre de 2026: a qué hora publicar)
 
 - [WHEN YOUR VIEWERS ARE ON YOUTUBE/BEST TIME TO UPLOAD YOUTUBE VIDEOS](https://www.youtube.com/watch?v=H9tSzA0S748)

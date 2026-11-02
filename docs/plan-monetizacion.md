@@ -141,7 +141,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   algún capítulo se llama «Desarrollo», «Introducción» o «Parte 2».
 - [x] **Mejor hora para publicar** (0.95.0): como el mejor día, pero con la hora (de tus vídeos con
   hora exacta de publicación), para ajustar la hora del plan de la semana.
-- [ ] **«¿Cómo va mi último vídeo?» a JARVIS**: visitas, me gusta y comentarios del último
+- [x] **«¿Cómo va mi último vídeo?» a JARVIS** (0.96.0): visitas, me gusta y comentarios del último
   vídeo comparados con lo normal en tu canal a la misma edad, con un consejo.
 - [x] **Miniaturas que aprenden de las ganadoras** (0.91.0): al hacer miniaturas nuevas,
   usar lo que ganó en «Probar y comparar» (cifras o solo palabras) y turnar la posición del

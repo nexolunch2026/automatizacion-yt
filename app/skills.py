@@ -4,6 +4,7 @@ el dólar, el clima, abrir páginas, datos curiosos y estadísticas.
 `quick()` reconoce las frases habituales sin gastar IA; `act()` ejecuta la acción.
 """
 
+import logging
 import re
 from datetime import datetime
 from html import escape
@@ -13,6 +14,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import agenda, info, pc
+
+log = logging.getLogger(__name__)
 
 SKILL_ACTIONS = (
     "reminder",
@@ -471,6 +474,31 @@ def _stats(db: Session, intent) -> list:
     return [_r("\n".join(lines))]
 
 
+def same_age_text(compared: dict, stale_hours: int = 0) -> str:
+    """Cómo va el vídeo frente a lo normal en el canal a su edad, con un consejo."""
+    ratio, normal = compared["ratio"], number(compared["normal"])
+    base = (
+        f"A las {compared['hours']} h tus vídeos suelen llevar unas {normal} visitas "
+        f"(de {compared['count']} vídeos)"
+    )
+    note = f" (cifras de hace {stale_hours} h: actualízalas en Rendimiento)" if stale_hours else ""
+    if ratio >= 1.5:
+        times = f"{ratio:.1f}".replace(".", ",")
+        return (
+            f"🚀 {base}: este va a ×{times}{note}. ¡Empújalo! Responde comentarios y saca un "
+            "Short que lleve a él."
+        )
+    if ratio >= 0.7:
+        return f"👍 {base}: este va en tu media{note}. Sigue con tu plan de la semana."
+    return (
+        f"🔧 {base}: este va por debajo{note}. Prueba otra miniatura o título en «Probar y "
+        "comparar» y mira en YouTube Studio cuánta gente sigue a los 30 s."
+    )
+
+
+STALE_HOURS = 12  # cifras más viejas: se avisa
+
+
 def _performance(db: Session, intent) -> list:
     from app import analytics
 
@@ -490,6 +518,14 @@ def _performance(db: Session, intent) -> list:
         + (f", {latest['comments']} comentarios" if latest["comments"] is not None else "")
         + "."
     ]
+    try:
+        compared = analytics.same_age(db, rows, latest)
+    except Exception:  # la comparación es un extra: si falla, se dice lo demás
+        log.warning("No se pudo comparar el último vídeo con los demás", exc_info=True)
+        compared = None
+    if compared:
+        old = (datetime.now() - latest["updated"]).total_seconds() / 3600
+        lines.append(same_age_text(compared, round(old) if old > STALE_HOURS else 0))
     if len(rows) > 1:
         best = max(rows, key=lambda r: r["views_per_day"])
         lines.append(

@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-02 — Versión 0.96: «¿cómo va mi último vídeo?»
+
+- Pregúntale a JARVIS **«¿cómo va mi último vídeo?»** (o «rendimiento») por Telegram o en
+  la pantalla JARVIS.
+- Además de las visitas, los me gusta y los comentarios, ahora te dice cuántas visitas
+  **suelen llevar tus otros vídeos a esa misma edad** (las mismas horas desde que salieron).
+- Y un consejo según cómo vaya: 🚀 si va muy por encima («empújalo con un Short y responde
+  comentarios»), 👍 si va en tu media, 🔧 si va por debajo («prueba otra miniatura o título»).
+- Compara vídeos largos con largos y Shorts con Shorts, solo con vídeos que ya cumplieron
+  esa edad, y hacen falta al menos 3 con cifras. Si tus cifras son de hace más de 12 horas,
+  te lo avisa para que las actualices en Rendimiento.
+
 ## 2026-11-01 — Versión 0.95.1: radar de historias
 
 Tres historias nuevas en el **banco de historias** (pídeselas a JARVIS con «banco de ideas»):

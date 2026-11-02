@@ -194,6 +194,71 @@ def _views_at(stats: list[VideoStat], moment: datetime) -> int | None:
     return before[-1].views
 
 
+SAME_AGE_MIN = 3  # hacen falta al menos 3 vídeos más viejos para saber qué es «lo normal»
+SAME_AGE_FLOOR = 10  # con menos visitas «normales», cualquier cifra parece enorme
+
+
+def _views_between(stats: list[VideoStat], moment: datetime) -> float | None:
+    """Visitas en un momento, repartidas entre la foto de antes y la de después (si el
+    vídeo aún no llegó a ese momento, None)."""
+    before = [s for s in stats if s.taken_at <= moment]
+    after = [s for s in stats if s.taken_at >= moment]
+    if not before or not after:
+        return None
+    a, b = before[-1], after[0]
+    if b.taken_at == a.taken_at:
+        return float(a.views)
+    share = (moment - a.taken_at) / (b.taken_at - a.taken_at)
+    return a.views + (b.views - a.views) * share
+
+
+def same_age(db: Session, rows: list[dict], row: dict) -> dict | None:
+    """Cuántas visitas solían tener tus otros vídeos a la misma edad que `row` (al tomar
+    su última cifra). {"normal", "ratio", "count", "hours"} o None si no hay con qué
+    comparar."""
+    from statistics import median
+
+    if not row.get("exact_time") or not row.get("updated"):
+        return None  # sin la hora de publicación, la edad puede fallar un día
+    age = row["updated"] - row["published_at"]
+    if age < timedelta(hours=12):
+        return None  # las primeras horas bailan demasiado
+    others = [
+        o
+        for o in rows
+        if o["video_id"] != row["video_id"]
+        and o.get("exact_time")
+        and bool(o.get("is_short")) == bool(row.get("is_short"))  # Shorts con Shorts
+        and o.get("updated")
+        and o["published_at"] + age <= o["updated"]  # ya llegó a esa edad
+    ]
+    if len(others) < SAME_AGE_MIN:
+        return None
+    by_video: dict[str, list[VideoStat]] = {}
+    for stat in db.scalars(
+        select(VideoStat)
+        .where(VideoStat.video_id.in_([o["video_id"] for o in others]))
+        .order_by(VideoStat.taken_at)
+    ):
+        by_video.setdefault(stat.video_id, []).append(stat)
+    found = []
+    for other in others:
+        views = _views_between(by_video.get(other["video_id"], []), other["published_at"] + age)
+        if views is not None:
+            found.append(views)
+    if len(found) < SAME_AGE_MIN:
+        return None
+    normal = median(found)
+    if normal < SAME_AGE_FLOOR:
+        return None
+    return {
+        "normal": round(normal),
+        "ratio": row["views"] / normal,
+        "count": len(found),
+        "hours": round(age.total_seconds() / 3600),
+    }
+
+
 def video_rows(db: Session, now: datetime | None = None) -> list[dict]:
     from app import jobs
 
@@ -251,7 +316,8 @@ def video_rows(db: Session, now: datetime | None = None) -> list[dict]:
                 else None,
                 "history": list(daily.items())[-30:],
                 "updated": last.taken_at,  # cuándo se tomó la última cifra
-                "exact_time": "T" in video.published,  # se sabe la hora de publicación
+                "exact_time": weekday is not None and "T" in video.published,  # hora exacta
+                "published_at": published,  # hora local (o la primera cifra, si no hay fecha)
                 "weekday": weekday,
                 "hour": published.hour if weekday is not None and "T" in video.published else None,
                 "is_short": bool(project and project.duration == "Short"),
