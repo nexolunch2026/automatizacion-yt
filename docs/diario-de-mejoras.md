@@ -2,6 +2,16 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-03 — Versión 0.97.1: textos que dicen la verdad
+
+- Los avisos del control de calidad y del guion hablaban de un botón «Otra forma» que no
+  existe. Ahora dicen el botón de verdad: **«Reescribir con IA»** (al lado de cada párrafo).
+- La página de **crear cuenta** ya no dice «nadie más ve tus datos»: avisa de que las dos
+  cuentas del ordenador comparten proyectos, canales y claves (útil ahora que lo usas con
+  Elvin).
+- La página de **JARVIS** explica que se abre con el acceso directo **JARVIS** del
+  escritorio.
+
 ## 2026-11-03 — Versión 0.97: el vídeo empieza con imagen y ritmo
 
 - Lo **primero que se ve** decide si la gente se queda. Una tarjeta con solo texto, o un

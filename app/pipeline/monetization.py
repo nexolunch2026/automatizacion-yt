@@ -532,7 +532,9 @@ def _original_checks(results: dict, others: list[str], structures: list[str]) ->
             status,
             title,
             "YouTube no paga canales con vídeos hechos en serie con la misma plantilla.",
-            "" if status == OK else "Reescribe los párrafos repetidos (botón «Otra forma»).",
+            ""
+            if status == OK
+            else "Reescribe los párrafos repetidos (botón «Reescribir con IA» de cada párrafo).",
             "guion",
         )
     )
@@ -730,7 +732,7 @@ def _audience_checks(results: dict) -> list[dict]:
                 ""
                 if concrete
                 else "Cambia la primera frase del guion por el dato más sorprendente de la "
-                "historia (o pulsa «Otra forma» en ese párrafo).",
+                "historia (o pulsa «Reescribir con IA» en ese párrafo).",
                 "guion",
             )
         )
@@ -752,8 +754,8 @@ def _audience_checks(results: dict) -> list[dict]:
                     "o un adelanto de lo que viene.",
                     ""
                     if ok
-                    else "Reescribe un párrafo de ese tramo con «Otra forma» para que termine con "
-                    "una pregunta o un adelanto.",
+                    else "Reescribe un párrafo de ese tramo con «Reescribir con IA» para que "
+                    "termine con una pregunta o un adelanto.",
                     "guion",
                 )
             )

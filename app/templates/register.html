@@ -5,7 +5,7 @@
 <div class="card narrow">
   <img class="auth-logo" src="{{ url_for('static', path='favicon.svg') }}" alt="" width="56" height="56">
   <h1>Crear cuenta</h1>
-  <p class="muted">En cada ordenador se pueden crear dos cuentas. Todo se guarda en este ordenador: nadie más ve tus datos.</p>
+  <p class="muted">En cada ordenador se pueden crear dos cuentas. Todo se guarda en este ordenador y no sale de él. Ojo: las dos cuentas comparten los mismos proyectos, canales y claves.</p>
   {% if error %}<p class="alert">{{ error }}</p>{% endif %}
   <form method="post" action="/registro" class="stack">
     <label>Usuario <input name="username" value="{{ username or '' }}" autocomplete="username" required autofocus></label>

@@ -79,7 +79,7 @@
       <li><a href="#s-{{ part.index }}"><span class="map-time">{{ part.time }}</span> {{ labels.get(part.kind, part.kind) }}</a></li>
       {% endfor %}
     </ol>
-    {% if script_map.weak %}<p class="small map-warning">⚠️ De {{ script_map.weak.text }} no hay preguntas ni adelantos: la gente puede irse. Reescribe un párrafo de ese tramo con «Otra forma».</p>{% endif %}
+    {% if script_map.weak %}<p class="small map-warning">⚠️ De {{ script_map.weak.text }} no hay preguntas ni adelantos: la gente puede irse. Reescribe un párrafo de ese tramo con el botón «Reescribir con IA».</p>{% endif %}
   </nav>
   {% endif %}
   {% if human %}
