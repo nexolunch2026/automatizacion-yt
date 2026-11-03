@@ -844,6 +844,8 @@ def _audience_checks(results: dict) -> list[dict]:
             )
         )
 
+    checks += _opening_visual_check(results)
+
     items = list((results.get("visuals") or {}).get("items", {}).values())
     if items:
         cards = sum(1 for e in items if e.get("kind") == "card") / len(items)
@@ -859,6 +861,72 @@ def _audience_checks(results: dict) -> list[dict]:
             )
         )
     return checks
+
+
+OPENING_SHOT_MAX = 8  # primer plano de más de 8 s: en los primeros segundos se nota lento
+
+
+def _scene_number(scene: dict) -> float:
+    try:
+        return float(scene.get("number") or 0)
+    except (TypeError, ValueError):
+        return float("inf")
+
+
+def _opening_visual_check(results: dict) -> list[dict]:
+    """Lo primero que se ve decide si la gente se queda: que no sea una tarjeta de solo
+    texto ni un plano largo y quieto."""
+    from app.pipeline.render import split_shots
+
+    board = results.get("storyboard") or {}
+    scenes = [s for s in board.get("scenes") or [] if isinstance(s, dict)]
+    items = (results.get("visuals") or {}).get("items") or {}
+    if not scenes or not isinstance(items, dict) or not items:
+        return []  # aún no hay visuales
+    first = min(scenes, key=_scene_number)
+    try:
+        seconds = float(first.get("seconds") or 0)
+    except (TypeError, ValueError):
+        seconds = 0.0
+    if seconds <= 0:
+        return []  # no se sabe cuánto dura: no se puede decir nada
+    item = items.get(first.get("paragraph_id"))
+    # Sin visual, el montaje pone una tarjeta de texto. Un gráfico va en un solo plano
+    # animado; las imágenes se parten solas en planos de 3–6 s; los vídeos de banco, no.
+    kind = (
+        "chart"
+        if first.get("chart")
+        else (item or {}).get("kind")
+        if isinstance(item, dict)
+        else "card"
+    )
+    shot = (split_shots(seconds) or [0])[0] if kind == "image" else seconds
+    fixes = {
+        "image": "En Guion, acorta el primer párrafo para que la primera imagen cambie antes.",
+        "video": "En Visuales, cambia el vídeo de la primera escena por una imagen (se mueve "
+        "sola) o por un clip más corto.",
+        "chart": "Deja el gráfico para más adelante y empieza con una imagen.",
+    }
+    if kind == "card":
+        status, title = WARN, "El vídeo empieza con una tarjeta de solo texto"
+        fix = "En Visuales, pon una imagen o un vídeo en la primera escena."
+    elif shot > OPENING_SHOT_MAX:
+        status, title = WARN, f"El primer plano dura {round(shot)} s"
+        fix = fixes.get(kind, fixes["video"])
+    else:
+        status, title, fix = OK, "El vídeo empieza con imagen y ritmo", ""
+    return [
+        _check(
+            "opening_visual",
+            "audience",
+            status,
+            title,
+            "Los primeros segundos deciden si la gente se queda: mejor una imagen que se "
+            "mueva y cambie pronto.",
+            fix,
+            "visuales",
+        )
+    ]
 
 
 def _publish_checks(project: Project, results: dict, title: str) -> list[dict]:

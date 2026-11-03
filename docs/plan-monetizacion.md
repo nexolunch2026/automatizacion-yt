@@ -136,6 +136,14 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   (uno cada 2–3 días) con recordatorio de JARVIS para subir cada uno.
 - [x] **Recordatorio de comentarios** (0.81.0): dos días después de publicar, JARVIS recuerda
   responder los comentarios y manda los borradores por Telegram.
+- [x] **El vídeo empieza con imagen y ritmo** (0.97.0): el control de calidad avisa si la
+  primera escena es una tarjeta de solo texto o un vídeo de banco largo y quieto.
+- [ ] **Aviso de cifras paradas**: si Rendimiento lleva más de 2 días sin poder actualizar
+  las cifras (clave caducada, sin internet), JARVIS lo dice por Telegram con el motivo, en
+  vez de dar consejos con cifras viejas.
+- [ ] **Short del día con sus textos**: el recordatorio de JARVIS para subir el Short trae
+  ya el título, la descripción con el enlace al vídeo largo y los hashtags, listos para
+  copiar desde el móvil.
 - [x] **Capítulos con nombres que enganchan** (0.94.0): los títulos de las secciones del
   guion se piden pensando en los capítulos de YouTube, y el control de calidad avisa si
   algún capítulo se llama «Desarrollo», «Introducción» o «Parte 2».

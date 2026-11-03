@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-03 — Versión 0.97: el vídeo empieza con imagen y ritmo
+
+- Lo **primero que se ve** decide si la gente se queda. Una tarjeta con solo texto, o un
+  plano largo y quieto, hace que muchos se vayan en los primeros segundos.
+- El **control de calidad** ahora mira la **primera escena**: avisa si es una tarjeta de
+  solo texto o un vídeo de banco de más de 8 segundos.
+- Arreglo: en **Visuales**, pon una imagen en la primera escena (el programa la mueve y la
+  parte en planos cortos sola) o un clip más corto. Si empieza con un gráfico largo, te
+  propone dejarlo para más adelante.
+- Ideas nuevas en la lista: «Aviso de cifras paradas» y «Short del día con sus textos».
+
 ## 2026-11-02 — Versión 0.96: «¿cómo va mi último vídeo?»
 
 - Pregúntale a JARVIS **«¿cómo va mi último vídeo?»** (o «rendimiento») por Telegram o en

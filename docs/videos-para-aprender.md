@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (3 de noviembre de 2026: lo primero que se ve)
+
+- [How to Use Visual Hooks to Keep Viewers Engaged!](https://www.youtube.com/watch?v=RlT9zI1hQTI)
+  — ganchos visuales: qué poner en pantalla al principio para que no se vayan.
+- [Steal These 5 Second Hooks from the Biggest YouTubers](https://www.youtube.com/watch?v=g-p6yk0bLC4)
+  — ejemplos de los primeros 5 segundos de canales grandes, para copiar la idea.
+- [Why Your YouTube Views Drop Off in 30 Seconds — And How to Stop It](https://www.youtube.com/watch?v=__0RAPqfpp0)
+  — por qué se va la gente en los primeros 30 segundos y cómo evitarlo.
+
 ## Nuevos (2 de noviembre de 2026: leer tus cifras)
 
 - [YouTube Analytics Explained: CTR, Retention & Why More Views Can Mislead](https://www.youtube.com/watch?v=3kJuMcPUZB8)
