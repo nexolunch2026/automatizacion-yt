@@ -67,11 +67,20 @@ def paragraph_starts(script: dict, voice: dict | None) -> tuple[dict[str, float]
 # Nombres de capítulo que no dicen nada (en minúsculas y sin tildes).
 GENERIC_CHAPTERS = {"introduccion", "intro", "desarrollo", "parte", "conclusion", "climax",
                     "final", "gancho", "promesa", "inicio", "comienzo", "contexto", "resumen",
-                    "llamada a la accion", "cierre", "desenlace"}  # fmt: skip
+                    "llamada a la accion", "cierre", "desenlace", "conclusiones",
+                    "introducciones", "conclusion final"}  # fmt: skip
 
 
 ARTICLES = {"el", "la", "los", "las", "un", "una", "lo"}
 FILLER_WORDS = {"capitulo", "seccion", "parte"}
+# Números que no cuentan nada detrás de «Parte» o «Capítulo» («Parte II», «Parte dos»).
+NUMBER_WORDS = {"uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve",
+                "diez", "primera", "segunda", "tercera", "cuarta", "quinta", "final"}  # fmt: skip
+ROMAN = re.compile(r"[ivxl]+")
+
+
+def _is_number(word: str) -> bool:
+    return (word.isdigit() and len(word) < 4) or word in NUMBER_WORDS or bool(ROMAN.fullmatch(word))
 
 
 def is_generic_chapter(title: str) -> bool:
@@ -83,7 +92,7 @@ def is_generic_chapter(title: str) -> bool:
     if " ".join(words) in GENERIC_CHAPTERS:
         return True
     # «Parte 2» no dice nada; un año («1975») sí.
-    rest = [w for w in words if w not in FILLER_WORDS and not (w.isdigit() and len(w) < 4)]
+    rest = [w for w in words if w not in FILLER_WORDS and not _is_number(w)]
     return not rest and any(w in FILLER_WORDS for w in words)
 
 

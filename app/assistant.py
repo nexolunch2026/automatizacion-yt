@@ -11,7 +11,7 @@ import random
 import re
 import unicodedata
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from html import escape
 from pathlib import Path
 from typing import Literal
@@ -549,6 +549,11 @@ COMMENTS_AFTER = timedelta(hours=48)  # a los 2 días: ya hay comentarios y aún
 COMMENTS_UNTIL = timedelta(hours=120)  # pasados 5 días, ya no se recuerda
 
 
+def utc_to_local(moment: datetime) -> datetime:
+    """Hora UTC (sin zona) a hora local, con el cambio de hora de ESE día (verano/invierno)."""
+    return moment.replace(tzinfo=UTC).astimezone().replace(tzinfo=None)
+
+
 def _published_at(video) -> datetime | None:
     """La hora de publicación en hora local (YouTube la da en UTC con «T»)."""
     try:
@@ -556,7 +561,7 @@ def _published_at(video) -> datetime | None:
     except ValueError:
         return None
     if "T" in video.published:
-        moment += datetime.now().astimezone().utcoffset() or timedelta()
+        moment = utc_to_local(moment)
     return moment
 
 
@@ -752,7 +757,7 @@ def _ab_reminder(db: Session, video, when: datetime) -> tuple[Reply | None, list
     if len(variants) < 2:
         return None, []
     if row.updated_at:  # SQLite guarda la hora en UTC; «when» va en hora local
-        changed = row.updated_at + (datetime.now().astimezone().utcoffset() or timedelta())
+        changed = utc_to_local(row.updated_at)
         if changed > when + timedelta(hours=1):
             return None, []
     folder = project_dir(video.project_id) / "miniaturas"

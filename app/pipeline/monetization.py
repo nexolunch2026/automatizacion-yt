@@ -267,9 +267,22 @@ def overlap(text: str, other: str) -> float:
     return len(mine & ngrams(other)) / len(mine) if mine else 0.0
 
 
+def _matches(word: str, wordlist: set[str]) -> bool:
+    """La palabra o su singular («asesinatos» → «asesinato», «cabrones» → «cabron»)."""
+    forms = {word}
+    if word.endswith("s"):
+        forms.add(word[:-1])
+    if word.endswith("es"):
+        forms.add(word[:-2])
+    return bool(forms & wordlist)
+
+
 def flagged_words(text: str) -> tuple[list[str], list[str]]:
     words = set(_words(text))
-    return sorted(words & PROFANITY), sorted(words & SENSITIVE)
+    return (
+        sorted(w for w in words if _matches(w, PROFANITY)),
+        sorted(w for w in words if _matches(w, SENSITIVE)),
+    )
 
 
 def last_render(results: dict) -> dict:
@@ -445,19 +458,20 @@ def _publish_words_check(results: dict) -> list[dict]:
         "el comentario fijado": _as_text(seo.get("pinned_comment")),
     }
     if any(text.strip() for text in fields.values()):
-        bad, sensitive, places = [], [], []
+        bad, sensitive, bad_places, sensitive_places = [], [], [], []
         for place, text in fields.items():
             b, sen = flagged_words(text)
-            if b or sen:
-                places.append(place)
+            if b:
+                bad_places.append(place)
+            if sen:
+                sensitive_places.append(place)
             bad += b
             sensitive += sen
-        where = " y ".join(places)
-        if bad:
-            status, title = FAIL, f"Palabrotas en {where}"
+        if bad:  # el título dice dónde están las palabrotas, no los temas delicados
+            status, title = FAIL, f"Palabrotas en {' y '.join(bad_places)}"
             fix = "Cámbialas en Publicación antes de copiar los textos a YouTube."
         elif sensitive:
-            status, title = WARN, f"Temas delicados en {where}"
+            status, title = WARN, f"Temas delicados en {' y '.join(sensitive_places)}"
             fix = "Quítalos de las etiquetas y cuéntalo con tono informativo en la descripción."
         else:
             status, title, fix = (

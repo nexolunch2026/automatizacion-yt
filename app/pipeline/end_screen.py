@@ -26,6 +26,14 @@ def words(text: str) -> set[str]:
     return {w for w in re.findall(r"[a-z0-9ñ]+", _plain(text)) if len(w) >= MIN_LETTERS} - COMMON
 
 
+def brand_shared(shared: set[str], title: str) -> bool:
+    """¿Alguna de las palabras en común es el nombre del título (la marca)? Se comparan
+    escritas igual que `words` («Cañas» → «canas»)."""
+    from app.pipeline.monetization import title_brands
+
+    return bool(shared & {_plain(b) for b in title_brands(title)})
+
+
 def _views(db: Session) -> dict[str, int]:
     latest = select(VideoStat.video_id, func.max(VideoStat.views)).group_by(VideoStat.video_id)
     return {video_id: views or 0 for video_id, views in db.execute(latest)}
@@ -87,7 +95,6 @@ def card(db: Session, project: Project, script: dict | None, voice: dict | None)
     """En qué minuto poner una tarjeta de YouTube que lleve a otro vídeo tuyo: donde el
     guion habla de algo parecido a ese vídeo; si no hay nada parecido, a mitad del vídeo
     con el que más visitas tiene. None si no hay guion o vídeos tuyos publicados."""
-    from app.pipeline.monetization import title_brands
     from app.pipeline.seo import format_time, paragraph_starts
 
     if not script or not script.get("sections"):
@@ -107,7 +114,7 @@ def card(db: Session, project: Project, script: dict | None, voice: dict | None)
         for video in videos:
             shared = mine & words(video.title)
             # Una sola palabra en común solo vale si es el nombre del título (la marca).
-            related = len(shared) >= 2 or bool(shared & set(title_brands(video.title)))
+            related = len(shared) >= 2 or brand_shared(shared, video.title)
             key = (len(shared), views.get(video.video_id, 0))
             if related and (best is None or key > best[0]):
                 best = (key, pid, video, shared)

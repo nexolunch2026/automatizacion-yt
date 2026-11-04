@@ -30,6 +30,7 @@ REFRESH_HOURS = 3
 RETRY_MINUTES = 30
 CHECK_NAME = "revisa el nombre en JARVIS → Lo que JARVIS sabe de ti"
 STALE_AFTER = timedelta(days=2)  # cifras sin actualizar más tiempo: JARVIS avisa
+MAX_GAP = timedelta(hours=24)  # entre dos fotos, para estimar las visitas a una edad
 STALE_MIN_FAILURES = 3  # intentos fallidos (cada 30 min) antes de avisar
 VIEW_MILESTONES = [100, 500, 1000, 5000, 10_000, 50_000, 100_000, 500_000, 1_000_000]
 SUB_MILESTONES = [10, 50, 100, 250, 500, 1000, 2500, 5000, 10_000, 50_000, 100_000]
@@ -308,6 +309,8 @@ def _views_between(stats: list[VideoStat], moment: datetime) -> float | None:
     a, b = before[-1], after[0]
     if b.taken_at == a.taken_at:
         return float(a.views)
+    if b.taken_at - a.taken_at > MAX_GAP:
+        return None  # fotos muy separadas (PC apagado): repartir inventaría la cifra
     share = (moment - a.taken_at) / (b.taken_at - a.taken_at)
     return a.views + (b.views - a.views) * share
 

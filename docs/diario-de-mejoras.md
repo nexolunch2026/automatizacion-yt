@@ -2,6 +2,26 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-04 — Versión 0.98.1: Revisión de salud
+
+Tres revisores automáticos repasaron los cambios de la semana. Seguridad: todo bien. Se
+arreglaron estos fallos (cada uno con su prueba):
+
+- El control «palabras que quitan anuncios» **no veía los plurales**: «asesinatos»,
+  «terroristas», «cabrones» o «masacres» pasaban como aptas. Ahora se detectan.
+- El aviso de palabrotas en Publicación decía el sitio equivocado (p. ej. «en la
+  descripción» cuando la palabrota estaba en las etiquetas). Ahora dice dónde está.
+- Capítulos como «Conclusiones», «Parte II» o «Parte dos» no se marcaban como genéricos.
+- La tarjeta a mitad del vídeo no reconocía marcas con «ñ» (p. ej. «Cañas»).
+- «¿Cómo va mi último vídeo?» podía decir «¡Empújalo!» inventándose la cifra cuando el PC
+  estuvo días apagado entre dos lecturas. Ahora, si no hay datos fiables, no compara.
+- Si fallaba el cálculo de la mejor hora, también desaparecía el mejor día. Ahora se
+  enseña el que sí se pudo calcular.
+- Hora de publicación: en países con cambio de hora (verano/invierno) los recordatorios
+  podían ir con una hora de error. En Colombia no pasaba, pero ya está bien para todos.
+- Los avisos de CodeQL siguen sin poder leerse desde aquí (GitHub no da permiso).
+- No llega con «Actualizar» hasta que escribas «publícalo».
+
 ## 2026-11-04 — Versión 0.98: aviso de cifras paradas
 
 - Si el programa lleva **más de 2 días sin poder leer las cifras** de tu canal (sin internet,

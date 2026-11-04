@@ -161,13 +161,22 @@ def best_hour(rows: list[dict], current_hour: int) -> dict:
 def advice_both(
     db: Session, current_day: int, current_hour: int
 ) -> tuple[dict | None, dict | None]:
-    """El consejo de día y el de hora, leyendo las cifras una sola vez. Si fallan, se
-    apunta en el registro y no se enseña nada: el plan de la semana sale igual."""
+    """El consejo de día y el de hora, leyendo las cifras una sola vez. Si uno falla, se
+    apunta en el registro y se enseña el otro: el plan de la semana sale igual."""
     from app.analytics import video_rows
 
     try:
         rows = video_rows(db)
-        return best_day(rows, current_day), best_hour(rows, current_hour)
     except Exception:
-        log.warning("No se pudo calcular el mejor día y hora para publicar", exc_info=True)
+        log.warning("No se pudieron leer las cifras para el mejor día y hora", exc_info=True)
         return None, None
+    day = hour = None
+    try:
+        day = best_day(rows, current_day)
+    except Exception:
+        log.warning("No se pudo calcular el mejor día para publicar", exc_info=True)
+    try:
+        hour = best_hour(rows, current_hour)
+    except Exception:
+        log.warning("No se pudo calcular la mejor hora para publicar", exc_info=True)
+    return day, hour
