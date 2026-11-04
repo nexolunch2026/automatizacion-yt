@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (4 de noviembre de 2026: leer las cifras y escribir documentales)
+
+- [How to Read YouTube Analytics & Know What to Fix](https://www.youtube.com/watch?v=vaRzge90G2Y)
+  — cómo leer tus cifras y saber qué arreglar en el siguiente vídeo.
+- [Most Creators Get YouTube Analytics Completely Wrong... Here's Why](https://www.youtube.com/watch?v=efqKlCL4V5o)
+  — los errores típicos al mirar las estadísticas, para no sacar conclusiones falsas.
+- [What Makes a Great Storyteller? Thom Pinto Talks Documentary and Docuseries Narration](https://www.youtube.com/watch?v=MPyalqo0qPE)
+  — cómo se narra un documental: la voz y las imágenes trabajando juntas.
+
 ## Nuevos (3 de noviembre de 2026: lo primero que se ve)
 
 - [How to Use Visual Hooks to Keep Viewers Engaged!](https://www.youtube.com/watch?v=RlT9zI1hQTI)

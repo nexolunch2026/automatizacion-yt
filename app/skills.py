@@ -499,6 +499,24 @@ def same_age_text(compared: dict, stale_hours: int = 0) -> str:
 STALE_HOURS = 12  # cifras más viejas: se avisa
 
 
+def _stale_warning(db: Session) -> str:
+    """Aviso si las cifras llevan días sin poder actualizarse (para no fiarse de ellas)."""
+    from app import analytics
+
+    try:
+        status = analytics.stale_status(db)
+    except Exception:  # el aviso es un extra: si falla, se responde igual
+        log.warning("No se pudo comprobar si las cifras están paradas", exc_info=True)
+        return ""
+    if not status:
+        return ""
+    return (
+        f"⚠️ <b>Ojo: estas cifras son viejas.</b> Llevo {status['days']} días sin poder "
+        f"leerlas de YouTube ({escape(status['reason'])}). Pulsa «Actualizar cifras ahora» "
+        "en Rendimiento."
+    )
+
+
 def _performance(db: Session, intent) -> list:
     from app import analytics
 
@@ -534,6 +552,9 @@ def _performance(db: Session, intent) -> list:
     insight = analytics.last_insight(db)
     if insight:
         lines.append(f"🧠 {escape(insight['summary'])}")
+    warning = _stale_warning(db)
+    if warning:
+        lines.insert(0, warning)
     return [_r("\n".join(lines), buttons=[[("🧠 Analizar ahora", "analyze")]])]
 
 
@@ -547,6 +568,9 @@ def _analyze(db: Session, intent) -> list:
     except ValueError as exc:
         return [_r(f"📈 {escape(str(exc))} Publica un vídeo y espera unos días.")]
     parts = [f"🧠 <b>Análisis del canal</b>\n{escape(data['summary'])}"]
+    warning = _stale_warning(db)
+    if warning:
+        parts.insert(0, warning)
     if data["next_steps"]:
         parts.append("👉 " + "\n👉 ".join(escape(x) for x in data["next_steps"][:3]))
     return [_r("\n\n".join(parts))]

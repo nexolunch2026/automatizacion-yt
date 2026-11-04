@@ -2,6 +2,20 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-04 — Versión 0.98: aviso de cifras paradas
+
+- Si el programa lleva **más de 2 días sin poder leer las cifras** de tu canal (sin internet,
+  clave de YouTube mal puesta o desactivada, nombre del canal mal escrito…), **JARVIS te lo
+  dice por Telegram** con el motivo en palabras sencillas. Solo una vez por racha.
+- En ese mensaje hay un botón **🔄 Probar ahora** para intentarlo otra vez desde el móvil.
+- Si el PC estuvo apagado unos días, no avisa: eso no es un fallo.
+- Cuando preguntes «rendimiento» o pidas un análisis con cifras viejas, JARVIS empieza
+  avisando «Ojo: estas cifras son viejas».
+- La página **Rendimiento** muestra el mismo aviso arriba, y la clave de YouTube ya no
+  aparece nunca en los mensajes de error.
+- Todavía **no llega con «Actualizar»**: está guardada en la rama de trabajo hasta que
+  escribas «publícalo».
+
 ## 2026-11-03 — Versión 0.97.1: textos que dicen la verdad
 
 - Los avisos del control de calidad y del guion hablaban de un botón «Otra forma» que no

@@ -666,6 +666,72 @@ def ctr_alerts(db: Session, now: datetime | None = None) -> list[Reply]:
     return replies
 
 
+STALE_FIX = (
+    "Qué hacer: abre <b>Rendimiento</b> y pulsa «Actualizar cifras ahora». Si vuelve a "
+    "fallar, revisa la clave de YouTube y el nombre del canal en <b>JARVIS → Lo que "
+    "JARVIS sabe de ti</b>."
+)
+
+
+def _stale_text(status: dict) -> str:
+    last = status["last"]
+    since = f"desde el {last:%d/%m} a las {last:%H:%M}" if last else "nunca"
+    return (
+        f"⚠️ <b>Las cifras de tu canal están paradas</b>\n\n"
+        f"Llevo {status['days']} días sin poder leerlas de YouTube: "
+        f"{escape(status['reason'])}.\n"
+        f"Las últimas buenas son {since}, así que no te doy consejos con cifras viejas.\n\n"
+        + STALE_FIX
+    )
+
+
+def stale_stats_alert(db: Session, now: datetime | None = None) -> list[Reply]:
+    """Si Rendimiento lleva más de 2 días sin poder actualizar las cifras, JARVIS lo dice
+    por Telegram con el motivo. Una vez por racha de fallos (vuelve a avisar si se
+    arregla y se estropea otra vez)."""
+    from app import analytics
+
+    now = now or datetime.now()
+    if not linked_chats(db):
+        return []
+    try:
+        last = datetime.fromisoformat(get_setting(db, "stale_checked") or "")
+    except ValueError:
+        last = None
+    if last and now - last < timedelta(hours=1):
+        return []
+    set_setting(db, "stale_checked", now.isoformat(timespec="minutes"))
+    status = analytics.stale_status(db, now)
+    if status is None:
+        return []
+    episode = status["since"].isoformat(timespec="seconds")
+    if get_setting(db, "stale_alerted") == episode:
+        return []
+    reply = Reply(_stale_text(status), buttons=[[("🔄 Probar ahora", "statsretry")]])
+    set_setting(db, "stale_alerted", episode)  # después de preparar el mensaje
+    return [reply]
+
+
+def stats_retry(db: Session) -> list[Reply]:
+    """Botón «Probar ahora»: intenta leer las cifras otra vez y dice cómo fue."""
+    from app import analytics
+
+    try:
+        count = analytics.refresh(db)
+    except Exception as exc:  # noqa: BLE001 — el motivo se le dice al usuario
+        log.warning("No se pudieron leer las cifras al reintentar: %s", analytics.safe_error(exc))
+        db.rollback()
+        try:
+            reason = analytics.record_failure(db, exc)
+        except Exception:  # noqa: BLE001 — se dice el motivo igualmente
+            db.rollback()
+            reason = analytics.failure_reason(exc, has_key=True)
+        return [Reply(f"❌ Sigue sin funcionar: {escape(reason)}.\n\n{STALE_FIX}")]
+    if not count:
+        return [Reply("📭 YouTube responde, pero no encontré vídeos públicos en tu canal.")]
+    return [Reply(f"✅ Listo: ya leí las cifras de {count} vídeos. Pregúntame «rendimiento».")]
+
+
 AB_AFTER = timedelta(days=14)  # «Probar y comparar» dura hasta 14 días
 AB_UNTIL = timedelta(days=21)  # pasadas 3 semanas ya no se recuerda
 
@@ -2051,6 +2117,8 @@ def _button(db: Session, data: str) -> list[Reply]:
         return [Reply(tasks_text(db))]
     if kind == "analyze":
         return skills.act(db, Intent(action="analyze"))
+    if kind == "statsretry":
+        return stats_retry(db)
     if kind == "next":
         return next_step_replies(db)
     if kind == "lesson":
@@ -2510,6 +2578,7 @@ def tick(db: Session, now: datetime | None = None) -> list[Reply]:
         lambda: comment_reminders(db, now),
         lambda: ctr_alerts(db, now),
         lambda: ab_reminders(db, now),
+        lambda: stale_stats_alert(db, now),
         lambda: autopilot_tick(db, now),
     ]
     replies: list[Reply] = []

@@ -138,7 +138,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   responder los comentarios y manda los borradores por Telegram.
 - [x] **El vídeo empieza con imagen y ritmo** (0.97.0): el control de calidad avisa si la
   primera escena es una tarjeta de solo texto o un vídeo de banco largo y quieto.
-- [ ] **Aviso de cifras paradas**: si Rendimiento lleva más de 2 días sin poder actualizar
+- [x] **Aviso de cifras paradas** (0.98.0): si Rendimiento lleva más de 2 días sin poder actualizar
   las cifras (clave caducada, sin internet), JARVIS lo dice por Telegram con el motivo, en
   vez de dar consejos con cifras viejas.
 - [ ] **Short del día con sus textos**: el recordatorio de JARVIS para subir el Short trae

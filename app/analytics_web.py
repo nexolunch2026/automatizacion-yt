@@ -2,6 +2,7 @@
 
 import json
 from typing import Annotated
+from urllib.parse import quote
 
 import httpx
 from fastapi import APIRouter, Form, HTTPException, Request
@@ -57,6 +58,7 @@ def performance_page(request: Request, db: DB, user: CurrentUser):
         retention=analytics.retention_summary(rows),
         retention_notes=analytics.retention_notes(analytics.retention_summary(rows)),
         last=get_setting(db, "analytics_last"),
+        stale=analytics.stale_status(db),
         has_key=api_key_hint(db, "youtube") is not None,
         has_gemini=api_key_hint(db, "gemini") is not None,
         projects=projects,
@@ -69,7 +71,15 @@ def refresh_now(db: DB, user: CurrentUser):
     try:
         count = analytics.refresh(db)
     except Exception as exc:  # noqa: BLE001 — se muestra al usuario
-        return _redirect(f"/rendimiento?error=No se pudieron leer las cifras ({exc})")
+        db.rollback()
+        try:
+            reason = analytics.record_failure(db, exc)
+        except Exception:  # noqa: BLE001 — se muestra el motivo igualmente
+            db.rollback()
+            reason = analytics.failure_reason(exc, has_key=True)
+        return _redirect(
+            "/rendimiento?error=" + quote(f"No se pudieron leer las cifras: {reason}.")
+        )
     if not count:
         return _redirect("/rendimiento?error=No encontré vídeos publicados en tu canal.")
     return _redirect("/rendimiento")

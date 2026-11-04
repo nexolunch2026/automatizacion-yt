@@ -15,6 +15,11 @@
   </div>
 </div>
 {% if error %}<p class="alert">{{ error }}</p>{% endif %}
+{% if stale %}
+<p class="alert">⚠️ <strong>Las cifras están paradas:</strong> llevo {{ stale.days }} días sin poder leerlas de YouTube
+  ({{ stale.reason }}). Lo de esta página puede estar viejo. Pulsa «Actualizar cifras ahora»; si sigue fallando,
+  revisa la clave y el nombre del canal en <a href="/jarvis#preferencias">JARVIS → Lo que JARVIS sabe de ti</a>.</p>
+{% endif %}
 {% if not has_key %}
 <p class="alert info">Sin la clave gratuita de YouTube solo se ven los últimos 15 vídeos y los suscriptores son aproximados.
   Ponla en <a href="/jarvis#preferencias">JARVIS → Lo que JARVIS sabe de ti</a> para tener datos exactos.</p>

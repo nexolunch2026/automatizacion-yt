@@ -17,6 +17,7 @@ from datetime import UTC, datetime, timedelta
 import httpx
 from pydantic import BaseModel, Field
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app import info
@@ -27,6 +28,9 @@ log = logging.getLogger(__name__)
 
 REFRESH_HOURS = 3
 RETRY_MINUTES = 30
+CHECK_NAME = "revisa el nombre en JARVIS → Lo que JARVIS sabe de ti"
+STALE_AFTER = timedelta(days=2)  # cifras sin actualizar más tiempo: JARVIS avisa
+STALE_MIN_FAILURES = 3  # intentos fallidos (cada 30 min) antes de avisar
 VIEW_MILESTONES = [100, 500, 1000, 5000, 10_000, 50_000, 100_000, 500_000, 1_000_000]
 SUB_MILESTONES = [10, 50, 100, 250, 500, 1000, 2500, 5000, 10_000, 50_000, 100_000]
 VIDEO_ID = re.compile(r"(?:v=|youtu\.be/|shorts/|embed/)([\w-]{11})")
@@ -161,25 +165,121 @@ def refresh(db: Session, now: datetime | None = None) -> int:
         _check_milestones(db, video, item["views"], now)
     _check_subscribers(db, data.get("subscribers"), now)
     db.commit()
-    link_projects(db)
     set_setting(db, "analytics_last", now.isoformat(timespec="seconds"))
+    for key in ("analytics_error", "analytics_error_since", "analytics_error_count"):
+        set_setting(db, key, "")
+    try:  # enlazar con los proyectos es un extra: las cifras ya están guardadas
+        link_projects(db)
+    except Exception:  # noqa: BLE001
+        log.exception("No se pudieron enlazar los vídeos con sus proyectos")
+        db.rollback()
     return len(data.get("latest", []))
 
 
-def maybe_refresh(db: Session, now: datetime | None = None) -> bool:
-    """Cada pocas horas (lo llama el trabajador cuando no tiene tareas)."""
+def safe_error(exc: Exception) -> str:
+    """El texto del error sin la clave de YouTube (va en la dirección de la consulta)."""
+    return re.sub(r"key=[^&\s'\"]+", "key=***", str(exc))
+
+
+def failure_reason(exc: Exception, has_key: bool) -> str:
+    """El motivo de un fallo al leer las cifras, en palabras sencillas."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        code = exc.response.status_code
+        if code in (400, 401, 403) and has_key:
+            return (
+                "YouTube no acepta tu clave (puede que esté mal copiada, la hayan "
+                "desactivado o se acabara el cupo gratis de hoy)"
+            )
+        if code in (403, 429) and not has_key:
+            return (
+                "YouTube no deja leer el canal sin clave (pon la clave gratuita de YouTube "
+                "en JARVIS → Lo que JARVIS sabe de ti)"
+            )
+        if code == 404:
+            return f"YouTube no encuentra tu canal ({CHECK_NAME})"
+        if code == 429 or code >= 500:
+            return "YouTube está saturado o caído en este momento"
+        return f"YouTube respondió con un error ({code})"
+    if isinstance(exc, httpx.TransportError):
+        return "el ordenador no tiene internet o YouTube no responde"
+    if isinstance(exc, ValueError) and "canal" in str(exc):
+        return f"no encuentro tu canal ({CHECK_NAME})"
+    if isinstance(exc, (KeyError, IndexError)) and has_key:
+        return f"YouTube no devuelve datos de tu canal ({CHECK_NAME})"
+    if isinstance(exc, (SQLAlchemyError, OSError)):
+        return "falló algo dentro del programa, no en YouTube (mira la ventana negra)"
+    return f"YouTube devolvió algo que no entiendo ({type(exc).__name__})"
+
+
+def record_failure(db: Session, exc: Exception, now: datetime | None = None) -> str:
+    """Apunta por qué no se pudieron leer las cifras (y desde cuándo falla)."""
     now = now or datetime.now()
-    due = get_setting(db, "analytics_next")
-    if due and datetime.fromisoformat(due) > now:
+    reason = failure_reason(exc, bool(get_api_key(db, "youtube")))
+    set_setting(db, "analytics_error", reason)
+    try:
+        count = int(get_setting(db, "analytics_error_count") or 0)
+    except ValueError:
+        count = 0
+    set_setting(db, "analytics_error_count", str(count + 1))
+    if not get_setting(db, "analytics_error_since"):
+        set_setting(db, "analytics_error_since", now.isoformat(timespec="seconds"))
+    return reason
+
+
+def _when(raw: str | None) -> datetime | None:
+    try:
+        return datetime.fromisoformat(raw) if raw else None
+    except ValueError:
+        log.warning("Fecha guardada que no se entiende: %r", raw)
+        return None
+
+
+def stale_status(db: Session, now: datetime | None = None) -> dict | None:
+    """Si lleva más de 2 días fallando cada intento de leer las cifras: desde cuándo y
+    por qué. None si el último intento fue bien. Un PC apagado no cuenta como fallo: hacen
+    falta varios intentos fallidos y que las últimas cifras buenas tengan más de 2 días."""
+    now = now or datetime.now()
+    reason = get_setting(db, "analytics_error")
+    since = _when(get_setting(db, "analytics_error_since"))
+    if not reason or since is None:
+        return None
+    try:
+        failures = int(get_setting(db, "analytics_error_count") or 0)
+    except ValueError:
+        failures = 0
+    last = _when(get_setting(db, "analytics_last"))
+    if failures < STALE_MIN_FAILURES or now - since < STALE_AFTER:
+        return None
+    if last and now - last < STALE_AFTER:
+        return None
+    return {"reason": reason, "since": since, "last": last, "days": (now - since).days}
+
+
+def maybe_refresh(db: Session, now: datetime | None = None) -> bool:
+    """Cada pocas horas (lo llama el trabajador cuando no tiene tareas). Cualquier fallo
+    queda apuntado con su motivo, para que JARVIS avise si las cifras se quedan paradas."""
+    now = now or datetime.now()
+    due = _when(get_setting(db, "analytics_next"))
+    if due and due > now:
         return False
+    wait = timedelta(minutes=RETRY_MINUTES)
     try:
         refresh(db, now)
         wait = timedelta(hours=REFRESH_HOURS)
-    except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError) as exc:
-        log.warning("No se pudieron leer las cifras del canal: %s", exc)
+    except Exception as exc:  # noqa: BLE001 — se apunta el motivo y se reintenta luego
+        log.warning("No se pudieron leer las cifras del canal: %s", safe_error(exc))
         db.rollback()
-        wait = timedelta(minutes=RETRY_MINUTES)
-    set_setting(db, "analytics_next", (now + wait).isoformat(timespec="seconds"))
+        try:
+            record_failure(db, exc, now)
+        except Exception:  # noqa: BLE001 — si la base de datos falla, al menos el registro
+            log.exception("No se pudo apuntar el fallo de las cifras")
+            db.rollback()
+    finally:
+        try:
+            set_setting(db, "analytics_next", (now + wait).isoformat(timespec="seconds"))
+        except Exception:  # noqa: BLE001 — sin esto se reintentaría en cada vuelta
+            log.exception("No se pudo apuntar el próximo intento de las cifras")
+            db.rollback()
     return True
 
 
