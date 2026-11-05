@@ -42,7 +42,7 @@ def test_briefing_brings_the_short_and_its_texts(logged_in, ai):  # noqa: F811
         summary, video, texts = assistant.briefing(db, MONDAY.replace(hour=10))
     assert "Buenos días" in summary.text
     assert not any("shortup" in d for row in summary.buttons for _, d in row)  # va abajo
-    assert video.video == project_dir(1) / SHORT["file"]
+    assert video.video == (project_dir(1) / SHORT["file"]).resolve()  # Windows: RUNNER~1
     assert "Short de hoy: «El error de Kodak»" in texts.text
     assert "<code>El error de Kodak</code>" in texts.text
     assert "▶ El documental completo: https://youtu.be/aaaaaaaaaaa" in texts.text
