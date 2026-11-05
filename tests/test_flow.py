@@ -20,13 +20,13 @@ def jpg(color) -> bytes:
     return out.getvalue()
 
 
-def test_messages_have_thirty_scenes_each_and_the_style():
+def test_messages_have_24_scenes_each_and_the_style():
     scenes = [{"number": n, "image_prompt": f"scene {n}"} for n in range(1, 66)]
     plan = {"scenes": scenes, "visual_bible": {"characters": ["a stick figure with a bun"]}}
     parts = flow.messages(plan)
-    assert [(p["first"], p["last"]) for p in parts] == [(1, 30), (31, 60), (61, 65)]
+    assert [(p["first"], p["last"]) for p in parts] == [(1, 24), (25, 48), (49, 65)]
     text = parts[0]["text"]
-    assert "Create 30 SEPARATE images" in text and "stickman" in text and "16:9" in text
+    assert "Create 24 SEPARATE images" in text and "stickman" in text and "16:9" in text
     assert "a stick figure with a bun" in text and "\n9. scene 9" in text
     assert "9:16" in flow.messages(plan, portrait=True)[0]["text"]
     single = flow.single_message(plan)

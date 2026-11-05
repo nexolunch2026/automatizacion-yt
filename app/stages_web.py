@@ -353,7 +353,6 @@ def visuals_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         "visuals",
         rows=rows,
         flow_messages=flow.messages(board, jobs.is_portrait(project)) if board else [],
-        flow_all=flow.single_message(board, jobs.is_portrait(project)) if board else "",
         flow_bookmarklet=flow.bookmarklet(len(rows)),
     )
 

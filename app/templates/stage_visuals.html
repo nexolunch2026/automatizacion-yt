@@ -24,17 +24,10 @@
         Después, en Flow, <strong>haz clic en la imagen más nueva</strong> y pulsa ese marcador: copia los enlaces.</li>
       <li>Vuelve aquí, pega lo copiado abajo y pulsa <strong>Colocar en las escenas</strong>.</li>
     </ol>
-    {% if flow_all %}
-    <div class="stack">
-      <textarea id="flow-msg-all" rows="4" readonly>{{ flow_all }}</textarea>
-      <button class="btn" type="button"
-        onclick="navigator.clipboard.writeText(document.getElementById('flow-msg-all').value); this.textContent='¡Copiado! Pégalo en el asistente de Flow'">Copiar TODO en un solo mensaje ({{ rows|length }} escenas)</button>
-      <p class="muted small">Si el asistente se para antes de terminar, escríbele: <strong>«continúa con las que faltan»</strong>.
-        Si se lía con tantas, usa los mensajes por partes de abajo.</p>
-    </div>
-    {% endif %}
+    <p class="muted small">El asistente de Flow acepta como máximo 24 imágenes por mensaje. Si se para o
+      pregunta, contéstale: <strong>«sí, créalas todas ahora»</strong>.</p>
     {% for m in flow_messages %}
-    <details class="para-tools">
+    <details class="para-tools" {% if loop.first %}open{% endif %}>
       <summary>Mensaje {{ loop.index }} de {{ flow_messages|length }} (escenas {{ m.first }}–{{ m.last }})</summary>
       <textarea id="flow-msg-{{ loop.index }}" rows="6" readonly>{{ m.text }}</textarea>
       <button class="btn small" type="button"
