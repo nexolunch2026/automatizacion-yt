@@ -21,7 +21,7 @@ import httpx
 
 from app.providers.ai import ProviderError
 
-PER_MESSAGE = 9  # el asistente de Flow las hace bien de 9 en 9
+PER_MESSAGE = 30  # mensajes de 30 escenas: 2 para un vídeo de 8-10 minutos
 FLOW_HOST = "flow-content.google"
 MAX_IMAGES = 120
 MAX_BYTES = 20 * 1024 * 1024
