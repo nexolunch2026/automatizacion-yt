@@ -54,6 +54,20 @@ def test_bookmarklet_counts():
     assert code.startswith("javascript:") and "__MAX__" not in code and "flow-content" in code
 
 
+def test_match_with_ai_goes_in_batches_and_never_repeats_a_scene(monkeypatch):
+    calls = []
+
+    def fake_batch(ai, thumbs, scenes):
+        calls.append((len(thumbs), [s["number"] for s in scenes]))
+        return {0: scenes[0]["number"]}  # siempre la primera escena libre
+
+    monkeypatch.setattr(flow, "_match_batch", fake_batch)
+    scenes = [{"number": n} for n in range(1, 31)]
+    result = flow.match_with_ai(None, [b"x"] * 20, scenes)
+    assert [c[0] for c in calls] == [8, 8, 4]
+    assert result == {0: 1, 8: 2, 16: 3} and 1 not in calls[1][1]
+
+
 def test_by_order_reverses_the_viewer():
     scenes = [{"number": n} for n in (1, 2, 3)]
     assert flow.by_order(3, scenes) == {2: 1, 1: 2, 0: 3}

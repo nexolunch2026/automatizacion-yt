@@ -164,8 +164,23 @@ def thumbnail(data: bytes, size: int = 384) -> bytes:
     return out.getvalue()
 
 
+MATCH_BATCH = 8  # con muchas imágenes de golpe, Gemini solo empareja unas pocas
+
+
 def match_with_ai(ai, thumbs: list[bytes], scenes: list[dict]) -> dict[int, int]:
-    """Gemini mira las imágenes y dice a qué escena corresponde cada una: {imagen: escena}."""
+    """Gemini mira las imágenes (de 8 en 8) y dice a qué escena va cada una: {imagen: escena}.
+    Cada escena se usa una sola vez."""
+    result: dict[int, int] = {}
+    for start in range(0, len(thumbs), MATCH_BATCH):
+        free = [s for s in scenes if s["number"] not in result.values()]
+        if not free:
+            break
+        part = _match_batch(ai, thumbs[start : start + MATCH_BATCH], free)
+        result.update({start + index: scene for index, scene in part.items()})
+    return result
+
+
+def _match_batch(ai, thumbs: list[bytes], scenes: list[dict]) -> dict[int, int]:
     from google.genai import types
 
     listing = "\n".join(
