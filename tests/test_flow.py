@@ -194,3 +194,29 @@ def test_direct_bookmarklet_points_to_this_program():
     )
     assert "__API__" not in code and "N=50" in code
     assert flow.project_token(7) != flow.project_token(8)
+
+
+def test_long_paragraphs_become_scenes_of_about_12_seconds():
+    from app.pipeline.script import split_long_paragraphs, split_paragraph
+
+    text = " ".join(
+        f"Frase número {n} con unas cuantas palabras más para alargar." for n in range(8)
+    )
+    parts = split_paragraph({"id": "abc", "text": text, "sources": [1]})
+    assert len(parts) >= 2 and parts[0]["id"] == "abc" and parts[1]["id"] != "abc"
+    assert all(len(p["text"].split()) <= 46 for p in parts)
+    assert " ".join(p["text"] for p in parts) == text and parts[1]["sources"] == [1]
+    short = {"id": "x", "text": "Una frase corta."}
+    assert split_paragraph(short) == [short]
+    script = {"sections": [{"paragraphs": [{"id": "abc", "text": text}]}]}
+    assert split_long_paragraphs(script) and not split_long_paragraphs(script)
+
+
+def test_flow_messages_only_ask_for_missing_images(board):  # noqa: F811
+    from app.stages_web import _without_flow_image
+
+    plan = {"scenes": [{"paragraph_id": "a"}, {"paragraph_id": "b"}]}
+    done = {"items": {"a": {"provider": "flow"}}}
+    assert _without_flow_image(plan, done)["scenes"] == [{"paragraph_id": "b"}]
+    everything = {"items": {"a": {"provider": "flow"}, "b": {"provider": "flow"}}}
+    assert len(_without_flow_image(plan, everything)["scenes"]) == 2

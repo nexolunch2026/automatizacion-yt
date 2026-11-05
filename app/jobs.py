@@ -272,7 +272,14 @@ def recent_structures(db: Session, project: Project) -> list[str]:
 
 
 def _run_storyboard(db: Session, project: Project, progress, params: dict) -> dict:
-    script = _require(db, project, "script", "Primero hay que escribir el guion.")
+    import copy
+
+    from app.pipeline.script import split_long_paragraphs, with_stats
+
+    script = copy.deepcopy(_require(db, project, "script", "Primero hay que escribir el guion."))
+    if split_long_paragraphs(script):  # guiones antiguos: párrafos de 30-40 s → trozos de ~12 s
+        _save_result(db, project, "script", with_stats(script))
+        db.commit()
     ai = get_ai_provider(db)
     if params.get("charts_only"):  # solo volver a buscar cifras para gráficos
         data = _require(db, project, "storyboard", "Primero hay que crear las escenas.")

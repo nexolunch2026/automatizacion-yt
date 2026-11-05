@@ -352,10 +352,24 @@ def visuals_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         project,
         "visuals",
         rows=rows,
-        flow_messages=flow.messages(board, jobs.is_portrait(project)) if board else [],
+        flow_messages=flow.messages(_without_flow_image(board, visuals), jobs.is_portrait(project))
+        if board
+        else [],
         flow_bookmarklet=flow.bookmarklet(len(rows)),
         flow_direct=flow.direct_bookmarklet(str(request.base_url), project.id, len(rows)),
     )
+
+
+def _without_flow_image(board: dict, visuals: dict) -> dict:
+    """Solo las escenas que aún no tienen imagen de Flow (para no pedir dos veces las mismas).
+    Si ya las tienen todas, se ofrecen todas por si se quiere rehacer alguna."""
+    items = visuals.get("items", {})
+    missing = [
+        s
+        for s in board.get("scenes", [])
+        if (items.get(s["paragraph_id"]) or {}).get("provider") != "flow"
+    ]
+    return {**board, "scenes": missing or board.get("scenes", [])}
 
 
 @router.post("/visuales/flow")

@@ -12,7 +12,6 @@ Acabado («paquete de calidad»):
 - Acabado de cine: contraste suave, viñeta y grano de película.
 """
 
-import math
 import os
 import re
 import shutil
@@ -267,11 +266,10 @@ def end_overlay(text: str, size: tuple[int, int], path: Path) -> Path:
 
 
 def split_shots(seconds: float) -> list[float]:
-    """Divide una escena en planos de 3–6 s (máximo 4) para que la imagen cambie a menudo."""
-    if seconds <= 6:
-        return [seconds]
-    count = min(max(math.ceil(seconds / 5), 2), 4)
-    return [seconds / count] * count
+    """Un solo plano por imagen, con un movimiento suave de principio a fin. (Antes se
+    partía en 2-4 planos de la misma imagen con movimientos distintos y daba «rebotes»;
+    ahora los párrafos son cortos y cada uno trae su propia imagen.)"""
+    return [seconds]
 
 
 def _motion_filter(motion: str, frames: int) -> tuple[str, str, str]:
