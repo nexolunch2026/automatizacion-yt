@@ -112,3 +112,30 @@ def test_visuals_page_shows_flow_steps(board):  # noqa: F811
     assert "Imágenes con Google Flow" in page and "Copiar mensaje 1" in page
     assert "Recoger imágenes de Flow" in page and "Pollinations" not in page
     assert jobs  # el módulo se usa en la página
+
+
+def test_automatic_mode_stops_at_visuals_and_flow_resumes_it(logged_in, ai, monkeypatch):  # noqa: F811
+    """En automático se para antes de Visuales (nunca fotos de bancos) y, al importar
+    todas las imágenes de Flow, el montaje se pone en marcha solo."""
+    from app.db import SessionLocal
+    from app.models import Job
+    from tests.test_strategy_script import make_project, run_all
+
+    make_project(logged_in, "automatico")
+    logged_in.post("/proyectos/1/etapas/research")
+    run_all()
+    assert "voice" in [r for r in ("voice",) if result("voice")]
+    assert result("visuals") is None
+    scenes = result("storyboard")["scenes"]
+    links = [{"t": "", "s": FLOW_URL.format(n=i)} for i in range(len(scenes))]
+    real_client = httpx.Client
+    monkeypatch.setattr(
+        "app.stages_web.httpx.Client",
+        lambda *a, **k: real_client(
+            transport=httpx.MockTransport(lambda r: httpx.Response(200, content=jpg((1, 2, 3))))
+        ),
+    )
+    monkeypatch.setattr(flow, "match_with_ai", lambda *a: {})  # por orden
+    logged_in.post("/proyectos/1/visuales/flow", data={"links": json.dumps(links)})
+    with SessionLocal() as db:
+        assert db.query(Job).filter_by(project_id=1, stage="edit").count() == 1

@@ -59,6 +59,10 @@ STAGE_DONE_STATUS = {
     "edit": "Edición",
 }
 # Qué etapa sigue a cada una (para los modos asistido y automático).
+# Antes de la v0.70 el modo automático seguía solo con fotos de bancos (Pixabay) hasta el
+# vídeo. Ahora se para en Visuales (imágenes de Flow). Solo las pruebas antiguas lo activan.
+LEGACY_AUTO_VISUALS = False
+
 NEXT_STAGE = {
     "research": "strategy",
     "strategy": "script",
@@ -401,8 +405,8 @@ def _run_visuals(db: Session, project: Project, progress, params: dict) -> dict:
     folder = project_dir(project.id) / "visuales"
     only = set(params["only"]) if params.get("only") else None
     stock = get_stock_providers(db)
-    # Sin clave de bancos de imágenes, se generan con IA.
-    mode = params.get("mode") or ("stock" if stock else "ai")
+    # Todo es stickman: por defecto IA; los bancos de fotos solo si se piden a propósito.
+    mode = params.get("mode") or ("stock" if stock and LEGACY_AUTO_VISUALS else "ai")
     return run_visuals(
         board["scenes"],
         stock,
@@ -700,6 +704,10 @@ def _chain_next(db: Session, project: Project, stage: str, data: dict) -> None:
     if project.automation_mode == "asistido" and stage != "research":
         return
     if next_stage == "script" and not data.get("selected"):
+        return
+    if next_stage == "visuals" and not LEGACY_AUTO_VISUALS:
+        # Las imágenes stickman se hacen con Google Flow (a mano): aquí se para y, al
+        # importarlas, el montaje sigue solo (ver stages_web.import_from_flow).
         return
     enqueue(db, project.id, next_stage)
 

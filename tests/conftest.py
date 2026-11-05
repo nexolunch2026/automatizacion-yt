@@ -63,6 +63,16 @@ from app.providers.images import ImageChain  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
+def legacy_auto_visuals(monkeypatch, request):
+    """Las pruebas antiguas recorren todo el modo automático con fotos de bancos; las de
+    Flow (test_flow.py) prueban el comportamiento nuevo: se para en Visuales."""
+    from app import jobs
+
+    if not request.module.__name__.endswith("test_flow"):
+        monkeypatch.setattr(jobs, "LEGACY_AUTO_VISUALS", True)
+
+
+@pytest.fixture(autouse=True)
 def fresh_model_list():
     """Cada test simula sus propios modelos de Gemini: sin la lista guardada de otro test."""
     from app.providers import ai

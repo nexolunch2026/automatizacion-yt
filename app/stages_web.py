@@ -404,6 +404,11 @@ def import_from_flow(
     if not found:
         problems.append("No había enlaces de Flow en lo que pegaste.")
     _save_upload_report(db, project_id, len(new_items), problems)
+    project = _project(db, project_id)
+    items = (jobs.get_result(db, project_id, "visuals") or {}).get("items", {})
+    complete = all(s["paragraph_id"] in items for s in scenes if s.get("visual_type") != "grafico")
+    if new_items and complete and project.automation_mode == "automatico":
+        jobs.enqueue(db, project_id, "edit")  # todas las escenas con imagen: se monta solo
     return _redirect(f"/proyectos/{project_id}/visuales#flow")
 
 
