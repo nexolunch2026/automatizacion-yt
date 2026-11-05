@@ -220,3 +220,23 @@ def test_flow_messages_only_ask_for_missing_images(board):  # noqa: F811
     assert _without_flow_image(plan, done)["scenes"] == [{"paragraph_id": "b"}]
     everything = {"items": {"a": {"provider": "flow"}, "b": {"provider": "flow"}}}
     assert len(_without_flow_image(plan, everything)["scenes"]) == 2
+
+
+def test_soccer_words_avoid_american_football():
+    assert flow.soccer_words("a footballer kicking a football in a football stadium") == (
+        "a soccer player kicking a soccer ball in a soccer stadium"
+    )
+
+
+def test_messages_add_soccer_rule_only_for_football_scenes():
+    soccer = {"scenes": [{"number": 1, "image_prompt": "a stick figure kicking a football"}]}
+    other = {"scenes": [{"number": 1, "image_prompt": "a stick figure in an office"}]}
+    assert flow.SOCCER_RULE in flow.messages(soccer)[0]["text"]
+    assert "a soccer ball" in flow.messages(soccer)[0]["text"]
+    assert flow.SOCCER_RULE not in flow.messages(other)[0]["text"]
+
+
+def test_soccer_words_keep_playing_soccer():
+    assert flow.soccer_words("three kids playing football together") == (
+        "three kids playing soccer together"
+    )

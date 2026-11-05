@@ -62,14 +62,21 @@ ESTILO OBLIGATORIO: todas las imágenes son dibujos «stickman» 2D (monigotes b
 cabeza redonda con contorno negro grueso, colores planos). Nada de fotos realistas.
 
 1) Define una «biblia visual» coherente para todo el vídeo. En «characters» pon PRIMERO al
-   protagonista descrito como monigote en inglés, con 2-3 rasgos fijos que lo identifiquen
-   siempre (pelo, ropa, número o color), p. ej. «a stick figure footballer with a small dark
-   hair bun, white shirt with number 11».
+   protagonista descrito como monigote en inglés, con 3-4 rasgos fijos que lo identifiquen
+   siempre. Si es una persona real, que sea una caricatura RECONOCIBLE de ella: su peinado,
+   su color de piel, su rasgo más famoso de la cara y su ropa típica, p. ej. «Ronaldinho:
+   stick figure with brown skin, long curly black hair with a thin headband, huge toothy
+   smile with big front teeth, yellow Brazil shirt with number 10».
+   Si sale un balón de fútbol escribe «round black-and-white soccer ball» (nunca solo
+   «football»: la IA dibuja un balón de fútbol americano).
 2) Para CADA párrafo (identificado entre corchetes) crea UNA escena con ese mismo
    paragraph_id, en el mismo orden. Respeta la biblia visual en todos los prompts.
    - visual_type: «imagen» (o «grafico» si la escena es una cifra clara).
-   - Escenas sencillas de dibujar: una acción clara por imagen (las IA fallan con jugadas
-     complicadas). Usa metáforas visuales: balanzas, bolsas de dinero, tormentas, focos.
+   - Una acción clara por imagen (las IA fallan con jugadas complicadas), pero con
+     DETALLE: lugar concreto y reconocible (estadio, ciudad, juzgado…), hora y ambiente,
+     personajes secundarios y objetos. Nunca un monigote solo sobre un fondo vacío.
+     El protagonista aparece en casi todas las escenas, con la ropa de esa etapa.
+     Usa metáforas visuales: balanzas, bolsas de dinero, tormentas, focos.
    - stock_query: palabras en inglés, concretas y visuales.
    - image_prompt: en inglés, una escena stickman con el protagonista descrito igual
      siempre (copia sus rasgos), el lugar, la acción y la emoción.

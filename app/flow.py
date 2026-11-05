@@ -41,9 +41,40 @@ def protagonist_hint(visual_bible: dict) -> str:
     return people[0].strip() if people else ""
 
 
+# «football» en inglés: Nano Banana dibuja a menudo un balón de fútbol americano.
+SOCCER_WORDS = (
+    (re.compile(r"\bfootballers\b", re.I), "soccer players"),
+    (re.compile(r"\bfootballer\b", re.I), "soccer player"),
+    (
+        re.compile(
+            r"\bfootball(?=\s+(?:stadium|pitch|field|match|game|team|club|shirt|kit|boots"
+            r"|player|fans|academy|school|career|legend|star))",
+            re.I,
+        ),
+        "soccer",
+    ),
+    (
+        re.compile(r"\b(play(?:s|ing|ed)?|watch(?:es|ing|ed)?|love[sd]?) football\b", re.I),
+        r"\1 soccer",
+    ),
+    (re.compile(r"\b(?:a |the )?(?:soccer )?football\b(?!\s+ball)", re.I), "a soccer ball"),
+)
+SOCCER_RULE = (
+    "BALLS: every ball is a round black-and-white soccer ball (association football). "
+    "NEVER draw an American football or a rugby ball."
+)
+SOCCER_HINT = re.compile(r"\b(?:soccer|football\w*|fútbol|futbol|balón|goal|stadium)\b", re.I)
+
+
+def soccer_words(text: str) -> str:
+    for pattern, word in SOCCER_WORDS:
+        text = pattern.sub(word, text)
+    return text
+
+
 def scene_prompt(scene: dict, visual_bible: dict) -> str:
     base = (scene.get("image_prompt") or scene.get("visual") or "").strip().rstrip(".")
-    return base
+    return soccer_words(base)
 
 
 def single_message(board: dict, portrait: bool = False) -> str:
@@ -75,7 +106,12 @@ def messages(board: dict, portrait: bool = False, per_message: int = PER_MESSAGE
             f"SAME STYLE FOR ALL: {STICKMAN_STYLE}, {NO_TEXT}.",
         ]
         if hero:
-            lines.append(f"MAIN CHARACTER (identical in every image where he appears): {hero}.")
+            lines.append(
+                f"MAIN CHARACTER (identical in every image where he appears, a recognizable "
+                f"caricature): {soccer_words(hero)}."
+            )
+        if any(SOCCER_HINT.search(s.get("image_prompt") or s.get("visual") or "") for s in chunk):
+            lines.append(SOCCER_RULE)
         lines.append("")
         lines += [f"{s['number']}. {scene_prompt(s, bible)}" for s in chunk]
         parts.append({"first": first, "last": last, "text": "\n".join(lines)})
