@@ -1,23 +1,23 @@
-"""Generación de imágenes con IA a partir de los prompts de cada escena.
+"""Generación automática de imágenes con IA a partir de los prompts de cada escena.
 
-1. Gemini (con la clave del usuario), si su cuenta tiene un modelo de imágenes disponible.
-2. Pollinations (gratis, sin clave, modelo FLUX), como alternativa.
+Solo Gemini (Nano Banana) con la clave del usuario; la API de imágenes de Google es de pago.
+La forma gratis es Google Flow, a mano (ver `app/flow.py`).
 """
 
 import re
 import time
-import urllib.parse
 from typing import Protocol
 
-import httpx
-
-from app.config import VERSION
 from app.providers.ai import GeminiProvider, ModelUnavailable, ProviderError
 
 SLEEP = time.sleep  # se reemplaza en los tests
 STYLE_SUFFIX = (
-    ", high quality, detailed, photographic scene, absolutely no text, no words, no letters,"
-    " no numbers, no captions, no charts, no infographics, no signs, no watermark, no logo"
+    ", clean 2D stickman illustration, absolutely no text, no words, no letters, no captions,"
+    " no charts, no infographics, no signs, no watermark, no logo"
+)
+NO_FREE_IMAGES = (
+    "Tu clave de Gemini no puede crear imágenes gratis. Hazlas gratis con Google Flow "
+    "(pasos arriba, en esta misma página)."
 )
 
 
@@ -84,86 +84,6 @@ class GeminiImages:
         raise last or ProviderError("Tu cuenta de Gemini no tiene modelos de imágenes.")
 
 
-RATE_LIMIT_CODES = (402, 429)  # Pollinations usa 402 cuando se piden imágenes muy seguidas
-RATE_LIMIT_WAITS = [30, 60, 90]
-
-
-class PollinationsImages:
-    """https://pollinations.ai — gratis (con o sin clave). Modelo FLUX (uso comercial
-    permitido). Sin clave admite pocas peticiones por minuto, así que se va despacio y,
-    si avisa de exceso, se espera y se reintenta."""
-
-    name = "pollinations"
-    label = "Pollinations (FLUX)"
-    URL = "https://image.pollinations.ai/prompt/"
-
-    def __init__(
-        self, token: str | None = None, transport=None, pause_seconds: float | None = None
-    ):
-        headers = {"User-Agent": f"FacelessStudio/{VERSION}"}
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
-        self._client = httpx.Client(
-            timeout=180, transport=transport, follow_redirects=True, headers=headers
-        )
-        self._pause = pause_seconds if pause_seconds is not None else (5 if token else 15)
-        self._last = 0.0
-
-    def generate(self, prompt: str, portrait: bool, seed: int) -> tuple[bytes, str]:
-        width, height = (768, 1344) if portrait else (1344, 768)
-        url = self.URL + urllib.parse.quote(prompt + STYLE_SUFFIX, safe="")
-        params = {
-            "width": width,
-            "height": height,
-            "model": "flux",
-            "seed": seed,
-            "nologo": "true",
-            "private": "true",
-        }
-        detail = ""
-        for attempt in range(len(RATE_LIMIT_WAITS) + 1):
-            wait = self._pause - (time.monotonic() - self._last)
-            if wait > 0:  # el servicio gratuito pide no hacer peticiones seguidas
-                SLEEP(wait)
-            try:
-                response = self._client.get(url, params=params)
-            except httpx.HTTPError as exc:
-                raise ProviderError(
-                    "No se pudo conectar con Pollinations.", transient=True, detail=str(exc)[:200]
-                ) from exc
-            finally:
-                self._last = time.monotonic()
-            if response.status_code in RATE_LIMIT_CODES:
-                detail = f"{response.status_code}: {response.text[:200]}"
-                if attempt < len(RATE_LIMIT_WAITS):
-                    SLEEP(RATE_LIMIT_WAITS[attempt])
-                    continue
-                raise ProviderError(
-                    "Pollinations está limitando las peticiones gratuitas. Espera un rato y "
-                    "vuelve a intentarlo, o pon una clave gratuita de Pollinations en "
-                    "Configuración.",
-                    transient=True,
-                    detail=detail,
-                )
-            if response.status_code >= 400:
-                raise ProviderError(
-                    f"Pollinations respondió con un error ({response.status_code}).",
-                    transient=response.status_code >= 500,
-                    detail=response.text[:200],
-                )
-            if not response.headers.get("content-type", "").startswith("image/"):
-                raise ProviderError(
-                    "Pollinations no devolvió una imagen.",
-                    transient=True,
-                    detail=response.text[:200],
-                )
-            ext = ".png" if "png" in response.headers["content-type"] else ".jpg"
-            return response.content, ext
-        raise ProviderError(
-            "Pollinations está saturado. Prueba más tarde.", transient=True, detail=detail
-        )
-
-
 class ImageChain:
     """Prueba los proveedores en orden. Si uno falla por algo que no se arregla
     reintentando (cuota, permisos), se descarta para el resto de la tarea."""
@@ -183,7 +103,7 @@ class ImageChain:
                 if not exc.transient and "filtro" not in str(exc):
                     self.providers.remove(provider)
                     self.notes.append(f"{provider.label}: {exc}")
-        if last:
+        if last and last.transient:
             raise last
-        reasons = "; ".join(self.notes) or "ninguno configurado"
-        raise ProviderError(f"No hay ningún generador de imágenes disponible ({reasons}).")
+        reasons = "; ".join(self.notes) or (str(last) if last else "sin clave de Gemini")
+        raise ProviderError(NO_FREE_IMAGES, detail=reasons[:300])

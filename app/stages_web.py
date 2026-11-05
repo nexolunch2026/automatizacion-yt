@@ -1,10 +1,12 @@
 """Páginas de cada etapa del proyecto: investigación, estrategia y guion."""
 
 import copy
+import logging
 import re
 from pathlib import Path
 from typing import Annotated
 
+import httpx
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
 from sqlalchemy import select
@@ -34,6 +36,7 @@ from app.settings_store import api_key_hint, get_api_key
 from app.templating import render
 
 router = APIRouter(prefix="/proyectos/{project_id}")
+log = logging.getLogger(__name__)
 
 # Dirección de cada etapa en la web.
 SLUGS = {
@@ -341,14 +344,86 @@ def visuals_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         {"scene": scene, "visual": visuals.get("items", {}).get(scene["paragraph_id"])}
         for scene in board.get("scenes", [])
     ]
+    from app import flow
+
     return _stage_page(
         request,
         db,
         project,
         "visuals",
         rows=rows,
-        has_stock=bool(jobs.get_stock_providers(db)),
+        flow_messages=flow.messages(board, jobs.is_portrait(project)) if board else [],
+        flow_bookmarklet=flow.bookmarklet(len(rows)),
     )
+
+
+@router.post("/visuales/flow")
+def import_from_flow(
+    db: DB, user: CurrentUser, project_id: int, links: Annotated[str, Form()] = ""
+):
+    """Descarga las imágenes de Flow (enlaces copiados con el marcador) y las coloca en sus
+    escenas: Gemini mira cada una; si no puede, se colocan por orden de creación."""
+    from app import flow
+
+    _project(db, project_id)
+    board = jobs.get_result(db, project_id, "storyboard")
+    if board is None:
+        raise HTTPException(404, "Primero crea las escenas")
+    scenes = board["scenes"]
+    by_number = {s["number"]: s for s in scenes}
+    found = flow.parse_links(links)
+    problems: list[str] = []
+    pictures: list[bytes] = []
+    # Sin seguir redirecciones: solo se descarga del servidor de Flow, nunca de otro sitio.
+    with httpx.Client(timeout=60, follow_redirects=False) as client:
+        for item in found:
+            try:
+                pictures.append(flow.download(item["url"], client))
+            except ProviderError as exc:
+                problems.append(str(exc))
+    mapping: dict[int, int] = {}
+    if pictures:
+        try:
+            ai = jobs.get_ai_provider(db)
+            mapping = flow.match_with_ai(ai, [flow.thumbnail(p) for p in pictures], scenes)
+        except Exception as exc:  # noqa: BLE001 — sin Gemini o respuesta rara: por orden
+            log.warning("Flow: no se pudo repartir con Gemini (%s); se usa el orden", exc)
+            problems.append("Gemini no pudo mirar las imágenes: se colocaron por orden.")
+        if not mapping:
+            mapping = flow.by_order(len(pictures), scenes)
+    new_items = {}
+    for index, number in mapping.items():
+        try:
+            filename = _store_image(project_id, by_number[number], pictures[index])
+        except ValueError as exc:
+            problems.append(f"Imagen {index + 1}: {exc}")
+            continue
+        new_items[by_number[number]["paragraph_id"]] = _flow_entry(filename)
+    if new_items:
+        _save_visual_items(db, project_id, new_items)
+    if not found:
+        problems.append("No había enlaces de Flow en lo que pegaste.")
+    _save_upload_report(db, project_id, len(new_items), problems)
+    return _redirect(f"/proyectos/{project_id}/visuales#flow")
+
+
+def _flow_entry(filename: str) -> dict:
+    entry = _uploaded_entry(filename, True)
+    entry["license"] = "Imagen creada con Google Flow (IA)"
+    entry["provider"] = "flow"
+    return entry
+
+
+def _save_upload_report(db: DB, project_id: int, ok: int, problems: list[str]) -> None:
+    row = _result_row(db, project_id, "visuals")
+    if row is None:
+        db.add(StageResult(project_id=project_id, stage="visuals", data={"items": {}}))
+        db.commit()
+        row = _result_row(db, project_id, "visuals")
+    data = copy.deepcopy(row.data)
+    data["upload_report"] = {"ok": ok, "problems": problems[:20]}
+    row.data = data
+    db.commit()
 
 
 @router.post("/visuales/cambiar/{paragraph_id}")
@@ -557,12 +632,7 @@ async def upload_many(
         new_items[scenes[number]["paragraph_id"]] = _uploaded_entry(filename, bool(is_ai))
     if new_items:
         _save_visual_items(db, project_id, new_items)
-    row = _result_row(db, project_id, "visuals")
-    if row:  # el resumen se muestra en la página
-        data = copy.deepcopy(row.data)
-        data["upload_report"] = {"ok": len(new_items), "problems": problems[:20]}
-        row.data = data
-        db.commit()
+    _save_upload_report(db, project_id, len(new_items), problems)
     return _redirect(f"/proyectos/{project_id}/visuales#subida")
 
 

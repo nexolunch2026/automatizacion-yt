@@ -4,7 +4,7 @@ on:
   push:
   pull_request:
   schedule:
-    # Cada lunes, aunque nadie cambie nada: avisa si algo de fuera (voces de Piper,
+    # Cada lunes, aunque nadie cambie nada: avisa si algo de fuera (voces de Microsoft,
     # Gemini, el actualizador…) ha dejado de funcionar.
     - cron: "17 11 * * 1"
   workflow_dispatch:
@@ -32,7 +32,7 @@ jobs:
       - run: uv run pytest -q
 
   integraciones:
-    # Comprueba con servicios reales: voces de Piper y descarga del actualizador.
+    # Comprueba con servicios reales: voces de Microsoft y descarga del actualizador.
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4

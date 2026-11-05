@@ -391,12 +391,14 @@ def _rights_checks(results: dict, music_licenses: dict | None = None) -> list[di
                 "Sirve mientras creces, pero el plan gratis no permite monetizar y pide citar a"
                 " ElevenLabs (ya va en la descripción).",
                 "Paga el plan más barato (Starter) justo antes de solicitar la monetización,"
-                " o regraba con una voz Piper.",
+                " o regraba con la voz gratis de Microsoft (Jorge).",
                 "voz",
             )
         )
     elif voice:
-        checks.append(_check("voice", "rights", OK, "Voz libre de uso", "Voz Piper sin coste."))
+        checks.append(
+            _check("voice", "rights", OK, "Voz libre de uso", "Voz de Microsoft sin coste.")
+        )
 
     music = last_render(results).get("music")
     if music:

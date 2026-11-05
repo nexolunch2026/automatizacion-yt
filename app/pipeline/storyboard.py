@@ -58,13 +58,21 @@ def _prompt(project: Project, script: dict) -> str:
     return f"""Eres director de vídeos faceless de YouTube. Crea el storyboard de este guion
 («{script["title"]}», tipo {project.video_type}).
 
-1) Define una «biblia visual» coherente para todo el vídeo.
+ESTILO OBLIGATORIO: todas las imágenes son dibujos «stickman» 2D (monigotes blancos de
+cabeza redonda con contorno negro grueso, colores planos). Nada de fotos realistas.
+
+1) Define una «biblia visual» coherente para todo el vídeo. En «characters» pon PRIMERO al
+   protagonista descrito como monigote en inglés, con 2-3 rasgos fijos que lo identifiquen
+   siempre (pelo, ropa, número o color), p. ej. «a stick figure footballer with a small dark
+   hair bun, white shirt with number 11».
 2) Para CADA párrafo (identificado entre corchetes) crea UNA escena con ese mismo
    paragraph_id, en el mismo orden. Respeta la biblia visual en todos los prompts.
-   - Prefiere vídeo de archivo o imágenes reales para hechos; gráficos para cifras.
-   - No muestres caras de personas reales inventadas como si fueran reales.
+   - visual_type: «imagen» (o «grafico» si la escena es una cifra clara).
+   - Escenas sencillas de dibujar: una acción clara por imagen (las IA fallan con jugadas
+     complicadas). Usa metáforas visuales: balanzas, bolsas de dinero, tormentas, focos.
    - stock_query: palabras en inglés, concretas y visuales.
-   - image_prompt: en inglés, describiendo estilo, encuadre e iluminación de la biblia.
+   - image_prompt: en inglés, una escena stickman con el protagonista descrito igual
+     siempre (copia sus rasgos), el lugar, la acción y la emoción.
      MUY IMPORTANTE: la imagen NO debe llevar texto, letras, números, rótulos, gráficos,
      infografías, líneas de tiempo, pantallas con datos ni logotipos legibles (la IA se
      inventa esos textos y cifras). Describe escenas, objetos, lugares y ambiente.
@@ -94,6 +102,8 @@ def run_storyboard(
         }
         if spec:
             scene.update(spec.model_dump(exclude={"paragraph_id"}))
+            if scene["visual_type"] not in ("imagen", "grafico", "texto"):
+                scene["visual_type"] = "imagen"  # sin vídeos de archivo: todo es stickman
         else:  # la IA se saltó este párrafo: escena básica para no perderlo
             scene.update(
                 visual_type="imagen",
@@ -109,8 +119,12 @@ def run_storyboard(
             )
         scenes.append(scene)
     progress(100, "Escenas listas")
+    from app.flow import STICKMAN_STYLE
+
+    bible = board.visual_bible.model_dump()
+    bible["style"] = STICKMAN_STYLE  # el estilo del canal, siempre el mismo
     return {
-        "visual_bible": board.visual_bible.model_dump(),
+        "visual_bible": bible,
         "scenes": scenes,
         "total_seconds": round(sum(s["seconds"] for s in scenes), 1),
     }
