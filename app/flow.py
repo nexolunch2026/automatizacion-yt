@@ -87,8 +87,10 @@ def messages(board: dict, portrait: bool = False, per_message: int = PER_MESSAGE
 # al portapapeles los enlaces de descarga con su título.
 BOOKMARKLET = (
     "javascript:(async()=>{const s=m=>new Promise(r=>setTimeout(r,m));"
-    "const c=()=>{const i=[...document.querySelectorAll('img')].find(x=>x.src.includes("
-    "'flow-content.google/image'));const h=document.querySelector('h1,h2,[class*=title]');"
+    "const c=()=>{const a=(x)=>{const r=x.getBoundingClientRect();return r.width*r.height};"
+    "const i=[...document.querySelectorAll('img')].filter(x=>x.src.includes("
+    "'flow-content.google/image')).sort((x,y)=>a(y)-a(x))[0];"
+    "const h=document.querySelector('h1,h2,[class*=title]');"
     "return{t:h?h.innerText:'',s:i?i.src:''}};let a=c();if(!a.s){alert('Abre primero la imagen "
     "más nueva en Flow (haz clic en ella) y vuelve a pulsar el marcador.');return}"
     "const o=[a];for(let n=0;n<__MAX__;n++){const p=a.s;['keydown','keyup'].forEach(t=>"
