@@ -57,7 +57,7 @@ def test_bookmarklet_counts():
 def test_match_with_ai_goes_in_batches_and_never_repeats_a_scene(monkeypatch):
     calls = []
 
-    def fake_batch(ai, thumbs, scenes):
+    def fake_batch(_ai, thumbs, scenes):
         calls.append((len(thumbs), [s["number"] for s in scenes]))
         return {0: scenes[0]["number"]}  # siempre la primera escena libre
 
