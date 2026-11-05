@@ -354,6 +354,7 @@ def visuals_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         rows=rows,
         flow_messages=flow.messages(board, jobs.is_portrait(project)) if board else [],
         flow_bookmarklet=flow.bookmarklet(len(rows)),
+        flow_direct=flow.direct_bookmarklet(str(request.base_url), project.id, len(rows)),
     )
 
 
@@ -366,11 +367,6 @@ def import_from_flow(
     from app import flow
 
     _project(db, project_id)
-    board = jobs.get_result(db, project_id, "storyboard")
-    if board is None:
-        raise HTTPException(404, "Primero crea las escenas")
-    scenes = board["scenes"]
-    by_number = {s["number"]: s for s in scenes}
     found = flow.parse_links(links)
     problems: list[str] = []
     pictures: list[bytes] = []
@@ -381,16 +377,39 @@ def import_from_flow(
                 pictures.append(flow.download(item["url"], client))
             except ProviderError as exc:
                 problems.append(str(exc))
+    if not found:
+        problems.append("No había enlaces de Flow en lo que pegaste.")
+    place_flow_pictures(db, project_id, pictures, problems)
+    return _redirect(f"/proyectos/{project_id}/visuales#flow")
+
+
+def place_flow_pictures(
+    db: DB, project_id: int, pictures: list[bytes], problems: list[str]
+) -> dict:
+    """Coloca imágenes de Flow en sus escenas: Gemini mira cada una (de 8 en 8) y elige su
+    escena entre las que aún no tienen imagen de Flow; si no puede, por orden. Las que no
+    encajan (de otros vídeos del mismo proyecto de Flow) se descartan."""
+    from app import flow
+
+    board = jobs.get_result(db, project_id, "storyboard")
+    if board is None:
+        raise HTTPException(404, "Primero crea las escenas")
+    scenes = board["scenes"]
+    by_number = {s["number"]: s for s in scenes}
+    items = (jobs.get_result(db, project_id, "visuals") or {}).get("items", {})
+    pending = [
+        s for s in scenes if (items.get(s["paragraph_id"]) or {}).get("provider") != "flow"
+    ] or scenes
     mapping: dict[int, int] = {}
     if pictures:
         try:
             ai = jobs.get_ai_provider(db)
-            mapping = flow.match_with_ai(ai, [flow.thumbnail(p) for p in pictures], scenes)
+            mapping = flow.match_with_ai(ai, [flow.thumbnail(p) for p in pictures], pending)
         except Exception as exc:  # noqa: BLE001 — sin Gemini o respuesta rara: por orden
             log.warning("Flow: no se pudo repartir con Gemini (%s); se usa el orden", exc)
             problems.append("Gemini no pudo mirar las imágenes: se colocaron por orden.")
         if not mapping:
-            mapping = flow.by_order(len(pictures), scenes)
+            mapping = flow.by_order(len(pictures), pending)
     new_items = {}
     for index, number in mapping.items():
         try:
@@ -401,15 +420,66 @@ def import_from_flow(
         new_items[by_number[number]["paragraph_id"]] = _flow_entry(filename)
     if new_items:
         _save_visual_items(db, project_id, new_items)
-    if not found:
-        problems.append("No había enlaces de Flow en lo que pegaste.")
     _save_upload_report(db, project_id, len(new_items), problems)
     project = _project(db, project_id)
     items = (jobs.get_result(db, project_id, "visuals") or {}).get("items", {})
-    complete = all(s["paragraph_id"] in items for s in scenes if s.get("visual_type") != "grafico")
-    if new_items and complete and project.automation_mode == "automatico":
+    missing = [
+        s["number"]
+        for s in scenes
+        if s.get("visual_type") != "grafico"
+        and (items.get(s["paragraph_id"]) or {}).get("provider") != "flow"
+    ]
+    if new_items and not missing and project.automation_mode == "automatico":
         jobs.enqueue(db, project_id, "edit")  # todas las escenas con imagen: se monta solo
-    return _redirect(f"/proyectos/{project_id}/visuales#flow")
+    return {"placed": len(new_items), "missing": missing, "problems": problems[:5]}
+
+
+FLOW_ORIGIN = "https://flow.google.com"
+
+
+def _flow_cors(response):
+    """El botón se pulsa dentro de Flow: el navegador pide permiso para enviar aquí."""
+    response.headers["Access-Control-Allow-Origin"] = FLOW_ORIGIN
+    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "content-type"
+    response.headers["Access-Control-Allow-Private-Network"] = "true"
+    response.headers["Vary"] = "Origin"
+    return response
+
+
+@router.options("/visuales/flow-directo")
+def flow_direct_preflight(project_id: int):
+    from fastapi.responses import Response
+
+    return _flow_cors(Response(status_code=204))
+
+
+@router.post("/visuales/flow-directo")
+async def flow_direct(
+    request: Request, db: DB, project_id: int, k: str = "",
+    images: Annotated[list[UploadFile] | None, File()] = None,
+):  # fmt: skip
+    """Lo llama el botón «Enviar a Faceless Studio» desde Flow con las imágenes ya
+    descargadas. No usa la sesión (otro sitio): lo protege una clave propia del proyecto."""
+    import hmac
+
+    from fastapi.responses import JSONResponse
+
+    from app import flow
+
+    if not hmac.compare_digest(k, flow.project_token(project_id)):
+        return _flow_cors(JSONResponse({"error": "Botón caducado: vuelve a crearlo."}, 403))
+    _project(db, project_id)
+    pictures, problems = [], []
+    for upload in (images or [])[: flow.MAX_IMAGES]:
+        data = await upload.read(flow.MAX_BYTES + 1)
+        if len(data) > flow.MAX_BYTES:
+            problems.append("Una imagen era demasiado grande.")
+            continue
+        pictures.append(data)
+    if not pictures:
+        return _flow_cors(JSONResponse({"error": "No llegó ninguna imagen."}, 400))
+    return _flow_cors(JSONResponse(place_flow_pictures(db, project_id, pictures, problems)))
 
 
 def _flow_entry(filename: str) -> dict:

@@ -156,3 +156,41 @@ def test_automatic_mode_stops_at_visuals_and_flow_resumes_it(logged_in, ai, monk
     logged_in.post("/proyectos/1/visuales/flow", data={"links": json.dumps(links)})
     with SessionLocal() as db:
         assert db.query(Job).filter_by(project_id=1, stage="edit").count() == 1
+
+
+def test_direct_button_needs_the_project_key_and_answers_flow(board):  # noqa: F811
+    r = board.options("/proyectos/1/visuales/flow-directo")
+    assert r.status_code == 204
+    assert r.headers["access-control-allow-origin"] == "https://flow.google.com"
+    assert r.headers["access-control-allow-private-network"] == "true"
+    files = [("images", ("a.img", jpg((5, 5, 5)), "application/octet-stream"))]
+    bad = board.post("/proyectos/1/visuales/flow-directo?k=malo", files=files)
+    assert bad.status_code == 403 and "caducado" in bad.json()["error"]
+
+
+def test_direct_button_places_images_in_their_scenes(board, monkeypatch):  # noqa: F811
+    scenes = result("storyboard")["scenes"]
+    monkeypatch.setattr(
+        flow, "match_with_ai", lambda _ai, thumbs, sc: {0: sc[1]["number"], 1: sc[0]["number"]}
+    )
+    files = [
+        ("images", ("a.img", jpg((200, 0, 0)), "application/octet-stream")),
+        ("images", ("b.img", jpg((0, 200, 0)), "application/octet-stream")),
+    ]
+    r = board.post(f"/proyectos/1/visuales/flow-directo?k={flow.project_token(1)}", files=files)
+    body = r.json()
+    assert r.status_code == 200 and body["placed"] == 2
+    assert r.headers["access-control-allow-origin"] == "https://flow.google.com"
+    items = result("visuals")["items"]
+    assert items[scenes[0]["paragraph_id"]]["provider"] == "flow"
+    assert scenes[0]["number"] not in body["missing"]
+
+
+def test_direct_bookmarklet_points_to_this_program():
+    code = flow.direct_bookmarklet("http://127.0.0.1:8000/", 7, 30)
+    assert code.startswith("javascript:")
+    assert (
+        f"http://127.0.0.1:8000/proyectos/7/visuales/flow-directo?k={flow.project_token(7)}" in code
+    )
+    assert "__API__" not in code and "N=50" in code
+    assert flow.project_token(7) != flow.project_token(8)

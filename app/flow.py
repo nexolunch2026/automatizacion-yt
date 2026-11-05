@@ -102,6 +102,55 @@ BOOKMARKLET = (
 )
 
 
+def project_token(project_id: int) -> str:
+    """Clave del botón «Enviar a Faceless Studio» de un proyecto (no sirve para nada más)."""
+    import hashlib
+    import hmac
+
+    from app.config import SECRET_KEY
+
+    return hmac.new(SECRET_KEY.encode(), f"flow:{project_id}".encode(), hashlib.sha256).hexdigest()[
+        :32
+    ]
+
+
+# Botón directo: dentro del proyecto de Flow, recorre la cuadrícula (de la más nueva a la más
+# vieja), descarga cada imagen con la sesión de Flow del propio navegador y la envía a Faceless
+# Studio, que la coloca en su escena. Solo lee imágenes ya creadas: no crea nada en Flow.
+DIRECT = (
+    "javascript:(async()=>{const API='__API__',N=__N__,s=m=>new Promise(r=>setTimeout(r,m));"
+    "const b=document.createElement('div');b.style.cssText='position:fixed;top:12px;left:50%;"
+    "transform:translateX(-50%);z-index:999999;background:#111;color:#c6ff3a;padding:12px 18px;"
+    "border-radius:10px;font:16px sans-serif;box-shadow:0 4px 20px #000';document.body.append(b);"
+    "const say=t=>b.textContent=t;say('Faceless Studio: buscando imágenes…');"
+    "const g=[...document.querySelectorAll('*')].filter(e=>e.scrollHeight>e.clientHeight+50&&"
+    "/(auto|scroll)/.test(getComputedStyle(e).overflowY)).sort((x,y)=>y.scrollHeight-x.scrollHeight)[0];"
+    "if(!g||!document.querySelector('flow-grid-tile-container')){say('Abre primero tu proyecto de "
+    "Flow (donde se ven las imágenes) y vuelve a pulsar el botón.');setTimeout(()=>b.remove(),6000);"  # noqa: E501
+    "return}const u=[];g.scrollTop=0;await s(600);for(let y=0;y<g.scrollHeight+800&&u.length<N;y+=300)"  # noqa: E501
+    "{g.scrollTop=y;await s(250);document.querySelectorAll('flow-grid-tile-container img').forEach(i=>"  # noqa: E501
+    "{const k=i.src;if(k&&!u.includes(k)&&u.length<N)u.push(k)})}g.scrollTop=0;const f=new FormData();"  # noqa: E501
+    "for(let k=0;k<u.length;k++){say('Faceless Studio: descargando '+(k+1)+' de '+u.length+'…');"
+    "try{const r=await fetch(u[k]);if(r.ok)f.append('images',await r.blob(),'flow-'+k+'.img')}"
+    "catch(e){}}say('Faceless Studio: colocando las imágenes en sus escenas (1-2 minutos)…');"
+    "try{const r=await fetch(API,{method:'POST',body:f});const j=await r.json();"
+    "say(j.error?('Error: '+j.error):('¡Listo! '+j.placed+' imágenes colocadas.'+(j.missing.length?"
+    "' Faltan las escenas: '+j.missing.join(', '):' Todas las escenas tienen imagen.')))}"
+    "catch(e){say('No se pudo conectar con Faceless Studio. ¿Está abierto?')}"
+    "setTimeout(()=>b.remove(),15000)})()"
+)
+
+
+def direct_bookmarklet(base_url: str, project_id: int, count: int) -> str:
+    """El botón para arrastrar a la barra de marcadores (uno por proyecto)."""
+    api = (
+        f"{base_url.rstrip('/')}/proyectos/{project_id}/visuales/flow-directo"
+        f"?k={project_token(project_id)}"
+    )
+    n = max(1, min(count + 20, MAX_IMAGES))
+    return DIRECT.replace("__API__", api).replace("__N__", str(n))
+
+
 def bookmarklet(count: int) -> str:
     """El marcador para `count` imágenes (más unas pocas de margen por si hay repetidas)."""
     count = max(1, min(count, MAX_IMAGES))

@@ -19,11 +19,15 @@
         proyecto y abre el <strong>asistente</strong> (el chat «¿Qué quieres crear?» de la derecha).</li>
       <li>Pulsa <strong>Copiar</strong> en el mensaje 1, pégalo en el asistente y envíalo. Cuando termine,
         haz lo mismo con el siguiente. Si pregunta, pulsa <strong>Aprobar</strong> (las imágenes no gastan puntos).</li>
-      <li>La primera vez, arrastra este botón a tu barra de marcadores:
-        <a class="btn small secondary" href="{{ flow_bookmarklet }}" onclick="alert('Arrástralo a la barra de marcadores; luego púlsalo dentro de Flow.'); return false;">Recoger imágenes de Flow</a>.
-        Después, en Flow, <strong>haz clic en la imagen más nueva</strong> y pulsa ese marcador: copia los enlaces.</li>
-      <li>Vuelve aquí, pega lo copiado abajo y pulsa <strong>Colocar en las escenas</strong>.</li>
+      <li>Cuando Flow termine, pulsa en tu barra de marcadores el botón <strong>«Enviar a Faceless:
+        {{ project.title|truncate(25) }}»</strong> (estando en tu proyecto de Flow). Él solo descarga las
+        imágenes y las coloca aquí en sus escenas. Arriba en Flow verás cómo va. La primera vez,
+        Chrome pregunta si Flow puede acceder a tu red local: pulsa <strong>Permitir</strong>.</li>
     </ol>
+    <p class="small"><strong>Solo la primera vez en cada proyecto:</strong> arrastra este botón a la barra de
+      marcadores de tu navegador (si no la ves, pulsa <strong>Ctrl + Mayús + B</strong>):
+      <a class="btn small" href="{{ flow_direct }}" onclick="alert('Arrástralo con el ratón hasta la barra de marcadores. Luego púlsalo dentro de tu proyecto de Flow.'); return false;">Enviar a Faceless: {{ project.title|truncate(25) }}</a>
+    </p>
     <p class="muted small">El asistente de Flow acepta como máximo 24 imágenes por mensaje. Si se para o
       pregunta, contéstale: <strong>«sí, créalas todas ahora»</strong>.</p>
     {% for m in flow_messages %}
@@ -34,12 +38,18 @@
         onclick="navigator.clipboard.writeText(document.getElementById('flow-msg-{{ loop.index }}').value); this.textContent='¡Copiado!'">Copiar mensaje {{ loop.index }}</button>
     </details>
     {% endfor %}
+    <details class="para-tools">
+    <summary>Otra forma (si el botón no funciona): copiar y pegar enlaces</summary>
+    <p class="small">Arrastra también este botón:
+      <a class="btn small secondary" href="{{ flow_bookmarklet }}" onclick="alert('Arrástralo a la barra de marcadores; luego púlsalo dentro de Flow.'); return false;">Recoger imágenes de Flow</a>.
+      En Flow, haz clic en la imagen más nueva, pulsa ese marcador y pega aquí lo copiado.</p>
     <form method="post" action="/proyectos/{{ project.id }}/visuales/flow" class="stack">
       <label>Pega aquí lo que copió el marcador
         <textarea name="links" rows="3" required placeholder='[{"t":"...","s":"https://flow-content.google/..."}]'></textarea>
       </label>
       <button class="btn" onclick="this.textContent='Descargando y colocando… (unos segundos)'">Colocar en las escenas</button>
     </form>
+    </details>
   </div>
   <div class="chatgpt-tip" id="subida">
     <div>
