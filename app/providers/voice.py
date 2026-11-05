@@ -62,6 +62,22 @@ def spoken_text(text: str) -> str:
     return " ".join(CITATION.sub("", text).split())
 
 
+# «10.000» con punto de miles: la voz lo lee como decimal («diez punto cero cero»).
+THOUSANDS = re.compile(r"(?<![\d.,])\d{1,3}(?:\.\d{3})+(?![\d]|[.,]\d)")
+
+
+def _plain_number(match: re.Match) -> str:
+    n = int(match.group().replace(".", ""))
+    if n % 1000 == 0 and n < 1_000_000:
+        return f"{n // 1000} mil"  # «10 mil millones»: se lee siempre bien
+    return str(n)
+
+
+def say_numbers(text: str) -> str:
+    """Lo que de verdad se le pasa a la voz: cifras con punto de miles sin el punto."""
+    return THOUSANDS.sub(_plain_number, text)
+
+
 class VoiceProvider(Protocol):
     name: str
 

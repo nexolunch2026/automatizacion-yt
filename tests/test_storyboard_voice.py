@@ -235,3 +235,14 @@ def test_wav_header_is_valid():
     data = silent_wav(0.5)
     with wave.open(io.BytesIO(data)) as w:
         assert w.getnchannels() == 1
+
+
+def test_say_numbers_reads_thousands_as_a_whole_number():
+    say = voice_mod.say_numbers
+    assert say("valorada en 10.000 millones") == "valorada en 10 mil millones"
+    assert (
+        say("más de 1.500 empleados y 2.345.678 pruebas")
+        == "más de 1500 empleados y 2345678 pruebas"
+    )
+    assert say("subió un 4.5% en 2015.") == "subió un 4.5% en 2015."
+    assert say("Fin. 700 millones") == "Fin. 700 millones"
