@@ -2,6 +2,19 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-05 — Versión 0.99: el Short del día, listo para subir desde el móvil
+
+- Los días de Short (lunes, miércoles y sábado), el **«buenos días» de JARVIS** en Telegram
+  trae ahora **el vídeo del Short** para guardarlo y subirlo desde el móvil.
+- Debajo vienen el **título**, la **descripción** (con el enlace al documental), los
+  **hashtags** y el **comentario fijado**: toca cada recuadro y se copia.
+- Si aún no pegaste el enlace del vídeo largo, lo busca solo entre tus vídeos publicados;
+  si no lo encuentra, te dice dónde pegarlo (página **Shorts** → «Guardar enlace»).
+- Si el vídeo pesa más de 49 MB (lo máximo que deja Telegram) te lo dice, y los textos te
+  llegan igual aunque falle el vídeo.
+- En «plan de la semana» hay un botón nuevo: **📋 Textos del Short de hoy**.
+- Todavía **no llega con «Actualizar»**: está guardado hasta que escribas «publícalo».
+
 ## 2026-11-04 — Versión 0.98.1: Revisión de salud
 
 Tres revisores automáticos repasaron los cambios de la semana. Seguridad: todo bien. Se

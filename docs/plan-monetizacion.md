@@ -141,7 +141,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [x] **Aviso de cifras paradas** (0.98.0): si Rendimiento lleva más de 2 días sin poder actualizar
   las cifras (clave caducada, sin internet), JARVIS lo dice por Telegram con el motivo, en
   vez de dar consejos con cifras viejas.
-- [ ] **Short del día con sus textos**: el recordatorio de JARVIS para subir el Short trae
+- [x] **Short del día con sus textos** (0.99.0): el recordatorio de JARVIS para subir el Short trae
   ya el título, la descripción con el enlace al vídeo largo y los hashtags, listos para
   copiar desde el móvil.
 - [x] **Capítulos con nombres que enganchan** (0.94.0): los títulos de las secciones del

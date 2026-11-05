@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (5 de noviembre de 2026: subir Shorts desde el móvil)
+
+- [How to Upload Youtube Short from Phone!](https://www.youtube.com/watch?v=UJ2lx7KD81w)
+  — paso a paso para subir un Short desde el móvil (lo que ahora te manda JARVIS).
+- [How to Add Description to YouTube Shorts—Through App or Web (UPDATED)](https://www.youtube.com/watch?v=CFAc6ydYpDk)
+  — dónde pegar la descripción del Short en la app de YouTube.
+- [How to Convert Shorts Viewers to Long-Form Views on YouTube](https://www.youtube.com/watch?v=xLLVn0-k5Wg)
+  — cómo hacer que quien ve el Short salte al documental completo.
+
 ## Nuevos (4 de noviembre de 2026: leer las cifras y escribir documentales)
 
 - [How to Read YouTube Analytics & Know What to Fix](https://www.youtube.com/watch?v=vaRzge90G2Y)

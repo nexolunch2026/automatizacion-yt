@@ -21,7 +21,7 @@ log = logging.getLogger(__name__)
 
 API = "https://api.telegram.org"
 POLL_SECONDS = 10
-MAX_VIDEO_BYTES = 49 * 1024 * 1024  # los bots pueden enviar hasta 50 MB
+MAX_VIDEO_BYTES = assistant.MAX_VIDEO_BYTES  # los bots pueden enviar hasta 50 MB
 
 
 class TelegramAPI:
@@ -197,8 +197,16 @@ def process_update(db: Session, api: TelegramAPI, update: dict) -> None:
             api.send(msg.chat_id, Reply(f"⚠️ {exc}"))
             return
     replies = assistant.handle(db, msg, transcribe=transcribe)
-    for reply in replies:
-        api.send(reply.chat_id or msg.chat_id, reply)
+    for reply in replies:  # si falla uno (p. ej. el vídeo), los demás se mandan igual
+        try:
+            api.send(reply.chat_id or msg.chat_id, reply)
+        except (ProviderError, OSError) as exc:
+            log.warning("No se pudo enviar una respuesta: %s", getattr(exc, "detail", "") or exc)
+            if reply.video:
+                try:
+                    api.send(msg.chat_id, Reply("⚠️ No pude mandarte el vídeo; mira los textos."))
+                except ProviderError:
+                    log.warning("Tampoco se pudo avisar de que faltaba el vídeo")
     if msg.audio is not None and replies:  # si le hablas, te contesta también hablando
         reply_with_voice(db, api, msg.chat_id, replies)
 
@@ -225,8 +233,9 @@ def broadcast(db: Session, api: TelegramAPI, replies: list[Reply]) -> None:
         for chat_id in [reply.chat_id] if reply.chat_id else chats:
             try:
                 api.send(chat_id, reply)
-            except ProviderError as exc:
-                log.warning("No se pudo enviar un aviso a %s: %s", chat_id, exc.detail or exc)
+            except (ProviderError, OSError) as exc:  # OSError: vídeo bloqueado (antivirus…)
+                detail = getattr(exc, "detail", "") or exc
+                log.warning("No se pudo enviar un aviso a %s: %s", chat_id, detail)
 
 
 def poll_once(db: Session, api: TelegramAPI, timeout: int = POLL_SECONDS) -> None:

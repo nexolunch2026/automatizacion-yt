@@ -96,7 +96,7 @@ def test_uploaded_shorts_leave_the_calendar(logged_in, ai):  # noqa: F811
     with SessionLocal() as db:
         _final_video(db, 1, shorts=["El error de Kodak", "La cámara escondida", "1975"])
         set_setting(db, "telegram_chats", '[{"id": 1, "name": "Simón"}]')
-        reply = assistant.briefing(db, MONDAY.replace(hour=10))[0]
+        reply = assistant.briefing(db, MONDAY.replace(hour=10))[-1]  # el de los textos
         assert ("✅ Ya subí el Short de hoy", "shortup:1:1") in reply.buttons[0]
         done = assistant.handle(db, Incoming(chat_id=1, button="shortup:1:1"), trusted=True)
         assert "Apuntado" in done[0].text and "La cámara escondida" in done[0].text

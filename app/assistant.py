@@ -1558,7 +1558,10 @@ def week_plan_reply(db: Session) -> Reply:
         lines.append(f"📈 {escape(best['text'])}")
     if hour and hour["status"] == "best":
         lines.append(f"🕒 {escape(hour['text'])}")
-    return Reply("\n".join(lines), buttons=[[("👉 ¿Qué hago ahora?", "next")]])
+    buttons = [[("👉 ¿Qué hago ahora?", "next")]]
+    if plan.get("today_short_key"):
+        buttons.insert(0, [("📋 Textos del Short de hoy", f"shorttxt:{plan['today_short_key']}")])
+    return Reply("\n".join(lines), buttons=buttons)
 
 
 def monetization_text(path: dict) -> str:
@@ -2145,6 +2148,8 @@ def _button(db: Session, data: str) -> list[Reply]:
         return ab_winner_reply(db, rest)
     if kind == "comments":
         return comment_drafts_reply(db, rest)
+    if kind == "shorttxt":
+        return short_texts(db, rest) or [Reply("Ese Short ya no existe.")]
     if kind == "shortup":
         pid, _, number = rest.partition(":")
         if not (pid.isdigit() and number.isdigit()) or _project_or_none(db, pid) is None:
@@ -2469,6 +2474,85 @@ def notifications(db: Session) -> list[Reply]:
     return replies
 
 
+MAX_VIDEO_BYTES = 49 * 1024 * 1024  # lo que deja mandar Telegram a un bot (50 MB)
+SHORT_TEXT_MAX = 2500  # la descripción, para no pasar del límite de un mensaje
+
+
+def _long_url(db: Session, project_id: int, data: dict) -> str:
+    """Enlace del vídeo largo: el que pegaste en Shorts o, si no, el del vídeo publicado
+    enlazado con el proyecto (el primero que se publicó: los Shorts van después)."""
+    from app.models import Video
+
+    if data.get("long_url"):
+        return str(data["long_url"])
+    videos = db.scalars(select(Video).where(Video.project_id == project_id)).all()
+    # Los Shorts subidos llevan «#shorts» en el título: esos no son el vídeo largo.
+    videos = sorted(
+        (v for v in videos if v.published and "#short" not in (v.title or "").lower()),
+        key=lambda v: v.published,
+    )
+    return f"https://youtu.be/{videos[0].video_id}" if videos else ""
+
+
+def short_texts(db: Session, key: str) -> list[Reply]:
+    """El Short de hoy listo para subir desde el móvil: el vídeo y, debajo, el título, la
+    descripción (con el enlace al vídeo largo) y los hashtags para copiar con un toque."""
+    from app.media import safe_path
+    from app.pipeline.shorts import description, pinned_comment
+
+    pid, _, number = key.partition(":")
+    if not (pid.isdigit() and number.isdigit()) or _project_or_none(db, pid) is None:
+        return []
+    data = jobs.get_result(db, int(pid), "shorts") or {}
+    made = [s for s in data.get("shorts") or [] if isinstance(s, dict)]
+    if not 1 <= int(number) <= len(made):
+        return []
+    short = made[int(number) - 1]
+    title = str(short.get("title") or "").strip()
+    old = str(short.get("description") or "")
+    tags = str(short.get("tags") or " ".join(re.findall(r"#\w+", old)))
+    long_url = _long_url(db, int(pid), data)
+    text = (description(title, tags, long_url) if title else old)[:SHORT_TEXT_MAX]
+    lines = [
+        f"📱 <b>Short de hoy: «{escape(title)}»</b>",
+        "Toca cada recuadro para copiarlo y pégalo en YouTube:",
+        f"\n<b>Título</b>\n<code>{escape(title)}</code>",
+        f"\n<b>Descripción</b>\n<code>{escape(text)}</code>",
+    ]
+    if tags.strip():
+        lines.append(f"\n<b>Hashtags</b>\n<code>{escape(tags.strip())}</code>")
+    if long_url:
+        lines.append(f"\n<b>Comentario fijado</b>\n<code>{escape(pinned_comment(long_url))}</code>")
+        lines.append(
+            "\n👉 En «Vídeo relacionado» elige el documental: así quien vea el Short "
+            "puede saltar al vídeo largo."
+        )
+    else:
+        lines.append(
+            "\n⚠️ Aún no tengo el enlace del vídeo largo. Pégalo en la página <b>Shorts</b> "
+            "(«Guardar enlace») y lo pondré en la descripción."
+        )
+    replies = []
+    video = safe_path(int(pid), str(short.get("file") or "")) if short.get("file") else None
+    try:
+        size = video.stat().st_size if video is not None else None
+    except OSError:
+        size = None
+    if size is not None and size < MAX_VIDEO_BYTES:
+        replies.append(Reply("🎬 Este es el Short: guárdalo y súbelo desde el móvil.", video=video))
+    else:
+        why = "pesa más de 49 MB" if size is not None else "no lo encuentro"
+        log.warning("Short %s sin vídeo para Telegram: %s", key, why)
+        lines.append(
+            f"\n⚠️ El vídeo del Short {why}, así que no te lo mando: súbelo desde el ordenador "
+            "(página <b>Shorts</b>) o con el «Paquete de subida»."
+        )
+    replies.append(
+        Reply("\n".join(lines), buttons=[[("✅ Ya subí el Short de hoy", f"shortup:{key}")]])
+    )
+    return replies
+
+
 def briefing(db: Session, now: datetime | None = None) -> list[Reply]:
     """Un «buenos días» al día, a la hora del piloto automático, con el resumen."""
     now = now or datetime.now()
@@ -2494,8 +2578,16 @@ def briefing(db: Session, now: datetime | None = None) -> list[Reply]:
         log.exception("No se pudo preparar el plan del día para el «buenos días»")
         db.rollback()
         step, short_key = "⚠️ Hoy no pude preparar el plan del día (mira «plan de la semana»).", None
+    extra: list[Reply] = []
     if short_key:
-        buttons.insert(0, [("✅ Ya subí el Short de hoy", f"shortup:{short_key}")])
+        try:  # el Short con sus textos, listo para copiar desde el móvil
+            extra = short_texts(db, short_key)
+        except Exception:
+            log.exception("No se pudieron preparar los textos del Short de hoy")
+            db.rollback()
+        if not extra:  # sin textos, al menos el botón de «ya lo subí» en el resumen
+            log.warning("El Short de hoy (%s) ya no existe: el resumen va sin textos", short_key)
+            buttons.insert(0, [("✅ Ya subí el Short de hoy", f"shortup:{short_key}")])
     return [
         Reply(
             "☀️ <b>Buenos días.</b> Resumen del estudio:\n\n"
@@ -2503,7 +2595,8 @@ def briefing(db: Session, now: datetime | None = None) -> list[Reply]:
             f"🎞️ Vídeos montados en los últimos 7 días: {week}"
             + (f"\n{escape(step)}" if step else ""),
             buttons=buttons,
-        )
+        ),
+        *extra,
     ]
 
 
