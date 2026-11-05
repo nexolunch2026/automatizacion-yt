@@ -46,15 +46,27 @@ def scene_prompt(scene: dict, visual_bible: dict) -> str:
     return base
 
 
-def messages(board: dict, portrait: bool = False) -> list[dict]:
+def single_message(board: dict, portrait: bool = False) -> str:
+    """Todas las escenas en un solo mensaje (si el asistente se para, se le pide seguir)."""
+    parts = messages(board, portrait, per_message=max(len(board.get("scenes", [])), 1))
+    if not parts:
+        return ""
+    return parts[0]["text"].replace(
+        "Do not ask me anything, just create them all.",
+        "Do not ask me anything and do not stop until ALL of them are created; if you must "
+        "pause, continue automatically with the next number.",
+    )
+
+
+def messages(board: dict, portrait: bool = False, per_message: int = PER_MESSAGE) -> list[dict]:
     """Los mensajes para pegar en el asistente de Flow: [{"first", "last", "text"}]."""
     scenes = board.get("scenes", [])
     bible = board.get("visual_bible") or {}
     hero = protagonist_hint(bible)
     shape = "9:16" if portrait else "16:9"
     parts = []
-    for start in range(0, len(scenes), PER_MESSAGE):
-        chunk = scenes[start : start + PER_MESSAGE]
+    for start in range(0, len(scenes), per_message):
+        chunk = scenes[start : start + per_message]
         first, last = chunk[0]["number"], chunk[-1]["number"]
         lines = [
             f"Create {len(chunk)} SEPARATE images, one for each numbered description below, in "

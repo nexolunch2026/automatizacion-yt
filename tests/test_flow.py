@@ -29,6 +29,9 @@ def test_messages_have_nine_scenes_each_and_the_style():
     assert "Create 9 SEPARATE images" in text and "stickman" in text and "16:9" in text
     assert "a stick figure with a bun" in text and "\n9. scene 9" in text
     assert "9:16" in flow.messages(plan, portrait=True)[0]["text"]
+    single = flow.single_message(plan)
+    assert "Create 20 SEPARATE images" in single and "\n20. scene 20" in single
+    assert "do not stop until ALL" in single
 
 
 def test_parse_links_only_accepts_flow():
