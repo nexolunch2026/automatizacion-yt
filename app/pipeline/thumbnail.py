@@ -122,9 +122,11 @@ def ai_background(strategy: dict, project: Project, images, portrait: bool, out:
     concept = strategy["concepts"][strategy["selected"]["concept"]] if strategy else {}
     thumb = concept.get("thumbnail", {})
     idea = thumb.get("composition") or thumb.get("concept") or project.title
+    from app.flow import STICKMAN_STYLE
+
     prompt = (
-        f"YouTube thumbnail background: {idea}. Dramatic cinematic lighting, strong "
-        "contrast, bold colors, one clear subject, shallow depth of field"
+        f"YouTube thumbnail background: {idea}. One clear subject, strong contrast, bold "
+        f"colors. Style: {STICKMAN_STYLE}"
     )
     data, ext, _ = images.generate(prompt, portrait, random.randint(1, 10_000_000))
     path = out.with_suffix(ext)
