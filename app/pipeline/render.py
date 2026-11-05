@@ -27,6 +27,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 from app.pipeline import accent
+from app.providers.voice import spoken_text
 
 PAUSE = 0.35  # la misma pausa que se deja entre párrafos al grabar la voz
 CROSSFADE = 0.4  # fundido entre escenas (segundos)
@@ -713,7 +714,7 @@ def render_video(
         clips.append(clip)
         lengths.append(length)
         seconds_list.append(seconds)
-        segments.append((scene["narration"], t, t + takes[pid]))
+        segments.append((spoken_text(scene["narration"]), t, t + takes[pid]))
         t += seconds
 
     progress(75, "Acabado final: fundidos, subtítulos, música y color (es lo más lento)")

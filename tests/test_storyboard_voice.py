@@ -219,6 +219,12 @@ def test_microsoft_voice_retries_then_explains(monkeypatch):
     assert info.value.transient and "internet" in str(info.value)
 
 
+def test_citations_are_not_read_aloud():
+    assert voice_mod.spoken_text("Ganó el Balón de Oro [1]. Y la Champions [2, 3].") == (
+        "Ganó el Balón de Oro. Y la Champions."
+    )
+
+
 def test_old_piper_voice_falls_back_to_jorge():
     assert voice_mod.known_voice("es_MX-claude-high", "Español") == "es-MX-JorgeNeural"
     assert voice_mod.known_voice("eleven:abc", "Español") == "eleven:abc"

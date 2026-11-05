@@ -7,6 +7,7 @@
 
 import asyncio
 import io
+import re
 import subprocess
 import tempfile
 import wave
@@ -51,6 +52,14 @@ def known_voice(voice: str | None, language: str) -> str:
     if voice and (voice in VOICE_IDS or is_eleven(voice)):
         return voice
     return default_voice(language)
+
+
+CITATION = re.compile(r"\s*\[\d+(?:\s*[,–-]\s*\d+)*\]")
+
+
+def spoken_text(text: str) -> str:
+    """El texto tal como se dice y se subtitula: sin las marcas de fuentes «[1]» del guion."""
+    return " ".join(CITATION.sub("", text).split())
 
 
 class VoiceProvider(Protocol):
