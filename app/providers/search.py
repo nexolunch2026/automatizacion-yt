@@ -44,7 +44,11 @@ class WikipediaSearch:
         self._client = httpx.Client(
             timeout=20,
             transport=transport,
-            headers={"User-Agent": f"FacelessStudio/{VERSION} (uso personal)"},
+            # Wikimedia bloquea (403) los programas que no dan una forma de contacto.
+            headers={
+                "User-Agent": f"FacelessStudio/{VERSION} "
+                "(https://github.com/nexolunch2026/automatizacion-yt)"
+            },
         )
 
     def search(self, queries: list[str], language: str) -> list[Document]:
