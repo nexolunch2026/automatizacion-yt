@@ -407,7 +407,8 @@ def split_paragraph(paragraph: dict, max_words: int = MAX_PARAGRAPH_WORDS) -> li
         else:
             current.append(sentence)
     if len(chunks) > 1 and sum(len(s.split()) for s in chunks[-1]) < 10:
-        chunks[-2] += chunks.pop()  # un final muy corto se une al anterior
+        tail = chunks.pop()  # un final muy corto se une al anterior
+        chunks[-1] += tail
     parts = []
     for i, chunk in enumerate(chunks):
         parts.append(

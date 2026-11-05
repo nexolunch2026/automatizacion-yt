@@ -72,9 +72,47 @@ def soccer_words(text: str) -> str:
     return text
 
 
+# Palabras que empujan a Nano Banana a dibujar monigotes sueltos sobre fondo vacío.
+PLAIN_TAIL = re.compile(
+    r",\s*(?:(?:minimalist|simple|flat|clean|2D|black and white|stickman|vector|thick black)"
+    r"\s*)+(?:style|design|colors|illustration|outlines?)?\s*$",
+    re.I,
+)
+PLAIN_WORDS = (
+    (re.compile(r",?\s*(?:on |against )?(?:a )?(?:plain |empty )?white background", re.I), ""),
+    (re.compile(r"\b(?:minimalist|simple)\s+", re.I), ""),
+    (re.compile(r"\b2D\s+(?=stick)", re.I), ""),
+)
+DETAIL_RULE = (
+    "DETAIL: every image is a rich, detailed scene with a concrete recognizable place, time of "
+    "day, atmosphere, secondary characters and props. Never a lone figure on an empty or white "
+    "background."
+)
+CONTEXT_CHARS = 170
+
+
+def plain_words_out(text: str) -> str:
+    for pattern, word in PLAIN_WORDS:
+        text = pattern.sub(word, text)
+    while True:
+        cleaned = PLAIN_TAIL.sub("", text)
+        if cleaned == text:
+            return text.strip(" ,")
+        text = cleaned
+
+
 def scene_prompt(scene: dict, visual_bible: dict) -> str:
     base = (scene.get("image_prompt") or scene.get("visual") or "").strip().rstrip(".")
-    return soccer_words(base)
+    prompt = soccer_words(plain_words_out(base))
+    narration = " ".join((scene.get("narration") or "").split())
+    if narration:  # el momento de la historia: así sabe a quién y dónde dibujar
+        short = (
+            narration[:CONTEXT_CHARS].rsplit(" ", 1)[0]
+            if len(narration) > CONTEXT_CHARS
+            else narration
+        )
+        prompt += f" (story moment, do not write it: «{short}»)"
+    return prompt
 
 
 def single_message(board: dict, portrait: bool = False) -> str:
@@ -108,8 +146,16 @@ def messages(board: dict, portrait: bool = False, per_message: int = PER_MESSAGE
         if hero:
             lines.append(
                 f"MAIN CHARACTER (identical in every image where he appears, a recognizable "
-                f"caricature): {soccer_words(hero)}."
+                f"caricature): {soccer_words(hero.rstrip('.'))}."
             )
+        others = [c.strip().rstrip(".") for c in (bible.get("characters") or [])[1:] if c.strip()]
+        if others:
+            lines.append(
+                "OTHER CHARACTERS (always drawn the same way, recognizable): "
+                + "; ".join(soccer_words(c) for c in others)
+                + "."
+            )
+        lines.append(DETAIL_RULE)
         if any(SOCCER_HINT.search(s.get("image_prompt") or s.get("visual") or "") for s in chunk):
             lines.append(SOCCER_RULE)
         lines.append("")

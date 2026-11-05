@@ -240,3 +240,35 @@ def test_soccer_words_keep_playing_soccer():
     assert flow.soccer_words("three kids playing football together") == (
         "three kids playing soccer together"
     )
+
+
+def test_split_paragraph_joins_short_tail_with_two_chunks():
+    from app.pipeline.script import split_paragraph
+
+    long = " ".join(["palabra"] * 40) + ". Fin corto aquí."
+    parts = split_paragraph({"id": "p1", "text": long}, max_words=36)
+    assert len(parts) == 1 or all(len(p["text"].split()) >= 10 for p in parts)
+    assert " ".join(p["text"] for p in parts) == long
+
+
+def test_messages_ask_for_detail_and_story_context():
+    story = {
+        "visual_bible": {
+            "characters": ["Hero: stick figure with glasses", "Boss: stick figure in a suit"]
+        },
+        "scenes": [
+            {
+                "number": 1,
+                "image_prompt": (
+                    "A minimalist 2D stick figure laughing, flat design, white background"
+                ),
+                "narration": "El jefe se rió de la propuesta.",
+            }
+        ],
+    }
+    text = flow.messages(story)[0]["text"]
+    assert flow.DETAIL_RULE in text
+    assert "OTHER CHARACTERS" in text and "Boss: stick figure in a suit" in text
+    assert "1. A stick figure laughing (story moment" in text
+    assert "El jefe se rió de la propuesta." in text
+    assert "white background" not in text.split("1. ")[1]
