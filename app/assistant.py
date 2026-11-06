@@ -35,7 +35,7 @@ from app import (
     yt_research,
 )
 from app.media import project_dir
-from app.models import DURATIONS, STAGES, Channel, Job, Project, User
+from app.models import DURATIONS, JOB_LABELS, Channel, Job, Project, User
 from app.pipeline.monetization import project_review, summary_text
 from app.pipeline.render import run_ffmpeg
 from app.pipeline.script import guess_format
@@ -889,7 +889,7 @@ def status_text(db: Session, html: bool = True) -> str:
         for stage, job in jobs.latest_jobs(db, project.id).items():
             if job.active:
                 state = f"{job.progress}% · {job.message}" if job.status == "running" else "en cola"
-                lines.append(f"🎬 {b(project.title)} — {STAGES[stage]}: {escape(state)}")
+                lines.append(f"🎬 {b(project.title)} — {JOB_LABELS[stage]}: {escape(state)}")
     waiting = _waiting_choice(db)
     for project in waiting:
         lines.append(f"🧭 {b(project.title)} — esperando que elijas un enfoque")
@@ -1643,7 +1643,7 @@ def _button(db: Session, data: str) -> list[Reply]:
     if kind == "retry" and arg in jobs.RUNNERS:
         last = jobs.latest_jobs(db, project.id).get(arg)
         jobs.enqueue(db, project.id, arg, last.params if last else None)
-        return [Reply(f"🔁 Lo intento otra vez: {STAGES[arg]} de «{escape(project.title)}».")]
+        return [Reply(f"🔁 Lo intento otra vez: {JOB_LABELS[arg]} de «{escape(project.title)}».")]
     return [Reply("Ese botón ya no sirve. Escribe «ayuda».")]
 
 
@@ -1793,7 +1793,7 @@ def _concepts_reply(project: Project, strategy: dict) -> Reply:
 
 def _next_up(db: Session, project: Project) -> str:
     active = [s for s, j in jobs.latest_jobs(db, project.id).items() if j.active]
-    return f" Sigo con: {STAGES[active[0]].lower()}." if active else ""
+    return f" Sigo con: {JOB_LABELS[active[0]].lower()}." if active else ""
 
 
 def _done_replies(db: Session, job: Job, project: Project) -> list[Reply]:
@@ -1864,7 +1864,8 @@ def _video_replies(db: Session, project: Project, data: dict) -> list[Reply]:
 def _failed_reply(job: Job, project: Project) -> Reply:
     reason = (job.error or "Error desconocido").split("\n\n")[0]
     return Reply(
-        f"⚠️ <b>{escape(project.title)}</b>: falló {STAGES[job.stage].lower()}.\n{escape(reason)}",
+        f"⚠️ <b>{escape(project.title)}</b>: falló {JOB_LABELS[job.stage].lower()}."
+        f"\n{escape(reason)}",
         buttons=[[("🔁 Reintentar", f"retry:{project.id}:{job.stage}")]],
     )
 

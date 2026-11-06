@@ -91,6 +91,12 @@ legend { color: var(--muted); font-size: .9rem; padding: 0 6px; }
   color: #ffb3b4; padding: 10px 12px; border-radius: 8px;
 }
 .alert.info { background: rgba(76, 141, 255, .12); border-color: rgba(76, 141, 255, .4); color: #b9d0ff; }
+.alert.warn { background: rgba(255, 196, 0, .1); border-color: rgba(255, 196, 0, .45); color: #ffe08a; }
+.stale-banner ul { margin: 6px 0 10px 18px; }
+.stale-banner form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.stale-mark { color: #ffc400; margin-left: 4px; }
+.consistency-bad { outline: 3px solid #e63946; outline-offset: -3px; }
+.consistency-ok { outline: 2px solid rgba(46, 204, 113, .6); outline-offset: -2px; }
 
 /* Proyectos */
 .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }

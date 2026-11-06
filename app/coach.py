@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import jobs
-from app.models import STAGES, Project, Video
+from app.models import JOB_LABELS, Project, Video
 from app.pipeline.monetization import project_review, summary_text, video_seconds
 from app.settings_store import get_setting
 
@@ -58,7 +58,7 @@ def project_step(db: Session, project: Project) -> dict | None:
         job = active[0]
         return {
             "stage": None,
-            "text": f"trabajando en {STAGES[job.stage].lower()} ({job.progress} %)",
+            "text": f"trabajando en {JOB_LABELS[job.stage].lower()} ({job.progress} %)",
         }
     results = {s: jobs.get_result(db, project.id, s) for s in STEP_LABELS}
     strategy = results["strategy"]

@@ -127,8 +127,18 @@ def single_message(board: dict, portrait: bool = False) -> str:
     )
 
 
-def messages(board: dict, portrait: bool = False, per_message: int = PER_MESSAGE) -> list[dict]:
-    """Los mensajes para pegar en el asistente de Flow: [{"first", "last", "text"}]."""
+REFERENCE_RULE = (
+    "REFERENCE IMAGE: I attached a picture of the MAIN CHARACTER. Draw him EXACTLY like that "
+    "reference in every image where he appears: same hair style and hair colour (filled, never "
+    "white or just an outline), same facial hair, same face. No white frame around the image."
+)
+
+
+def messages(
+    board: dict, portrait: bool = False, per_message: int = PER_MESSAGE, reference: bool = False
+) -> list[dict]:
+    """Los mensajes para pegar en el asistente de Flow: [{"first", "last", "text"}].
+    Con `reference`, piden dibujar al protagonista como la ficha adjunta en Flow."""
     scenes = board.get("scenes", [])
     bible = board.get("visual_bible") or {}
     hero = protagonist_hint(bible)
@@ -148,6 +158,8 @@ def messages(board: dict, portrait: bool = False, per_message: int = PER_MESSAGE
                 f"MAIN CHARACTER (identical in every image where he appears, a recognizable "
                 f"caricature): {soccer_words(hero.rstrip('.'))}."
             )
+        if reference:
+            lines.append(REFERENCE_RULE)
         others = [c.strip().rstrip(".") for c in (bible.get("characters") or [])[1:] if c.strip()]
         if others:
             lines.append(

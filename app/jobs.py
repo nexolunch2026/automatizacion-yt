@@ -390,6 +390,8 @@ def _run_thumbnail(db: Session, project: Project, progress, params: dict) -> dic
         images=get_image_providers(db) if use_ai_image else None,
         texts=params.get("texts"),
         portrait=is_portrait(project),
+        scenes=(get_result(db, project.id, "storyboard") or {}).get("scenes", []),
+        previous=get_result(db, project.id, "thumbnail"),
     )
     if ai is not None:
         remember_working_model(db, ai)
@@ -586,6 +588,27 @@ def _run_edit(db: Session, project: Project, progress, params: dict) -> dict:
     return {"renders": renders, "last": quality}
 
 
+def _run_consistency(db: Session, project: Project, progress, params: dict) -> dict:
+    """Compara cada imagen del vídeo con la ficha del protagonista (ver app/consistency.py)."""
+    from app import consistency
+    from app.flow import protagonist_hint
+
+    board = _require(db, project, "storyboard", "Primero hay que crear las escenas.")
+    visuals = _require(db, project, "visuals", "Todavía no hay imágenes que revisar.")
+    ai = get_ai_provider(db)
+    data = consistency.run_check(
+        ai,
+        project_dir(project.id),
+        board["scenes"],
+        visuals,
+        get_result(db, project.id, consistency.STAGE) or {},
+        protagonist_hint(board.get("visual_bible") or {}),
+        progress,
+    )
+    remember_working_model(db, ai)
+    return data
+
+
 Runner = Callable[[Session, Project, Callable[[int, str], None], dict], dict]
 RUNNERS: dict[str, Runner] = {
     "research": _run_research,
@@ -598,6 +621,7 @@ RUNNERS: dict[str, Runner] = {
     "publish": _run_publish,
     "thumbnail": _run_thumbnail,
     "shorts": _run_shorts,
+    "consistency": _run_consistency,  # no es una etapa: revisión del protagonista
 }
 
 
@@ -618,6 +642,68 @@ def enqueue(db: Session, project_id: int, stage: str, params: dict | None = None
     db.add(job)
     db.commit()
     return job
+
+
+# Qué se queda viejo cuando cambia otra etapa: {etapa: (de qué depende, por qué avisar)}.
+STALE_RULES = {
+    "edit": ((), "hay imágenes o voz nuevas que aún no están en el vídeo"),  # ver _video_is_old
+    "publish": (
+        ("script", "edit"),
+        "los textos son de antes del último montaje (los capítulos pueden no coincidir)",
+    ),
+    "thumbnail": (("visuals",), "las miniaturas usan imágenes de antes del último cambio"),
+    "shorts": (("edit",), "los Shorts son de antes del último montaje"),
+}
+REDO_ORDER = ["edit", "publish", "thumbnail", "shorts"]
+
+
+def stale_stages(db: Session, project_id: int) -> dict[str, str]:
+    """Etapas hechas que se quedaron viejas porque otra cambió después: {etapa: motivo}.
+    No cuenta las que ya se están rehaciendo."""
+    rows = db.scalars(select(StageResult).where(StageResult.project_id == project_id)).all()
+    when = {r.stage: r.updated_at for r in rows if r.updated_at}
+    active = {s for s, j in latest_jobs(db, project_id).items() if j.active}
+    stale: dict[str, str] = {}
+    for stage in REDO_ORDER:
+        if stage not in when or stage in active:
+            continue
+        needs, reason = STALE_RULES[stage]
+        newer = [n for n in needs if n in when and when[n] > when[stage]]
+        if stage == "edit":
+            newer = _video_is_old(db, project_id)
+        if newer or (stage in ("publish", "shorts") and "edit" in stale):
+            stale[stage] = reason
+    return stale
+
+
+def _video_is_old(db: Session, project_id: int) -> bool:
+    """¿Alguna imagen o toma de voz que usa el vídeo es más nueva que el propio vídeo?
+    Se miran los archivos (no las fechas de guardado: rehacer la voz sin cambios no cuenta)."""
+    from app.pipeline.monetization import last_render
+
+    folder = project_dir(project_id)
+    render = last_render({"edit": get_result(db, project_id, "edit") or {}})
+    video = folder / render["file"] if render.get("file") else None
+    if video is None or not video.exists():
+        return False
+    made = video.stat().st_mtime + 1
+    visuals = get_result(db, project_id, "visuals") or {"items": {}}
+    inputs = [m["path"] for m in media_map(folder, visuals).values()]
+    voice = get_result(db, project_id, "voice") or {}
+    inputs += [folder / t["file"] for t in voice.get("takes", []) if t.get("file")]
+    try:
+        return any(p.exists() and p.stat().st_mtime > made for p in inputs)
+    except OSError:
+        return False
+
+
+def redo_stale(db: Session, project_id: int) -> list[str]:
+    """Pone en cola, en orden (vídeo → textos → miniaturas → Shorts), lo desactualizado."""
+    stale = stale_stages(db, project_id)
+    for stage in REDO_ORDER:
+        if stage in stale:
+            enqueue(db, project_id, stage)
+    return [s for s in REDO_ORDER if s in stale]
 
 
 def latest_jobs(db: Session, project_id: int) -> dict[str, Job]:
@@ -725,7 +811,7 @@ def _save_result(db: Session, project: Project, stage: str, data: dict) -> None:
     )
     if result is None:
         db.add(StageResult(project_id=project.id, stage=stage, data=data))
-    else:
+    elif result.data != data:  # sin cambios no se toca la fecha (avisos de «desactualizado»)
         result.data = data
     target = STAGE_DONE_STATUS.get(stage)
     if target and STATUSES.index(project.status) < STATUSES.index(target):

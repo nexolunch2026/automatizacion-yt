@@ -418,6 +418,7 @@ def _get_project(db: DB, project_id: int) -> Project:
 @router.get("/proyectos/{project_id}")
 def project_detail(request: Request, db: DB, user: CurrentUser, project_id: int):
     project = _get_project(db, project_id)
+    project.stale = jobs.stale_stages(db, project_id)
     results = {
         r.stage: r.data
         for r in db.scalars(select(StageResult).where(StageResult.project_id == project_id))

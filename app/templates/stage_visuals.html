@@ -28,6 +28,16 @@
       marcadores de tu navegador (si no la ves, pulsa <strong>Ctrl + Mayús + B</strong>):
       <a class="btn small" href="{{ flow_direct }}" onclick="alert('Arrástralo con el ratón hasta la barra de marcadores. Luego púlsalo dentro de tu proyecto de Flow.'); return false;">Enviar a Faceless: {{ project.title|truncate(25) }}</a>
     </p>
+    {% if redo_numbers %}
+    <p class="alert info">Estos mensajes piden solo las escenas que hay que rehacer:
+      <strong>{{ redo_numbers|join(', ') }}</strong>. Al recogerlas de Flow ocuparán su sitio.</p>
+    {% endif %}
+    {% if hero %}
+    <p class="alert info"><strong>Antes de pegar cada mensaje, adjunta en Flow la ficha del protagonista</strong>
+      (botón + o el clip del asistente):
+      <a href="/proyectos/{{ project.id }}/archivos/{{ hero.reference }}" download="ficha-protagonista.jpg">descargar la ficha</a>.
+      El mensaje le pide que lo dibuje igual que en esa imagen.</p>
+    {% endif %}
     <p class="muted small">El asistente de Flow acepta como máximo 24 imágenes por mensaje. Si se para o
       pregunta, contéstale: <strong>«sí, créalas todas ahora»</strong>.</p>
     {% for m in flow_messages %}
@@ -100,14 +110,54 @@
 </div>
 
 {% if result %}
+<div class="card" id="protagonista">
+  <h3>🧍 Protagonista igual en todas las imágenes</h3>
+  {% set hj = hero_job %}
+  {% if hj and hj.active %}
+    {{ ui.job_status(hj) }}
+  {% elif not hero %}
+    <p class="small">1. Busca abajo una escena donde el protagonista salga <strong>perfecto</strong> y pulsa
+      <strong>«Usar como ficha del protagonista»</strong>.<br>
+      2. Vuelve aquí y pulsa <strong>«Revisar todas las imágenes»</strong>: Gemini compara cada imagen con la ficha
+      y marca en rojo las que no se parecen (pelo blanco, marco blanco, otro estilo…).</p>
+  {% else %}
+  <div class="row">
+    <img class="hero-ref" src="/proyectos/{{ project.id }}/archivos/{{ hero.reference }}?v={{ hero.from_scene }}" alt="Ficha del protagonista" style="width:180px;border-radius:8px">
+    <div>
+      <p class="small">Ficha: escena {{ hero.from_scene }}.
+        {% if hero_checked %}Revisadas <strong>{{ hero_checked }}</strong> imágenes:
+          {% if hero_bad %}<strong class="status-failed">{{ hero_bad|length }} no se parecen</strong> (escenas {{ hero_bad|join(', ') }}).
+          {% else %}<strong class="status-done">todas se parecen</strong>.{% endif %}
+        {% else %}Todavía no se ha revisado.{% endif %}</p>
+      {% if hj and hj.status == 'failed' %}{{ ui.job_status(hj) }}{% endif %}
+      {% for p in (hero.problems or []) %}<p class="muted small">· {{ p }}</p>{% endfor %}
+      <div class="row-actions">
+        <form method="post" action="/proyectos/{{ project.id }}/visuales/revisar-protagonista">
+          <button class="btn small {{ 'secondary' if hero_checked }}" {{ 'disabled' if not has_gemini }}>Revisar todas las imágenes</button>
+        </form>
+        {% if hero_bad %}
+        <form method="post" action="/proyectos/{{ project.id }}/visuales/rehacer-marcadas">
+          <button class="btn small">Rehacer las {{ hero_bad|length }} marcadas en Flow</button>
+        </form>
+        {% endif %}
+      </div>
+      <p class="muted small">Tarda 1–2 minutos. Si Gemini se equivoca con alguna, pulsa «Está bien así» en esa escena.</p>
+      {{ ui.no_gemini(has_gemini) }}
+    </div>
+  </div>
+  {% endif %}
+</div>
 <div class="scenes">
   {% for row in rows %}
-  {% set s = row.scene %}{% set v = row.visual %}
-  <div class="card scene" id="escena-{{ s.paragraph_id }}">
+  {% set s = row.scene %}{% set v = row.visual %}{% set c = row.check %}
+  <div class="card scene {{ 'consistency-bad' if c and not c.ok }}" id="escena-{{ s.paragraph_id }}">
     <div class="row">
       <strong>Escena {{ '%02d'|format(s.number) }}</strong>
       <span class="muted small">{{ s.seconds }} s</span>
     </div>
+    {% if v and v.provider == 'rehacer' %}<p class="small stale-mark">↻ Pendiente de rehacer en Flow</p>
+    {% elif c and not c.ok %}<p class="small status-failed">✗ No se parece a la ficha: {{ c.reason }}</p>
+    {% elif c %}<p class="small status-done">✓ {{ c.reason or 'Igual que la ficha' }}</p>{% endif %}
     <div class="visual-preview">
       {% if v and v.kind == 'image' %}
         <img src="/proyectos/{{ project.id }}/archivos/visuales/{{ v.file }}" alt="{{ s.visual }}" loading="lazy">
@@ -133,6 +183,16 @@
     {% endif %}
     {% if not (job and job.active) %}
     <div class="row-actions">
+      {% if v and v.kind == 'image' and (not hero or hero.from_scene != s.number) %}
+      <form method="post" action="/proyectos/{{ project.id }}/visuales/protagonista/{{ s.paragraph_id }}">
+        <button class="btn small secondary">Usar como ficha del protagonista</button>
+      </form>
+      {% endif %}
+      {% if c and not c.ok and v.provider != 'rehacer' %}
+      <form method="post" action="/proyectos/{{ project.id }}/visuales/protagonista-bien/{{ s.paragraph_id }}">
+        <button class="btn small secondary">Está bien así</button>
+      </form>
+      {% endif %}
       <form method="post" action="/proyectos/{{ project.id }}/visuales/ia/{{ s.paragraph_id }}">
         <button class="btn small">{{ 'Otra imagen con IA' if v and v.ai else 'Generar con IA' }}</button>
       </form>

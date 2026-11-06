@@ -73,6 +73,7 @@ def _result_row(db: DB, project_id: int, stage: str) -> StageResult | None:
 
 
 def _stage_page(request: Request, db: DB, project: Project, stage: str, **ctx):
+    project.stale = jobs.stale_stages(db, project.id)  # para el aviso de «desactualizado»
     all_jobs = jobs.latest_jobs(db, project.id)
     results = {
         r.stage: r.data
@@ -340,19 +341,41 @@ def visuals_page(request: Request, db: DB, user: CurrentUser, project_id: int):
     project = _project(db, project_id)
     board = jobs.get_result(db, project_id, "storyboard") or {}
     visuals = jobs.get_result(db, project_id, "visuals") or {}
+    from app import consistency, flow
+
+    hero = jobs.get_result(db, project_id, consistency.STAGE) or {}
+    has_reference = (
+        bool(hero.get("reference")) and (project_dir(project_id) / hero["reference"]).exists()
+    )
+    checks = consistency.current(hero, visuals)
     rows = [
-        {"scene": scene, "visual": visuals.get("items", {}).get(scene["paragraph_id"])}
+        {
+            "scene": scene,
+            "visual": visuals.get("items", {}).get(scene["paragraph_id"]),
+            "check": checks.get(scene["paragraph_id"]),
+        }
         for scene in board.get("scenes", [])
     ]
-    from app import flow
-
+    flagged = consistency.flagged(hero, visuals)
+    redo = [
+        r["scene"]["number"]
+        for r in rows
+        if (r["visual"] or {}).get("provider") == consistency.REDO
+    ]
     return _stage_page(
         request,
         db,
         project,
         "visuals",
         rows=rows,
-        flow_messages=flow.messages(_without_flow_image(board, visuals), jobs.is_portrait(project))
+        hero=hero if has_reference else None,
+        hero_job=jobs.latest_jobs(db, project_id).get(consistency.STAGE),
+        hero_bad=[checks[pid]["number"] for pid in flagged],
+        hero_checked=len(checks),
+        redo_numbers=redo,
+        flow_messages=flow.messages(
+            _without_flow_image(board, visuals), jobs.is_portrait(project), reference=has_reference
+        )
         if board
         else [],
         flow_bookmarklet=flow.bookmarklet(len(rows)),
@@ -446,6 +469,80 @@ def place_flow_pictures(
     if new_items and not missing and project.automation_mode == "automatico":
         jobs.enqueue(db, project_id, "edit")  # todas las escenas con imagen: se monta solo
     return {"placed": len(new_items), "missing": missing, "problems": problems[:5]}
+
+
+@router.post("/visuales/protagonista/{paragraph_id}")
+def set_hero_reference(db: DB, user: CurrentUser, project_id: int, paragraph_id: str):
+    """Esta escena es la ficha del protagonista: con ella se revisan las demás."""
+    from app import consistency
+
+    _project(db, project_id)
+    board = jobs.get_result(db, project_id, "storyboard") or {}
+    scene = next((s for s in board.get("scenes", []) if s["paragraph_id"] == paragraph_id), None)
+    entry = ((jobs.get_result(db, project_id, "visuals") or {}).get("items") or {}).get(
+        paragraph_id
+    ) or {}
+    folder = project_dir(project_id)
+    image = folder / "visuales" / entry.get("file", "")
+    if scene is None or entry.get("kind") != "image" or not image.is_file():
+        raise HTTPException(400, "Esa escena no tiene una imagen.")
+    _save_stage(
+        db, project_id, consistency.STAGE, consistency.set_reference(folder, image, scene["number"])
+    )
+    return _redirect(f"/proyectos/{project_id}/visuales#protagonista")
+
+
+@router.post("/visuales/revisar-protagonista")
+def check_hero(db: DB, user: CurrentUser, project_id: int):
+    from app import consistency
+
+    _project(db, project_id)
+    jobs.enqueue(db, project_id, consistency.STAGE)
+    return _redirect(f"/proyectos/{project_id}/visuales#protagonista")
+
+
+@router.post("/visuales/protagonista-bien/{paragraph_id}")
+def hero_is_fine(db: DB, user: CurrentUser, project_id: int, paragraph_id: str):
+    """La revisión se equivocó con esta escena: se da por buena."""
+    from app import consistency
+
+    _project(db, project_id)
+    row = _result_row(db, project_id, consistency.STAGE)
+    if row is not None and paragraph_id in (row.data.get("checked") or {}):
+        data = copy.deepcopy(row.data)
+        data["checked"][paragraph_id].update(ok=True, reason="dada por buena a mano")
+        row.data = data
+        db.commit()
+    return _redirect(f"/proyectos/{project_id}/visuales#escena-{paragraph_id}")
+
+
+@router.post("/visuales/rehacer-marcadas")
+def redo_flagged(db: DB, user: CurrentUser, project_id: int):
+    """Las escenas marcadas pasan a «rehacer»: los mensajes de Flow piden solo esas y las
+    imágenes nuevas ocupan su sitio al recogerlas."""
+    from app import consistency
+
+    _project(db, project_id)
+    row = _result_row(db, project_id, "visuals")
+    hero = jobs.get_result(db, project_id, consistency.STAGE)
+    if row is not None:
+        marked = consistency.flagged(hero, row.data)
+        if marked:
+            data = copy.deepcopy(row.data)
+            for pid in marked:
+                data["items"][pid]["provider"] = consistency.REDO
+            row.data = data
+            db.commit()
+    return _redirect(f"/proyectos/{project_id}/visuales#flow")
+
+
+def _save_stage(db: DB, project_id: int, stage: str, data: dict) -> None:
+    row = _result_row(db, project_id, stage)
+    if row is None:
+        db.add(StageResult(project_id=project_id, stage=stage, data=data))
+    else:
+        row.data = data
+    db.commit()
 
 
 FLOW_ORIGIN = "https://flow.google.com"
@@ -959,6 +1056,15 @@ def thumbnail_texts(
     return _redirect(f"/proyectos/{project_id}/miniatura")
 
 
+@router.post("/rehacer-desactualizado")
+def redo_stale(db: DB, user: CurrentUser, project_id: int, back: Annotated[str, Form()] = ""):
+    """Rehace en orden lo que se quedó viejo (vídeo, textos, miniaturas, Shorts)."""
+    _project(db, project_id)
+    jobs.redo_stale(db, project_id)
+    target = back if back in SLUGS.values() else ""
+    return _redirect(f"/proyectos/{project_id}/{target}".rstrip("/"))
+
+
 @router.post("/publicado")
 def mark_published(db: DB, user: CurrentUser, project_id: int):
     """El vídeo ya está en YouTube: deja de aparecer en las tareas de JARVIS."""
@@ -991,7 +1097,7 @@ def run_stage(
     music_volume: Annotated[str | None, Form()] = None,
 ):
     project = _project(db, project_id)
-    if stage not in jobs.RUNNERS:
+    if stage not in jobs.RUNNERS or stage not in SLUGS:
         raise HTTPException(404, "Esta etapa todavía no está disponible")
     params = None
     if stage == "script":

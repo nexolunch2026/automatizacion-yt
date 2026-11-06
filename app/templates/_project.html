@@ -16,14 +16,34 @@
   <a href="/proyectos/{{ project.id }}" class="{{ 'active' if current == 'overview' }}">Resumen</a>
   {% for stage, slug in slugs.items() %}
   {% set job = jobs.get(stage) %}
+  {% set old = (project.stale or {}).get(stage) if project.stale is defined else none %}
   <a href="/proyectos/{{ project.id }}/{{ slug }}" class="{{ 'active' if current == stage }}">
     {{ stages[stage] }}
     {% if job and job.active %}<span class="dot running" title="En marcha"></span>
+    {% elif old %}<span class="stale-mark" title="Desactualizado: {{ old }}">⚠</span>
     {% elif job and job.status == 'failed' and stage not in results %}<span class="dot failed" title="Falló"></span>
     {% elif stage in results %}<span class="tick">✓</span>{% endif %}
   </a>
   {% endfor %}
 </nav>
+{{ stale_banner(project, slugs.get(current, '')) }}
+{% endmacro %}
+
+{% macro stale_banner(project, back) %}
+{% set stale = project.stale if project.stale is defined else {} %}
+{% if stale %}
+<div class="alert warn stale-banner">
+  <strong>⚠ Hay cosas desactualizadas en este vídeo:</strong>
+  <ul>
+    {% for stage, reason in stale.items() %}<li>{{ {'edit': 'Vídeo', 'publish': 'Textos', 'thumbnail': 'Miniaturas', 'shorts': 'Shorts'}[stage] }}: {{ reason }}.</li>{% endfor %}
+  </ul>
+  <form method="post" action="/proyectos/{{ project.id }}/rehacer-desactualizado">
+    <input type="hidden" name="back" value="{{ back }}">
+    <button class="btn small">Rehacer lo desactualizado</button>
+    <span class="muted small">Se hace en orden: vídeo, textos, miniaturas y Shorts. Tarda unos minutos.</span>
+  </form>
+</div>
+{% endif %}
 {% endmacro %}
 
 {% macro job_status(job) %}
