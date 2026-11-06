@@ -4,10 +4,121 @@
 {{ ui.header(project) }}
 {{ ui.tabs(project, 'overview', slugs, stages, results, jobs) }}
 
+{% if timeline or copilot %}
+<div class="room">
+  <section class="room-main" aria-label="Sala de montaje">
+    {% if showcase %}
+    <div class="room-player">
+      <video id="room-video" controls preload="metadata" src="{{ showcase.video }}"
+        {% if showcase.thumb %}poster="{{ showcase.thumb }}"{% endif %}></video>
+    </div>
+    {% endif %}
+    {% if timeline %}
+    <div class="timeline" aria-label="Línea de tiempo" style="--n: {{ timeline.scenes|length }}">
+      <div class="track">
+        <span class="track-label">Imágenes</span>
+        <div class="track-scenes">
+          {% for s in timeline.scenes %}
+          <button type="button" class="scene{{ ' missing' if not s.img }}" style="flex-basis: {{ s.width }}%"
+            data-start="{{ s.start }}" title="Escena {{ s.n }} · {{ s.at }} · {{ s.text[:120] }}"
+            aria-label="Escena {{ s.n }}, minuto {{ s.at }}">
+            {% if s.img %}<img src="{{ s.img }}" alt="" loading="lazy">{% endif %}
+            <span>{{ s.n }}</span>
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+      {% if timeline.wave %}
+      <div class="track">
+        <span class="track-label">Voz</span>
+        <div class="track-wave" aria-hidden="true">
+          {% for h in timeline.wave %}<i style="height: {{ h }}%"></i>{% endfor %}
+          <b class="playhead" id="playhead"></b>
+        </div>
+      </div>
+      {% endif %}
+      <div class="track">
+        <span class="track-label">Subtítulos</span>
+        <div class="track-subs">
+          {% for s in timeline.scenes %}<span style="flex-basis: {{ s.width }}%" title="{{ s.text }}">{{ s.text }}</span>{% endfor %}
+        </div>
+      </div>
+      <p class="muted small timeline-foot">{{ timeline.scenes|length }} escenas · {{ timeline.total }} · pulsa una escena para ir a ese momento</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <aside class="copilot" aria-label="JARVIS, tu copiloto">
+    <div class="copilot-head">
+      <span class="copilot-orb" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#07090a" stroke-width="2.4" stroke-linecap="round"><path d="M4 12h2l2-5 3 10 3-8 2 3h4"/></svg></span>
+      <div><strong>JARVIS</strong><span class="small muted">Revisando el vídeo contigo</span></div>
+    </div>
+    {% for tip in copilot %}
+    <div class="tip tip-{{ tip.level }}">
+      <p>{{ tip.text }}</p>
+      {% if tip.detail_fix %}<p class="small muted">{{ tip.detail_fix }}</p>{% endif %}
+      {% if tip.link %}<a class="btn small{{ ' secondary' if tip.level != 'fail' }}" href="{{ tip.link }}">{{ tip.fix }}</a>{% endif %}
+    </div>
+    {% else %}
+    <div class="tip tip-ok"><p>Aún no hay nada que revisar: cuando haya escenas y voz, te aviso de lo que falte.</p></div>
+    {% endfor %}
+    <div id="copilot-chat" class="copilot-chat" aria-live="polite"></div>
+    <form method="post" action="/jarvis/orden" class="copilot-ask" id="copilot-form" data-title="{{ project.title }}">
+      <label for="copilot-q" class="sr-only">Pregúntale a JARVIS</label>
+      <input id="copilot-q" name="text" placeholder="Pregúntale a JARVIS sobre este vídeo…" maxlength="300" required>
+      <button class="btn small" data-copy="1">Enviar</button>
+    </form>
+  </aside>
+</div>
+<script>
+  (() => {
+    const video = document.getElementById("room-video");
+    const head = document.getElementById("playhead");
+    document.querySelectorAll(".scene[data-start]").forEach((b) => b.addEventListener("click", () => {
+      if (!video) return;
+      video.currentTime = parseFloat(b.dataset.start) + 0.05;
+      video.play();
+    }));
+    if (video && head) video.addEventListener("timeupdate", () => {
+      if (video.duration) head.style.left = (100 * video.currentTime / video.duration) + "%";
+    });
+    // Preguntas a JARVIS sin salir de la página (usa el mismo cerebro que la pestaña JARVIS).
+    const form = document.getElementById("copilot-form");
+    const chat = document.getElementById("copilot-chat");
+    if (form && chat) form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const box = form.querySelector("input");
+      const question = box.value.trim();
+      if (!question) return;
+      const mine = document.createElement("p");
+      mine.className = "bubble me";
+      mine.textContent = question;
+      chat.append(mine);
+      box.value = "";
+      const wait = document.createElement("p");
+      wait.className = "bubble";
+      wait.textContent = "Pensando…";
+      chat.append(wait);
+      try {
+        const body = new FormData();
+        body.append("text", `Sobre el vídeo «${form.dataset.title}»: ${question}`);
+        const r = await fetch(form.action, { method: "POST", body });
+        const data = await r.json();
+        wait.innerHTML = (data.replies || []).map((x) => x.html).join("<br><br>") || "No tengo respuesta.";
+      } catch (e) {
+        wait.textContent = "No pude hablar con JARVIS. ¿Está abierto Faceless Studio?";
+      }
+    });
+  })();
+</script>
+{% endif %}
+
 {% if showcase %}
 <div class="card showcase">
+  {% if not timeline %}
   <video controls preload="metadata" class="player" src="{{ showcase.video }}"
     {% if showcase.thumb %}poster="{{ showcase.thumb }}"{% endif %}></video>
+  {% endif %}
   <div class="showcase-info">
     <p class="muted small">{{ 'Vídeo final' if showcase.final else 'Vista previa' }} · {{ showcase.duration }}</p>
     <h2>{{ showcase.title }}</h2>
