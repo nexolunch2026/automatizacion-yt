@@ -73,7 +73,8 @@ def test_learning_page(logged_in, monkeypatch):
     monkeypatch.setattr(learning_web, "watch_with_ai", fails)
     r = logged_in.post("/aprender", data={"url": "https://youtu.be/abcdefghijk"})
     assert r.status_code == 400 and "Se agotó el uso gratuito" in r.text
-    assert "🎓 Aprender" in logged_in.get("/").text  # en el menú
+    home = logged_in.get("/").text
+    assert 'href="/aprender"' in home and "<span>Aprender</span>" in home  # en el menú
 
 
 def test_jarvis_watches_links_and_lessons_reach_scripts(logged_in, ai, monkeypatch):  # noqa: F811

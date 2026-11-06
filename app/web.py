@@ -55,7 +55,65 @@ def dashboard(request: Request, db: DB, user: CurrentUser, canal: int | None = N
         thumbs={p.id: url for p in projects if (url := _thumb_url(db, p.id))},
         has_gemini=api_key_hint(db, "gemini") is not None,
         summary=_studio_summary(db, projects) if projects else None,
+        shelves=_shelves(db, projects, channels),
     )
+
+
+CHANNEL_COLORS = ("#ff5a61", "#3ddc84", "#5b9dff", "#ffb020", "#c084fc")
+
+
+def _shelves(db, projects, channels) -> dict:
+    """La portada tipo «sala de estreno»: el próximo estreno, lo que está en el taller,
+    lo listo para estrenar y lo ya publicado (cada vídeo con su miniatura y su paso)."""
+    from app import coach
+    from app.pipeline.monetization import last_render
+
+    colors = {c.id: CHANNEL_COLORS[i % len(CHANNEL_COLORS)] for i, c in enumerate(channels)}
+    published = coach._published_ids(db)
+    shelves = {"workshop": [], "ready": [], "published": []}
+    for p in projects:
+        results = {
+            stage: data
+            for stage in ("edit", "thumbnail", "visuals", "storyboard")
+            if (data := jobs.get_result(db, p.id, stage))
+        }
+        render_ = last_render(results)
+        step = coach.project_step(db, p) or {}
+        latest = jobs.latest_jobs(db, p.id)
+        active = next((j for j in latest.values() if j.active), None)
+        minutes, seconds = divmod(int(round(float(render_.get("seconds") or 0))), 60)
+        card = {
+            "project": p,
+            "thumb": _thumb_url(db, p.id) or _first_scene_url(p.id, results),
+            "color": colors.get(p.channel_id, CHANNEL_COLORS[0]),
+            "step": step.get("text") or "",
+            "needs_you": bool(step.get("stage")),
+            "active": active,
+            "duration": f"{minutes}:{seconds:02d}" if render_.get("seconds") else "",
+        }
+        if p.id in published or p.status == "Publicado":
+            card.update(step="", needs_you=False)  # ya está en YouTube: no falta nada
+            shelves["published"].append(card)
+        elif render_.get("file") and not active:
+            shelves["ready"].append(card)
+        else:
+            shelves["workshop"].append(card)
+    featured = next((c for c in shelves["ready"] if c["thumb"]), None)
+    shelves["featured"] = featured
+    if featured:
+        shelves["ready"] = [c for c in shelves["ready"] if c is not featured]
+    return shelves
+
+
+def _first_scene_url(project_id: int, results: dict) -> str | None:
+    """Sin miniatura, la primera imagen de escena (para que la tarjeta no salga vacía)."""
+    items = (results.get("visuals") or {}).get("items") or {}
+    scenes = (results.get("storyboard") or {}).get("scenes") or []
+    for scene in scenes:
+        entry = items.get(scene.get("paragraph_id")) or {}
+        if entry.get("file"):
+            return f"/proyectos/{project_id}/archivos/visuales/{entry['file']}"
+    return None
 
 
 def _showcase(db, project, results: dict) -> dict | None:

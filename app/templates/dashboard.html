@@ -1,16 +1,32 @@
 {% extends "base.html" %}
+{% block main_class %}page studio-home{% endblock %}
 {% block content %}
-<div class="page-head">
-  <div>
-    <h1>Proyectos</h1>
-    <p class="muted">Cada vídeo es un proyecto.</p>
+
+{% macro card(c, wide=False) %}
+<a class="shelf-card{{ ' wide' if wide }}" href="/proyectos/{{ c.project.id }}" data-search>
+  <div class="shelf-thumb">
+    {% if c.thumb %}<img src="{{ c.thumb }}" alt="" loading="lazy">
+    {% else %}
+    <div class="shelf-empty" aria-hidden="true">
+      <svg viewBox="0 0 64 64" width="56" height="56"><circle cx="32" cy="18" r="9" fill="currentColor"/><path d="M32 27v16M32 32l-9 5M32 32l9-8M32 43l-6 11M32 43l6 11" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/></svg>
+    </div>
+    {% endif %}
+    {% if c.active %}<span class="shelf-tag live">MONTANDO {{ c.active.progress }} %</span>
+    {% elif c.needs_you %}<span class="shelf-tag you">TE TOCA</span>{% endif %}
+    {% if c.duration %}<span class="shelf-time">{{ c.duration }}</span>{% endif %}
   </div>
-  <a class="btn" href="/proyectos/nuevo">+ Nuevo vídeo</a>
-</div>
+  <span class="shelf-channel"><i style="background: {{ c.color }}"></i>{{ c.project.channel.name }} · {{ c.project.status }}</span>
+  <strong class="shelf-title">{{ c.project.title }}</strong>
+  {% if c.active %}
+  <div class="progress"><div style="width: {{ c.active.progress }}%"></div></div>
+  {% endif %}
+  {% if c.step %}<span class="shelf-step{{ ' you' if c.needs_you }}">{{ c.step }}</span>{% endif %}
+</a>
+{% endmacro %}
 
 {% if needs_profile %}
 <div class="card">
-  <p class="alert info">👋 Cuéntale al programa de qué va tu canal (nombre, nicho y país) para que
+  <p class="alert info">Cuéntale al programa de qué va tu canal (nombre, nicho y país) para que
     los guiones, JARVIS y los consejos se adapten a ti. <a class="btn small" href="/bienvenida">Completar mi perfil</a></p>
 </div>
 {% endif %}
@@ -23,16 +39,41 @@
 </div>
 {% else %}
 
+<div class="command-row">
+  <form method="post" action="/rapido" class="command">
+    <label for="quick-topic" class="sr-only">¿Sobre qué hacemos el próximo vídeo?</label>
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/></svg>
+    <input id="quick-topic" name="topic" placeholder="¿Sobre qué hacemos el próximo vídeo? Ej.: la caída de FTX" maxlength="300" required>
+    <button class="btn" {% if not has_gemini %}disabled title="Conecta Gemini en Configuración"{% endif %}>Crear vídeo</button>
+  </form>
+  <nav class="channel-pills" aria-label="Canal">
+    <a class="{{ 'active' if not selected_channel }}" href="/">Todo</a>
+    {% for c in channels %}
+    <a class="{{ 'active' if selected_channel == c.id }}" href="/?canal={{ c.id }}"><i style="background: {{ ['#ff5a61','#3ddc84','#5b9dff','#ffb020','#c084fc'][loop.index0 % 5] }}"></i>{{ c.name }}</a>
+    {% endfor %}
+  </nav>
+</div>
 
-<form method="post" action="/rapido" class="card quick-start">
-  <label for="quick-topic"><strong>✨ ¿Sobre qué hacemos el próximo vídeo?</strong>
-    <span class="muted small">Escribe la idea y empieza: usa el canal y la duración de tu último vídeo.
-      Si escribes «top 10 de…» o «explica por qué…», elige ese formato.</span></label>
-  <div class="quick-row">
-    <input id="quick-topic" name="topic" placeholder="Ej.: la caída de Nokia" maxlength="300" required>
-    <button class="btn" {% if not has_gemini %}disabled title="Conecta Gemini en Configuración"{% endif %}>Empezar</button>
+{% set f = shelves.featured %}
+{% if f %}
+<section class="premiere" style="background-image: url('{{ f.thumb }}')" aria-label="Próximo estreno">
+  <div class="premiere-scrim"></div>
+  <div class="premiere-body">
+    <div class="premiere-text">
+      <div class="premiere-tags">
+        <span class="premiere-badge">PRÓXIMO ESTRENO</span>
+        <span class="premiere-channel"><i style="background: {{ f.color }}"></i>{{ f.project.channel.name }}</span>
+      </div>
+      <h1>{{ f.project.title }}</h1>
+      <p>{% if f.duration %}{{ f.duration }} · {% endif %}{{ f.project.video_type }} · {{ f.step or 'listo para subir' }}</p>
+      <div class="premiere-actions">
+        <a class="btn big" href="/proyectos/{{ f.project.id }}/publicacion">Preparar el estreno</a>
+        <a class="btn secondary big" href="/proyectos/{{ f.project.id }}">Ver vídeo</a>
+      </div>
+    </div>
   </div>
-</form>
+</section>
+{% endif %}
 
 {% if summary %}
 <div class="stats">
@@ -42,50 +83,38 @@
   <div class="stat"><span class="stat-num {% if summary.score is not none %}{{ 'good' if summary.score >= 85 else 'warn' }}{% endif %}">{{ summary.score if summary.score is not none else '—' }}</span>
     <span class="stat-label">Nota media de calidad</span></div>
 </div>
-{% if summary.steps %}
-<div class="card next-list">
-  <h2>👉 Lo siguiente</h2>
-  <ul>
-    {% for project, step in summary.steps %}
-    <li><a href="/proyectos/{{ project.id }}"><strong>{{ project.title }}</strong></a>
-      <span class="muted">— {{ step.text }}</span></li>
-    {% endfor %}
-  </ul>
-</div>
-{% endif %}
 {% endif %}
 
-<div class="filters">
-  {% if projects|length > 6 %}
-  <input id="project-search" class="project-search" type="search" placeholder="🔎 Buscar un vídeo…" aria-label="Buscar un vídeo">
-  {% endif %}
-  <a class="chip {% if not selected_channel %}active{% endif %}" href="/">Todos</a>
-  {% for c in channels %}
-  <a class="chip {% if selected_channel == c.id %}active{% endif %}" href="/?canal={{ c.id }}">{{ c.name }}</a>
-  {% endfor %}
-</div>
-
-{% if projects %}
+{% if projects|length > 6 %}
+<input id="project-search" class="project-search" type="search" placeholder="Buscar un vídeo…" aria-label="Buscar un vídeo">
 <p class="muted small" id="search-empty" hidden>Ningún vídeo coincide con la búsqueda.</p>
-<div class="grid" id="project-grid">
-  {% for p in projects %}
-  <a class="card project" href="/proyectos/{{ p.id }}">
-    {% if thumbs.get(p.id) %}<img class="thumb" src="{{ thumbs[p.id] }}" alt="" loading="lazy">
-    {% else %}<div class="thumb">Sin miniatura</div>{% endif %}
-    <h3>{{ p.title }}</h3>
-    <p class="muted small">{{ p.channel.name }} · {{ p.video_type }} · {{ p.duration }}</p>
-    <div class="row">
-      <span class="badge">{{ p.status }}</span>
-      <span class="muted small">{{ p.created_at.strftime('%d/%m/%Y') }}</span>
-    </div>
-    <div class="progress"><div style="width: {{ p.progress }}%"></div></div>
-  </a>
-  {% endfor %}
-</div>
-{% else %}
+{% endif %}
+
+{% if shelves.workshop %}
+<section class="shelf" aria-label="En el taller">
+  <div class="shelf-head"><h2>En el taller</h2><span class="muted">se están haciendo o esperan algo de vosotros</span></div>
+  <div class="shelf-row">{% for c in shelves.workshop %}{{ card(c) }}{% endfor %}</div>
+</section>
+{% endif %}
+
+{% if shelves.ready %}
+<section class="shelf" aria-label="Listos para estrenar">
+  <div class="shelf-head"><h2>Listos para estrenar</h2><span class="muted">montados y esperando su día</span></div>
+  <div class="shelf-row">{% for c in shelves.ready %}{{ card(c) }}{% endfor %}</div>
+</section>
+{% endif %}
+
+{% if shelves.published %}
+<section class="shelf" aria-label="Publicados">
+  <div class="shelf-head"><h2>Publicados</h2><span class="muted">ya en YouTube</span></div>
+  <div class="shelf-row">{% for c in shelves.published %}{{ card(c) }}{% endfor %}</div>
+</section>
+{% endif %}
+
+{% if not projects %}
 <div class="card empty">
   <h2>Todavía no hay vídeos</h2>
-  <p class="muted">Pulsa «+ Nuevo vídeo» y escribe tu idea.</p>
+  <p class="muted">Escribe tu idea arriba y pulsa «Crear vídeo».</p>
 </div>
 {% endif %}
 {% endif %}
@@ -93,11 +122,11 @@
   (() => {
     const box = document.getElementById("project-search");
     if (!box) return;
-    const plain = (t) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const plain = (t) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
     box.addEventListener("input", () => {
       const q = plain(box.value.trim());
       let shown = 0;
-      document.querySelectorAll("#project-grid .project").forEach((card) => {
+      document.querySelectorAll("[data-search]").forEach((card) => {
         const hit = !q || plain(card.textContent).includes(q);
         card.hidden = !hit;
         shown += hit;
