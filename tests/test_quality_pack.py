@@ -15,10 +15,9 @@ from tests.test_strategy_script import run_all
 
 
 def test_split_shots():
+    # Un solo plano suave por imagen (sin «rebotes»): la escena entera.
     assert split_shots(4) == [4]
-    assert split_shots(12) == [4, 4, 4]
-    assert len(split_shots(40)) == 4  # nunca más de 4 planos
-    assert sum(split_shots(17.5)) == pytest.approx(17.5)
+    assert split_shots(17.5) == [17.5]
 
 
 def test_word_times_cover_the_paragraph():

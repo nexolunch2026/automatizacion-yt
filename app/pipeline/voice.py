@@ -10,13 +10,23 @@ from pathlib import Path
 
 from app.models import Project
 from app.pipeline.storyboard import paragraphs_of
-from app.providers.voice import VoiceProvider, is_eleven, join_wavs, tighten, wav_seconds
+from app.providers.voice import (
+    VoiceProvider,
+    is_eleven,
+    join_wavs,
+    say_numbers,
+    spoken_text,
+    tighten,
+    wav_seconds,
+)
 
 
 def take_key(text: str, voice: str, speed: str, model: str = "") -> str:
     """Identifica una grabación: si cambia el texto, la voz, la velocidad o el modelo
     (solo ElevenLabs), hay que volver a grabar."""
     extra = f"|{model}" if is_eleven(voice) and model else ""
+    if say_numbers(text) != text:  # cifras con punto de miles: grabadas antes se leían mal
+        extra += "|cifras"
     return hashlib.sha1(f"{voice}|{speed}|{text}{extra}".encode()).hexdigest()[:12]
 
 
@@ -62,7 +72,8 @@ def run_voice(
                 f"Grabando párrafo {i} de {len(paragraphs)}",
             )
             # Sin silencios de sobra: el ritmo mejora y la gente se queda más.
-            data = tighten(tts.synthesize(paragraph["text"], voice, speed))
+            text = say_numbers(spoken_text(paragraph["text"]))
+            data = tighten(tts.synthesize(text, voice, speed))
             path.write_bytes(data)
         takes.append(
             {

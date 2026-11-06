@@ -1,7 +1,6 @@
 """Comprobaciones con servicios reales (se ejecuta en GitHub Actions, que tiene internet).
 
-- Todas las voces del catálogo existen en HuggingFace.
-- Piper descarga una voz y graba audio de verdad.
+- Todas las voces de Microsoft del catálogo existen y graban audio de verdad.
 - El actualizador descarga el repositorio público y lo reconoce.
 """
 
@@ -9,48 +8,29 @@ import sys
 import tempfile
 from pathlib import Path
 
-import httpx
-from piper.download_voices import URL_FORMAT, VOICE_PATTERN
-
 from app import updater
-from app.providers.voice import VOICES, PiperVoices, wav_seconds
-
-
-def voice_url(voice: str, extension: str) -> str:
-    m = VOICE_PATTERN.match(voice)
-    family = m.group("lang_family")
-    return URL_FORMAT.format(
-        extension=extension,
-        lang_family=family,
-        lang_code=f"{family}_{m.group('lang_region')}",
-        voice_name=m.group("voice_name"),
-        voice_quality=m.group("voice_quality"),
-    )
+from app.providers.voice import VOICES, MicrosoftVoices, wav_seconds
 
 
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")  # la consola de Windows no es UTF-8
     failures = []
 
-    print("1) Voces del catálogo")
-    with httpx.Client(follow_redirects=True, timeout=60) as client:
-        for voice in VOICES:
-            status = client.head(voice_url(voice.id, ".onnx.json")).status_code
-            print(f"   {voice.id}: {status}")
-            if status != 200:
-                failures.append(f"La voz {voice.id} no existe ({status})")
+    print("1-2) Voces de Microsoft del catálogo (grabación real)")
+    from app.providers.ai import ProviderError
 
-    print("2) Grabación real con Piper")
-    with tempfile.TemporaryDirectory() as tmp:
-        piper = PiperVoices(Path(tmp))
-        for voice in ("es_ES-davefx-medium", "es_MX-ald-medium"):
-            audio = piper.synthesize(
-                "Hola, esta es una prueba de la voz de Faceless Studio.", voice, "Normal"
+    microsoft = MicrosoftVoices()
+    for voice in VOICES:
+        try:
+            audio = microsoft.synthesize(
+                "Hola, esta es una prueba de la voz de Faceless Studio.", voice.id, "Normal"
             )
             seconds = wav_seconds(audio)
-            print(f"   {voice}: {seconds} s de audio")
+            print(f"   {voice.id}: {seconds} s de audio")
             if seconds < 1:
-                failures.append(f"Piper generó un audio demasiado corto con {voice}")
+                failures.append(f"La voz {voice.id} generó un audio demasiado corto")
+        except ProviderError as exc:
+            failures.append(f"La voz {voice.id} falló: {exc} {exc.detail}")
 
     print("3) Actualizador (repositorio público)")
     with tempfile.TemporaryDirectory() as tmp:
@@ -67,8 +47,7 @@ def main() -> None:
         from app.providers.voice import join_wavs
 
         Image.new("RGB", (640, 360), (90, 40, 30)).save(folder / "foto.jpg")
-        voice = PiperVoices(folder / "voces")
-        clips = [voice.synthesize(t, "es_ES-davefx-medium", "Normal") for t in ("Uno.", "Dos.")]
+        clips = [microsoft.synthesize(t, VOICES[0].id, "Normal") for t in ("Uno.", "Dos.")]
         (folder / "narracion.wav").write_bytes(join_wavs(clips))
         scenes = [
             {
@@ -126,22 +105,7 @@ def main() -> None:
         if size < 1000:
             failures.append("El vídeo montado está vacío")
 
-    print("5) Imágenes con IA gratis (Pollinations, 3 seguidas con el ritmo del programa)")
-    import time
-
     from app.providers.ai import ProviderError
-    from app.providers.images import PollinationsImages
-
-    pollinations = PollinationsImages()  # mismo ritmo que en el programa (sin clave)
-    for n, prompt in enumerate(
-        ["a quiet lighthouse at dusk", "an old empty office", "a city skyline at night"], 1
-    ):
-        start = time.monotonic()
-        try:
-            data, ext = pollinations.generate(prompt + ", cinematic", portrait=False, seed=n)
-            print(f"   {n}: OK {ext} {len(data)} bytes ({time.monotonic() - start:.0f} s)")
-        except ProviderError as exc:  # servicio externo gratuito: solo aviso
-            print(f"   {n}: AVISO {exc} | {exc.detail}")
 
     print("6) Telegram responde (con un token falso debe decir que no es válido)")
     from app.telegram import TelegramAPI
@@ -154,29 +118,19 @@ def main() -> None:
         if "token" not in str(exc):
             failures.append(f"Telegram no respondió como se esperaba: {exc} {exc.detail}")
 
-    print("7) Voz de JARVIS (voz neuronal de Microsoft + efecto; si falla, la de respaldo)")
+    print("7) Voz de JARVIS (voz neuronal de Microsoft + efecto)")
     from app import jarvis_voice
 
     with tempfile.TemporaryDirectory() as tmp:
         jarvis_voice.CACHE_DIR = Path(tmp)
         for voice in ("es-ES-AlvaroNeural", "es-CO-GonzaloNeural"):
             try:
-                jarvis_voice.microsoft_tts("Prueba.", voice, Path(tmp) / f"{voice}.mp3")
-                print(f"   {voice}: Microsoft responde")
+                path = jarvis_voice.speak(
+                    "Buenos días, señor. Todos los sistemas funcionan.", voice=voice
+                )
+                print(f"   {voice}: {path.stat().st_size} bytes")
             except ProviderError as exc:
-                # Microsoft a veces bloquea los ordenadores de GitHub: JARVIS usa la de
-                # respaldo, así que solo es un aviso. Lo grave es que no hable (abajo).
-                print(f"::warning::Voz de Microsoft ({voice}): {exc} {exc.detail}"[:600])
-        try:
-            jarvis_voice.piper_tts("Prueba de la voz de respaldo.", Path(tmp) / "respaldo.wav")
-            print("   Voz de respaldo (Piper): OK")
-        except Exception as exc:  # noqa: BLE001
-            failures.append(f"La voz de respaldo de JARVIS (Piper) no funciona: {exc}")
-        try:
-            path = jarvis_voice.speak("Buenos días, señor. Todos los sistemas funcionan.")
-            print(f"   JARVIS habla: {path.stat().st_size} bytes")
-        except ProviderError as exc:
-            failures.append(f"JARVIS no puede hablar (ni Microsoft ni respaldo): {exc}")
+                failures.append(f"La voz de JARVIS falló con {voice}: {exc} {exc.detail}")
 
     print("8) Información de JARVIS (servicios gratuitos; solo avisos)")
     from app import info, profile

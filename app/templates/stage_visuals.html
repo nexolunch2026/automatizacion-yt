@@ -6,29 +6,57 @@
 
 <div class="card">
   <h2>Visuales</h2>
-  <p class="muted small">Elige de dónde salen las imágenes de cada escena: de un banco de
-    imágenes gratis (Pixabay/Pexels) o <strong>generadas con IA</strong> a partir del prompt de la escena.</p>
+  <p class="muted small">Todas las imágenes van en <strong>estilo stickman</strong> (dibujos 2D), con el
+    mismo protagonista. Se hacen <strong>gratis con Google Flow</strong> en 4 pasos.</p>
   {{ ui.job_status(job) }}
   {% if 'storyboard' not in results %}
   <p class="alert info">Primero hay que <a href="/proyectos/{{ project.id }}/escenas">crear las escenas</a>.</p>
   {% elif not (job and job.active) %}
-  <div class="row-actions">
-    <form method="post" action="/proyectos/{{ project.id }}/etapas/visuals">
-      <input type="hidden" name="mode" value="ai">
-      <button class="btn">Generar imágenes con IA (todas las escenas)</button>
+  <div class="flow-steps" id="flow">
+    <h3>Imágenes con Google Flow (gratis)</h3>
+    <ol class="small">
+      <li>Abre <a href="https://flow.google.com" target="_blank" rel="noopener">flow.google.com</a>, entra en un
+        proyecto y abre el <strong>asistente</strong> (el chat «¿Qué quieres crear?» de la derecha).</li>
+      <li>Pulsa <strong>Copiar</strong> en el mensaje 1, pégalo en el asistente y envíalo. Cuando termine,
+        haz lo mismo con el siguiente. Si pregunta, pulsa <strong>Aprobar</strong> (las imágenes no gastan puntos).</li>
+      <li>Cuando Flow termine, pulsa en tu barra de marcadores el botón <strong>«Enviar a Faceless:
+        {{ project.title|truncate(25) }}»</strong> (estando en tu proyecto de Flow). Él solo descarga las
+        imágenes y las coloca aquí en sus escenas. Arriba en Flow verás cómo va. La primera vez,
+        Chrome pregunta si Flow puede acceder a tu red local: pulsa <strong>Permitir</strong>.</li>
+    </ol>
+    <p class="small"><strong>Solo la primera vez en cada proyecto:</strong> arrastra este botón a la barra de
+      marcadores de tu navegador (si no la ves, pulsa <strong>Ctrl + Mayús + B</strong>):
+      <a class="btn small" href="{{ flow_direct }}" onclick="alert('Arrástralo con el ratón hasta la barra de marcadores. Luego púlsalo dentro de tu proyecto de Flow.'); return false;">Enviar a Faceless: {{ project.title|truncate(25) }}</a>
+    </p>
+    <p class="muted small">El asistente de Flow acepta como máximo 24 imágenes por mensaje. Si se para o
+      pregunta, contéstale: <strong>«sí, créalas todas ahora»</strong>.</p>
+    {% for m in flow_messages %}
+    <details class="para-tools" {% if loop.first %}open{% endif %}>
+      <summary>Mensaje {{ loop.index }} de {{ flow_messages|length }} (escenas {{ m.first }}–{{ m.last }})</summary>
+      <textarea id="flow-msg-{{ loop.index }}" rows="6" readonly>{{ m.text }}</textarea>
+      <button class="btn small" type="button"
+        onclick="navigator.clipboard.writeText(document.getElementById('flow-msg-{{ loop.index }}').value); this.textContent='¡Copiado!'">Copiar mensaje {{ loop.index }}</button>
+    </details>
+    {% endfor %}
+    <details class="para-tools">
+    <summary>Otra forma (si el botón no funciona): copiar y pegar enlaces</summary>
+    <p class="small">Arrastra también este botón:
+      <a class="btn small secondary" href="{{ flow_bookmarklet }}" onclick="alert('Arrástralo a la barra de marcadores; luego púlsalo dentro de Flow.'); return false;">Recoger imágenes de Flow</a>.
+      En Flow, haz clic en la imagen más nueva, pulsa ese marcador y pega aquí lo copiado.</p>
+    <form method="post" action="/proyectos/{{ project.id }}/visuales/flow" class="stack">
+      <label>Pega aquí lo que copió el marcador
+        <textarea name="links" rows="3" required placeholder='[{"t":"...","s":"https://flow-content.google/..."}]'></textarea>
+      </label>
+      <button class="btn" onclick="this.textContent='Descargando y colocando… (unos segundos)'">Colocar en las escenas</button>
     </form>
-    <form method="post" action="/proyectos/{{ project.id }}/etapas/visuals">
-      <input type="hidden" name="mode" value="stock">
-      <button class="btn secondary" {% if not has_stock %}disabled title="Necesitas una clave de Pixabay"{% endif %}>Buscar en bancos de imágenes</button>
-    </form>
+    </details>
   </div>
   <div class="chatgpt-tip" id="subida">
     <div>
-      <strong>¿Prefieres hacerlas en ChatGPT?</strong>
-      <p class="muted small">1) Descarga los prompts · 2) Crea las imágenes en ChatGPT y guárdalas ·
-        3) Súbelas todas a la vez aquí abajo.</p>
+      <strong>¿Las tienes en tu ordenador?</strong>
+      <p class="muted small">También puedes subir imágenes guardadas (de Flow, ChatGPT…) todas a la vez.</p>
     </div>
-    <a class="btn small secondary" href="/proyectos/{{ project.id }}/visuales/prompts.txt" download>1) Descargar todos los prompts</a>
+    <a class="btn small secondary" href="/proyectos/{{ project.id }}/visuales/prompts.txt" download>Descargar los prompts</a>
     {% if result and result.upload_report %}
     {% set rep = result.upload_report %}
     <p class="alert {{ 'ok' if not rep.problems else 'info' }} full">
@@ -52,13 +80,12 @@
         (las de ChatGPT quedan en el orden en que las creaste). Luego puedes cambiar cualquiera.</p>
     </form>
   </div>
-  <p class="muted small">Con IA: primero se intenta con tu Gemini y, si tu cuenta no lo permite,
-    con Pollinations (gratis). Tarda unos segundos por imagen; puedes dejarlo trabajando.
-    Las escenas que ya tengan imagen de IA no se repiten.</p>
-  {% if not has_stock %}
-  <p class="muted small">Para usar bancos de imágenes necesitas una clave gratis de Pixabay en
-    <a href="/configuracion#stock">Configuración</a>.</p>
-  {% endif %}
+  <form method="post" action="/proyectos/{{ project.id }}/etapas/visuals">
+    <input type="hidden" name="mode" value="ai">
+    <button class="btn secondary small">Generar todas con Gemini (solo si tu clave tiene facturación)</button>
+  </form>
+  <p class="muted small">Con Gemini las imágenes salen solas, pero la API de imágenes de Google es
+    de pago. Las escenas que ya tengan imagen no se repiten.</p>
   {% endif %}
   {% if result and result.notes %}
   <details class="tech" {% if result.errors %}open{% endif %}><summary>Avisos de la última generación</summary>
@@ -109,11 +136,6 @@
       <form method="post" action="/proyectos/{{ project.id }}/visuales/ia/{{ s.paragraph_id }}">
         <button class="btn small">{{ 'Otra imagen con IA' if v and v.ai else 'Generar con IA' }}</button>
       </form>
-      {% if has_stock %}
-      <form method="post" action="/proyectos/{{ project.id }}/visuales/cambiar/{{ s.paragraph_id }}">
-        <button class="btn small secondary">Buscar en banco</button>
-      </form>
-      {% endif %}
     </div>
     <details class="para-tools">
       <summary>Subir imagen (por ejemplo, de ChatGPT)</summary>

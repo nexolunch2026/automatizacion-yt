@@ -1,5 +1,6 @@
 """SCRIPT ENGINE: escribe el guion y permite reescribir párrafos sueltos."""
 
+import re
 import time
 import uuid
 from collections.abc import Callable
@@ -391,6 +392,51 @@ def _paragraphs(draft: SectionDraft, n_sources: int) -> list[dict]:
     ]
 
 
+MAX_PARAGRAPH_WORDS = 36  # unos 14 s de voz: cada párrafo es una escena con su imagen
+SENTENCE_END = re.compile(r"(?<=[.!?…])\s+")
+
+
+def split_paragraph(paragraph: dict, max_words: int = MAX_PARAGRAPH_WORDS) -> list[dict]:
+    """Parte un párrafo largo en trozos de frases completas de hasta `max_words` palabras
+    (cada trozo será una escena con su propia imagen, una cada 10-15 s). El primer trozo
+    conserva el id, así su imagen y su voz siguen valiendo si no cambia."""
+    words = paragraph["text"].split()
+    if len(words) <= max_words + 8:
+        return [paragraph]
+    chunks: list[list[str]] = [[]]
+    for sentence in SENTENCE_END.split(paragraph["text"].strip()):
+        current = chunks[-1]
+        size = sum(len(s.split()) for s in current)
+        if current and size + len(sentence.split()) > max_words:
+            chunks.append([sentence])
+        else:
+            current.append(sentence)
+    if len(chunks) > 1 and sum(len(s.split()) for s in chunks[-1]) < 10:
+        tail = chunks.pop()  # un final muy corto se une al anterior
+        chunks[-1] += tail
+    parts = []
+    for i, chunk in enumerate(chunks):
+        parts.append(
+            {
+                **paragraph,
+                "id": paragraph["id"] if i == 0 else uuid.uuid4().hex[:8],
+                "text": " ".join(chunk),
+            }
+        )
+    return parts
+
+
+def split_long_paragraphs(script: dict) -> bool:
+    """Parte los párrafos demasiado largos del guion. Devuelve True si cambió algo."""
+    changed = False
+    for section in script.get("sections", []):
+        parts = [p for paragraph in section["paragraphs"] for p in split_paragraph(paragraph)]
+        if len(parts) != len(section["paragraphs"]):
+            section["paragraphs"] = parts
+            changed = True
+    return changed
+
+
 def word_count(script: dict) -> int:
     return sum(len(p["text"].split()) for s in script.get("sections", []) for p in s["paragraphs"])
 
@@ -466,6 +512,7 @@ def run_script(
         "based_on": {"concept": selected["concept"], "title": selected.get("title", 0)},
         "target_words": WORDS_BY_DURATION.get(project.duration, 1100),
     }
+    split_long_paragraphs(data)  # una imagen cada 10-15 s, no cada 25
     return with_stats(data)
 
 

@@ -87,7 +87,7 @@ def extract(zip_bytes: bytes, target: Path) -> Path:
 
 
 # Carpetas de `datos` que no entran en la copia: pesan mucho y se pueden recuperar
-# (vídeos e imágenes de los proyectos, frases de JARVIS, voces de Piper descargadas).
+# (vídeos e imágenes de los proyectos, frases de JARVIS).
 HEAVY_FOLDERS = {"proyectos", "jarvis_voz", "voces"}
 
 

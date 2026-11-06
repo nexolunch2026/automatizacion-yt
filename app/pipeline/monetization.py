@@ -661,12 +661,14 @@ def _rights_checks(results: dict, music_licenses: dict | None = None) -> list[di
                 "Sirve mientras creces, pero el plan gratis no permite monetizar y pide citar a"
                 " ElevenLabs (ya va en la descripción).",
                 "Paga el plan más barato (Starter) justo antes de solicitar la monetización,"
-                " o regraba con una voz Piper.",
+                " o regraba con la voz gratis de Microsoft (Jorge).",
                 "voz",
             )
         )
     elif voice:
-        checks.append(_check("voice", "rights", OK, "Voz libre de uso", "Voz Piper sin coste."))
+        checks.append(
+            _check("voice", "rights", OK, "Voz libre de uso", "Voz de Microsoft sin coste.")
+        )
 
     music = last_render(results).get("music")
     if music:
@@ -880,6 +882,9 @@ def _audience_checks(results: dict) -> list[dict]:
 
 
 OPENING_SHOT_MAX = 8  # primer plano de más de 8 s: en los primeros segundos se nota lento
+# Una imagen lleva un movimiento suave de principio a fin y cada párrafo (máx. ~14 s) trae
+# la suya: solo es lenta si el primer párrafo quedó sin partir.
+OPENING_IMAGE_MAX = 15
 
 
 def _scene_number(scene: dict) -> float:
@@ -892,8 +897,6 @@ def _scene_number(scene: dict) -> float:
 def _opening_visual_check(results: dict) -> list[dict]:
     """Lo primero que se ve decide si la gente se queda: que no sea una tarjeta de solo
     texto ni un plano largo y quieto."""
-    from app.pipeline.render import split_shots
-
     board = results.get("storyboard") or {}
     scenes = [s for s in board.get("scenes") or [] if isinstance(s, dict)]
     items = (results.get("visuals") or {}).get("items") or {}
@@ -908,7 +911,7 @@ def _opening_visual_check(results: dict) -> list[dict]:
         return []  # no se sabe cuánto dura: no se puede decir nada
     item = items.get(first.get("paragraph_id"))
     # Sin visual, el montaje pone una tarjeta de texto. Un gráfico va en un solo plano
-    # animado; las imágenes se parten solas en planos de 3–6 s; los vídeos de banco, no.
+    # animado; una imagen, en un plano que se mueve; los vídeos de banco, tal cual.
     kind = (
         "chart"
         if first.get("chart")
@@ -916,7 +919,7 @@ def _opening_visual_check(results: dict) -> list[dict]:
         if isinstance(item, dict)
         else "card"
     )
-    shot = (split_shots(seconds) or [0])[0] if kind == "image" else seconds
+    limit = OPENING_IMAGE_MAX if kind == "image" else OPENING_SHOT_MAX
     fixes = {
         "image": "En Guion, acorta el primer párrafo para que la primera imagen cambie antes.",
         "video": "En Visuales, cambia el vídeo de la primera escena por una imagen (se mueve "
@@ -926,8 +929,8 @@ def _opening_visual_check(results: dict) -> list[dict]:
     if kind == "card":
         status, title = WARN, "El vídeo empieza con una tarjeta de solo texto"
         fix = "En Visuales, pon una imagen o un vídeo en la primera escena."
-    elif shot > OPENING_SHOT_MAX:
-        status, title = WARN, f"El primer plano dura {round(shot)} s"
+    elif seconds > limit:
+        status, title = WARN, f"El primer plano dura {round(seconds)} s"
         fix = fixes.get(kind, fixes["video"])
     else:
         status, title, fix = OK, "El vídeo empieza con imagen y ritmo", ""

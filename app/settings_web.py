@@ -62,7 +62,7 @@ def check_eleven_key(api_key: str) -> None:
 def _services(db) -> list[dict]:
     """Estado de cada servicio para el panel de arriba de Configuración."""
     has = {name: api_key_hint(db, name) is not None for name in (
-        "gemini", "elevenlabs", "pollinations", "pixabay", "pexels", "github", "telegram",
+        "gemini", "elevenlabs", "pixabay", "pexels", "github", "telegram",
         "youtube",
     )}  # fmt: skip
     return [
@@ -72,8 +72,6 @@ def _services(db) -> list[dict]:
          "need": False, "href": "#stock"},
         {"name": "ElevenLabs", "what": "Voz más natural", "on": has["elevenlabs"], "need": False,
          "href": "#elevenlabs"},
-        {"name": "Pollinations", "what": "Más imágenes con IA", "on": has["pollinations"],
-         "need": False, "href": "#pollinations"},
         {"name": "Telegram", "what": "JARVIS en el móvil", "on": has["telegram"], "need": False,
          "href": "/jarvis"},
         {"name": "YouTube", "what": "Cifras exactas del canal", "on": has["youtube"],
@@ -93,7 +91,6 @@ def _page(request: Request, db: DB, status_code: int = 200, **ctx):
         github_hint=api_key_hint(db, "github"),
         stock_hints={name: api_key_hint(db, name) for name in STOCK_PROVIDERS},
         eleven_hint=api_key_hint(db, "elevenlabs"),
-        pollinations_hint=api_key_hint(db, "pollinations"),
         services=_services(db),
         backup_dir=str(backup_folder(DATA_DIR)),
         last_backup=get_setting(db, "backup_last"),
@@ -219,16 +216,3 @@ def save_eleven(request: Request, db: DB, user: CurrentUser, api_key: Annotated[
 def delete_eleven(db: DB, user: CurrentUser):
     delete_api_key(db, "elevenlabs")
     return RedirectResponse("/configuracion#elevenlabs", status_code=303)
-
-
-@router.post("/pollinations")
-def save_pollinations(db: DB, user: CurrentUser, token: Annotated[str, Form()]):
-    if token.strip():
-        save_api_key(db, "pollinations", token.strip())
-    return RedirectResponse("/configuracion?pollinations=1#pollinations", status_code=303)
-
-
-@router.post("/pollinations/borrar")
-def delete_pollinations(db: DB, user: CurrentUser):
-    delete_api_key(db, "pollinations")
-    return RedirectResponse("/configuracion#pollinations", status_code=303)

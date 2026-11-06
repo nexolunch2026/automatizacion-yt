@@ -33,15 +33,15 @@ from app.pipeline.strategy import run_strategy
 from app.pipeline.visuals import credits_text, run_visuals
 from app.pipeline.voice import pending_characters, run_voice
 from app.providers.ai import AIProvider, GeminiProvider, ProviderError
-from app.providers.images import GeminiImages, ImageChain, PollinationsImages
+from app.providers.images import GeminiImages, ImageChain
 from app.providers.search import SearchProvider, WikipediaSearch
 from app.providers.stock import PexelsStock, PixabayStock, StockProvider
 from app.providers.voice import (
     ElevenLabsVoices,
-    PiperVoices,
+    MicrosoftVoices,
     VoiceProvider,
-    default_voice,
     is_eleven,
+    known_voice,
 )
 from app.settings_store import get_api_key, get_setting, set_setting
 
@@ -59,6 +59,10 @@ STAGE_DONE_STATUS = {
     "edit": "Edición",
 }
 # Qué etapa sigue a cada una (para los modos asistido y automático).
+# Antes de la v0.70 el modo automático seguía solo con fotos de bancos (Pixabay) hasta el
+# vídeo. Ahora se para en Visuales (imágenes de Flow). Solo las pruebas antiguas lo activan.
+LEGACY_AUTO_VISUALS = False
+
 NEXT_STAGE = {
     "research": "strategy",
     "strategy": "script",
@@ -147,8 +151,7 @@ _voices: VoiceProvider | None = None
 
 
 def get_voice_provider(db: Session, voice: str, model: str | None = None) -> VoiceProvider:
-    """ElevenLabs si la voz es de ElevenLabs; si no, Piper (una sola instancia, para no
-    cargar la voz en memoria en cada tarea)."""
+    """ElevenLabs si la voz es de ElevenLabs; si no, las voces gratis de Microsoft."""
     if is_eleven(voice):
         key = get_api_key(db, "elevenlabs")
         if not key:
@@ -156,7 +159,7 @@ def get_voice_provider(db: Session, voice: str, model: str | None = None) -> Voi
         return ElevenLabsVoices(key, model or "eleven_multilingual_v2")
     global _voices
     if _voices is None:
-        _voices = PiperVoices()
+        _voices = MicrosoftVoices()
     return _voices
 
 
@@ -193,9 +196,9 @@ def get_stock_providers(db: Session) -> list[StockProvider]:
 def voice_params(db: Session, project: Project, params: dict | None = None) -> dict:
     params = params or {}
     return {
-        "voice": params.get("voice")
-        or get_setting(db, "voice_default")
-        or default_voice(project.language),
+        "voice": known_voice(
+            params.get("voice") or get_setting(db, "voice_default"), project.language
+        ),
         "speed": params.get("speed") or "Normal",
         "model": params.get("model") or get_setting(db, "eleven_model") or "eleven_multilingual_v2",
     }
@@ -269,7 +272,14 @@ def recent_structures(db: Session, project: Project) -> list[str]:
 
 
 def _run_storyboard(db: Session, project: Project, progress, params: dict) -> dict:
-    script = _require(db, project, "script", "Primero hay que escribir el guion.")
+    import copy
+
+    from app.pipeline.script import split_long_paragraphs, with_stats
+
+    script = copy.deepcopy(_require(db, project, "script", "Primero hay que escribir el guion."))
+    if split_long_paragraphs(script):  # guiones antiguos: párrafos de 30-40 s → trozos de ~12 s
+        _save_result(db, project, "script", with_stats(script))
+        db.commit()
     ai = get_ai_provider(db)
     if params.get("charts_only"):  # solo volver a buscar cifras para gráficos
         data = _require(db, project, "storyboard", "Primero hay que crear las escenas.")
@@ -303,9 +313,6 @@ def _run_voice(db: Session, project: Project, progress, params: dict) -> dict:
     credits = None
     if is_eleven(chosen["voice"]):
         credits = _check_eleven_credits(tts, pending_characters(script, previous, chosen))
-    elif hasattr(tts, "is_downloaded") and not tts.is_downloaded(chosen["voice"]):
-        progress(3, "Descargando la voz (solo la primera vez, unos 60 MB)")
-        tts.ensure_downloaded(chosen["voice"])
     folder = project_dir(project.id) / "voz"
     data = run_voice(project, script, previous, tts, chosen, folder, progress)
     if is_eleven(chosen["voice"]):
@@ -328,8 +335,8 @@ def _check_eleven_credits(tts, characters: int) -> dict | None:
     if credits is not None and needed > credits["left"]:
         raise ProviderError(
             f"No te alcanzan los créditos de ElevenLabs: hacen falta unos {needed} y te "
-            f"quedan {credits['left']} este mes. Usa el modo «Ahorro», una voz de Piper "
-            "(gratis) o amplía tu plan."
+            f"quedan {credits['left']} este mes. Usa el modo «Ahorro», la voz gratis "
+            "de Microsoft (Jorge) o amplía tu plan."
         )
     return credits
 
@@ -405,7 +412,6 @@ def get_image_providers(db: Session) -> ImageChain:
     providers = []
     if key := get_api_key(db, "gemini"):
         providers.append(GeminiImages(key))
-    providers.append(PollinationsImages(token=get_api_key(db, "pollinations")))
     return ImageChain(providers)
 
 
@@ -414,8 +420,8 @@ def _run_visuals(db: Session, project: Project, progress, params: dict) -> dict:
     folder = project_dir(project.id) / "visuales"
     only = set(params["only"]) if params.get("only") else None
     stock = get_stock_providers(db)
-    # Sin clave de bancos de imágenes, se generan con IA.
-    mode = params.get("mode") or ("stock" if stock else "ai")
+    # Todo es stickman: por defecto IA; los bancos de fotos solo si se piden a propósito.
+    mode = params.get("mode") or ("stock" if stock and LEGACY_AUTO_VISUALS else "ai")
     return run_visuals(
         board["scenes"],
         stock,
@@ -716,6 +722,10 @@ def _chain_next(db: Session, project: Project, stage: str, data: dict) -> None:
     if project.automation_mode == "asistido" and stage != "research":
         return
     if next_stage == "script" and not data.get("selected"):
+        return
+    if next_stage == "visuals" and not LEGACY_AUTO_VISUALS:
+        # Las imágenes stickman se hacen con Google Flow (a mano): aquí se para y, al
+        # importarlas, el montaje sigue solo (ver stages_web.import_from_flow).
         return
     enqueue(db, project.id, next_stage)
 

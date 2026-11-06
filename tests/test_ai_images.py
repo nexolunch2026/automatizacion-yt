@@ -1,14 +1,12 @@
 import io
 
-import httpx
 import pytest
 from PIL import Image
 
 from app import jobs
 from app.media import project_dir
-from app.providers import images as images_module
 from app.providers.ai import ProviderError
-from app.providers.images import ImageChain, PollinationsImages, pick_image_model
+from app.providers.images import ImageChain, pick_image_model
 from tests.test_storyboard_voice import ai, result, with_script  # noqa: F401
 from tests.test_strategy_script import run_all
 
@@ -50,7 +48,7 @@ def test_generate_all_images_with_ai(board, monkeypatch):
     scenes = result("storyboard")["scenes"]
     assert len(fake.prompts) == len(scenes)
     # El prompt incluye el estilo de la biblia visual.
-    assert "Documental oscuro" in fake.prompts[0] and "dark office" in fake.prompts[0]
+    assert "stickman" in fake.prompts[0] and "dark office" in fake.prompts[0]
     assert all(
         e["ai"] and (project_dir(1) / "visuales" / e["file"]).exists() for e in items.values()
     )
@@ -129,42 +127,11 @@ def test_pick_image_model():
     assert pick_image_model([]) == ["gemini-2.5-flash-image"]
 
 
-def test_pollinations_request_and_rate_limit(monkeypatch):
-    waits, seen = [], []
-    monkeypatch.setattr(images_module, "SLEEP", waits.append)
-    responses = iter(
-        [
-            httpx.Response(429),
-            httpx.Response(200, content=png_bytes(), headers={"content-type": "image/png"}),
-        ]
-    )
-
-    def handler(request):
-        seen.append(request)
-        return next(responses)
-
-    data, ext = PollinationsImages(
-        transport=httpx.MockTransport(handler), pause_seconds=0
-    ).generate("a red car", portrait=True, seed=42)
-    assert ext == ".png" and data.startswith(b"\x89PNG")
-    assert seen[0].url.params["width"] == "768" and seen[0].url.params["seed"] == "42"
-    assert "a%20red%20car" in str(seen[0].url)
-    assert 30 in waits  # esperó tras el 429
-
-
-def test_pollinations_non_image_response():
-    transport = httpx.MockTransport(
-        lambda r: httpx.Response(200, text="<html>", headers={"content-type": "text/html"})
-    )
-    with pytest.raises(ProviderError):
-        PollinationsImages(transport=transport, pause_seconds=0).generate("x", False, 1)
-
-
 def test_download_prompts(board):
     r = board.get("/proyectos/1/visuales/prompts.txt")
     assert r.status_code == 200
     assert "attachment" in r.headers["content-disposition"]
-    assert "=== Escena 01" in r.text and "dark office, cinematic" in r.text
+    assert "=== Escena 01" in r.text and "dark office" in r.text and "stickman" in r.text
     assert "horizontal 16:9" in r.text
     assert "NO deben llevar texto" in r.text and "No text, no numbers" in r.text
 
@@ -217,48 +184,6 @@ def test_uploaded_non_ai_image_is_never_replaced(board, monkeypatch):
     assert entry["uploaded"] and not entry["ai"]
 
 
-def test_pollinations_402_waits_and_retries(monkeypatch):
-    """Pollinations responde 402 cuando se le piden imágenes muy seguidas."""
-    waits = []
-    monkeypatch.setattr(images_module, "SLEEP", waits.append)
-    responses = iter(
-        [
-            httpx.Response(402, text='{"error":"Payment Required"}'),
-            httpx.Response(200, content=png_bytes(), headers={"content-type": "image/png"}),
-        ]
-    )
-    stock = PollinationsImages(
-        transport=httpx.MockTransport(lambda r: next(responses)), pause_seconds=0
-    )
-    data, _ = stock.generate("x", False, 1)
-    assert data.startswith(b"\x89PNG") and waits == [30]
-
-
-def test_pollinations_persistent_402_is_temporary_and_keeps_provider(monkeypatch):
-    monkeypatch.setattr(images_module, "SLEEP", lambda s: None)
-    stock = PollinationsImages(
-        transport=httpx.MockTransport(lambda r: httpx.Response(402, text="limit")), pause_seconds=0
-    )
-    chain = ImageChain([stock])
-    with pytest.raises(ProviderError) as info:
-        chain.generate("x", False, 1)
-    assert info.value.transient and "clave gratuita de Pollinations" in str(info.value)
-    assert chain.providers == [stock]  # no se descarta: se puede volver a intentar
-
-
-def test_pollinations_token_is_sent():
-    seen = []
-
-    def handler(request):
-        seen.append(request)
-        return httpx.Response(200, content=png_bytes(), headers={"content-type": "image/png"})
-
-    PollinationsImages(token="tok123", transport=httpx.MockTransport(handler)).generate(
-        "x", False, 1
-    )
-    assert seen[0].headers["Authorization"] == "Bearer tok123"
-
-
 def test_exhausted_chain_explains_why():
     class Broken:
         name, label = "gemini", "Gemini"
@@ -271,12 +196,8 @@ def test_exhausted_chain_explains_why():
         chain.generate("x", False, 1)
     with pytest.raises(ProviderError) as info:
         chain.generate("y", False, 2)
-    assert "Gemini: sin modelos de imágenes" in str(info.value)
-
-
-def test_save_pollinations_token(logged_in):
-    r = logged_in.post("/configuracion/pollinations", data={"token": "tok-abcd"})
-    assert "Clave de Pollinations guardada" in r.text and "••••abcd" in r.text
+    assert "Google Flow" in str(info.value)
+    assert "Gemini: sin modelos de imágenes" in info.value.detail
 
 
 def test_bulk_upload_by_scene_number(board):

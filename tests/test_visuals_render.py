@@ -231,10 +231,10 @@ def test_visuals_are_downloaded_with_credits(produced, stock):
     real = [e for e in items.values() if e.get("provider")]
     assert real and all((project_dir(1) / "visuales" / e["file"]).exists() for e in real)
     assert len({e["id"] for e in real}) == len(real)  # no se repite el mismo visual
-    videos = [e for e in real if e["kind"] == "video"]
-    assert videos and all((project_dir(1) / "visuales" / e["poster"]).exists() for e in videos)
+    # Desde la v0.70 todo es stickman: ya no se usan vídeos de archivo.
+    assert not [e for e in real if e["kind"] == "video"]
     page = produced.get("/proyectos/1/visuales").text
-    assert "Foto de Ana" in page or "Vídeo de Ana" in page
+    assert "Foto de Ana" in page
 
 
 def test_change_one_visual(produced, stock):
@@ -253,7 +253,7 @@ def test_without_stock_keys_scenes_use_ai_images(produced):
     produced.post("/proyectos/1/etapas/visuals")
     run_all()
     assert all(e.get("ai") for e in result("visuals")["items"].values())
-    assert "necesitas una clave gratis de Pixabay" in produced.get("/proyectos/1/visuales").text
+    assert "Imágenes con Google Flow" in produced.get("/proyectos/1/visuales").text
 
 
 def test_full_video_render(produced, stock):

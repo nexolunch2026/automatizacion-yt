@@ -16,8 +16,10 @@ def check(data):
     return found[0] if found else None
 
 
-def test_image_opening_is_ok_because_it_is_split_into_short_shots():
-    assert check(results("image", 20))["status"] == "ok"  # 20 s → planos de 5 s
+def test_image_opening_is_ok_while_the_paragraph_is_short():
+    assert check(results("image", 12))["status"] == "ok"  # una imagen que se mueve, 12 s
+    slow = check(results("image", 20))  # párrafo sin partir: 20 s con la misma imagen
+    assert slow["status"] == "warn" and "acorta el primer párrafo" in slow["fix"]
 
 
 def test_text_card_or_long_stock_clip_at_the_start_warns():
@@ -36,7 +38,7 @@ def test_chart_or_missing_visual_at_the_start():
     missing = results("image")
     del missing["visuals"]["items"]["p1"]  # el montaje pondría una tarjeta de texto
     assert "tarjeta" in check(missing)["title"]
-    long_image = check(results("image", 40))  # 4 planos de 10 s
+    long_image = check(results("image", 40))  # 40 s con la misma imagen
     assert long_image["status"] == "warn" and "acorta el primer párrafo" in long_image["fix"]
 
 

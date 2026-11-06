@@ -9,9 +9,9 @@
 
 <div class="card">
   <h2>Voz</h2>
-  <p class="muted small"><strong>Piper</strong>: gratis y sin límites, en tu ordenador (la primera vez
-    descarga la voz, unos 60 MB). <strong>ElevenLabs</strong>: suena más natural, usa los créditos de
-    tu cuenta.</p>
+  <p class="muted small"><strong>Microsoft</strong>: voces naturales, gratis y sin límites (necesitan
+    internet). Recomendada: <strong>Jorge</strong>. <strong>ElevenLabs</strong>: opcional, usa los
+    créditos de tu cuenta.</p>
   {{ ui.job_status(job) }}
   {% if 'script' not in results %}
   <p class="alert info">Primero hay que <a href="/proyectos/{{ project.id }}/guion">escribir el guion</a>.</p>
@@ -19,7 +19,7 @@
   <form method="post" class="voice-form" id="voice-form">
     <label>Voz
       <select name="voice" id="voice-select">
-        <optgroup label="Piper · gratis">
+        <optgroup label="Microsoft · gratis">
           {% for v in voices %}
           <option value="{{ v.id }}" {% if params.voice == v.id %}selected{% endif %}>{{ v.label }} ({{ v.language }})</option>
           {% endfor %}
@@ -63,7 +63,7 @@
   {% if eleven_plan %}
   <p class="muted small eleven-only">Con lo que te queda este mes te alcanza para
     <strong>{{ eleven_plan.videos }}</strong> vídeo(s) como este, o <strong>{{ eleven_plan.videos_saving }}</strong>
-    en modo Ahorro. Si quieres más vídeos al mes, haz algunos con una voz Piper (gratis y sin límite).</p>
+    en modo Ahorro. Si quieres más vídeos al mes, haz algunos con la voz de Microsoft (gratis y sin límite).</p>
   {% if eleven_plan.free %}
   <p class="alert info eleven-only">Plan gratis de ElevenLabs: perfecto para probar mientras el canal crece.
     Usa el modo <strong>Ahorro</strong> (te da para unos {{ eleven_plan.month_saving }} vídeos así al mes).

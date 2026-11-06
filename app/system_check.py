@@ -72,38 +72,13 @@ def video_tools(run=subprocess.run) -> Check:
 
 
 def free_voice() -> Check:
-    from app.providers import piper_safe
-    from app.providers.ai import ProviderError
-
+    """La voz gratis de Microsoft (necesita internet al grabar; aquí solo se comprueba que
+    el programa la tiene instalada)."""
     try:
-        from piper.phonemize_espeak import ESPEAK_DATA_DIR
+        import edge_tts  # noqa: F401
     except ImportError:
-        return Check("Voz gratuita (Piper)", FAIL, "No está instalada", "Pulsa Actualizar.")
-    folder = piper_safe.data_dir(ESPEAK_DATA_DIR)
-    try:
-        piper_safe.check(folder)
-    except ProviderError:
-        return Check(
-            "Voz gratuita (Piper)",
-            FAIL,
-            "La pronunciación (espeak-ng) no arranca en este ordenador",
-            "Actualiza el programa. Mientras tanto usa una voz de ElevenLabs.",
-        )
-    return Check("Voz gratuita (Piper)", OK, "Funciona")
-
-
-def jarvis_voice_state() -> Check:
-    from app import jarvis_voice
-
-    used = jarvis_voice.last_fallback
-    if used:
-        return Check(
-            "Voz de JARVIS",
-            WARN,
-            f"Microsoft falló el {used['when']:%d/%m %H:%M}; JARVIS usó la de respaldo",
-            "Suele ser internet o que Microsoft la bloquea un rato. Si dura días, avisa a Claude.",
-        )
-    return Check("Voz de JARVIS", OK, "Sin problemas desde que se abrió el programa")
+        return Check("Voz gratuita (Microsoft)", FAIL, "No está instalada", "Pulsa Actualizar.")
+    return Check("Voz gratuita (Microsoft)", OK, "Lista (necesita internet al grabar)")
 
 
 def keys(db: Session) -> list[Check]:
@@ -162,7 +137,7 @@ def stuck_jobs(db: Session) -> Check:
 
 def run_all(db: Session) -> list[Check]:
     checks = [Check("Versión", OK, f"Faceless Studio {VERSION}"), folders(), disk()]
-    checks += [video_tools(), free_voice(), jarvis_voice_state(), internet(), *keys(db)]
+    checks += [video_tools(), free_voice(), internet(), *keys(db)]
     checks.append(stuck_jobs(db))
     return checks
 

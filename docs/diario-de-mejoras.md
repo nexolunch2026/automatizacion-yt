@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-06 — Versión 0.99.1: las dos líneas de mejoras, juntas
+
+- Había **dos líneas de mejoras separadas**: la de otra conversación (imágenes con Google
+  Flow, protagonista reconocible, una imagen cada 10–15 s, voz Jorge, sin Piper ni
+  Pollinations; versiones 0.70.2–0.70.9) y la de las noches (control de calidad, Short del
+  día por Telegram, avisos de JARVIS…; 0.71–0.99). Ahora están **unidas en la 0.99.1**.
+- Se respetó lo decidido en la otra conversación: **sin Piper**. La voz de respaldo de
+  JARVIS que se había añadido una noche se quitó (JARVIS usa la de Microsoft).
+- El aviso «el vídeo empieza con imagen y ritmo» se adaptó a las imágenes nuevas (un
+  movimiento suave por imagen): solo avisa si la primera imagen dura más de 15 segundos.
+- Las 803 pruebas pasan con todo junto.
+
 ## 2026-11-05 — Versión 0.99: el Short del día, listo para subir desde el móvil
 
 - Los días de Short (lunes, miércoles y sábado), el **«buenos días» de JARVIS** en Telegram

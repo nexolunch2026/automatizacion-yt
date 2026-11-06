@@ -6,8 +6,8 @@
   que suben y caen.
 - Simón es **principiante**, trabaja en cocina y tiene poco tiempo: respóndele en
   **español sencillo**, con pasos numerados, sin jerga, y di qué botón pulsar.
-- Presupuesto mínimo: Gemini (nivel gratuito), ElevenLabs (opcional), Pollinations y voces
-  de Microsoft gratis. No proponer servicios de pago sin avisar.
+- Presupuesto mínimo: Gemini (nivel gratuito), ElevenLabs (opcional), Google Flow (imágenes
+  gratis, a mano) y voces de Microsoft gratis. No proponer servicios de pago sin avisar.
 - Nada se publica en YouTube sin su visto bueno (protege la monetización). Recomendar la
   etiqueta de contenido sintético cuando haya imágenes de IA.
 
@@ -23,8 +23,8 @@ recordatorios, noticias/radar de marcas, y **Rendimiento** (cifras de YouTube y 
   en modo automático), trabajador (también refresca analíticas y hace la copia diaria).
 - `app/pipeline/`: research, strategy, script, storyboard, charts, voice, visuals, render,
   seo, thumbnail, shorts.
-- `app/providers/`: Gemini (cadena de modelos), voces (Piper/ElevenLabs), imágenes
-  (Gemini/Pollinations), stock, búsqueda (Wikipedia).
+- `app/providers/`: Gemini (cadena de modelos), voces (Microsoft/ElevenLabs), imágenes
+  (solo Gemini, de pago; lo gratis es Flow en `app/flow.py`), stock, búsqueda (Wikipedia).
 - JARVIS: `assistant.py` (cerebro/intenciones), `skills.py`, `agenda.py`, `info.py`,
   `telegram.py`, `jarvis_voice.py`, `jarvis_web.py`, `static/jarvis_hud.*`.
 - `analytics.py` + `analytics_web.py`: rendimiento. `storage.py`: dónde viven los datos.
@@ -83,3 +83,10 @@ Cuándo usarlos:
 - Al tocar el montaje (render, Shorts, filtros): consulta `video-editing` y prueba cada
   filtro con el ffmpeg de `imageio_ffmpeg`.
 - Al terminar: `verification-loop` (ruff, formato, pytest) antes del commit.
+
+## Estilo de los vídeos (desde la v0.70)
+- Todo en **stickman 2D** con el mismo protagonista (`flow.STICKMAN_STYLE`); voz por defecto
+  **es-MX-JorgeNeural**. Piper, Pollinations y el estilo realista se quitaron a petición de Simón.
+- Imágenes gratis: **Google Flow a mano**. NUNCA automatizar la generación en Flow (Google lo
+  bloquea como «actividad inusual»): el programa da los mensajes para el asistente de Flow, un
+  marcador recoge los enlaces y `/visuales/flow` descarga y reparte (Gemini mira las imágenes).
