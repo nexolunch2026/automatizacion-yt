@@ -1396,7 +1396,16 @@ def status_text(db: Session, html: bool = True) -> str:
     for project in _active_projects(db):
         for stage, job in jobs.latest_jobs(db, project.id).items():
             if job.active:
-                state = f"{job.progress}% · {job.message}" if job.status == "running" else "en cola"
+                if job.status == "running":
+                    state = f"{job.progress}% · {job.message}"
+                elif (
+                    (job.message or "").startswith(jobs.QUOTA_WAIT)
+                    and job.run_after
+                    and job.run_after > datetime.now()
+                ):
+                    state = f"esperando a Gemini ({job.run_after:%d/%m %H:%M})"
+                else:
+                    state = "en cola"
                 lines.append(f"🎬 {b(project.title)} — {STAGES[stage]}: {escape(state)}")
     waiting = _waiting_choice(db)
     for project in waiting:
@@ -2448,6 +2457,41 @@ def _failed_reply(job: Job, project: Project) -> Reply:
     )
 
 
+def quota_notice(db: Session, now: datetime | None = None) -> list[Reply]:
+    """Una vez al día, si alguna tarea espera a que Google renueve el Gemini gratis: qué
+    vídeos esperan y a qué hora siguen solos (para que no parezca que se ha parado)."""
+    now = now or datetime.now()
+    if not linked_chats(db):
+        return []
+    waiting = [
+        job
+        for job in db.scalars(select(Job).where(Job.status == "queued"))
+        if (job.message or "").startswith(jobs.QUOTA_WAIT) and job.run_after
+    ]
+    if not waiting:
+        return []
+    when = min(job.run_after for job in waiting)
+    # Un aviso por espera: si otro vídeo se pone a esperar luego, se avisa otra vez.
+    key = f"{when.isoformat(timespec='minutes')}|{sorted(job.id for job in waiting)}"
+    if get_setting(db, "quota_notified") == key:
+        return []  # ya avisado de esta espera
+    titles = []
+    for job in waiting:
+        project = db.get(Project, job.project_id)
+        if project and project.title not in titles:
+            titles.append(project.title)
+    text = (
+        "⏳ <b>Se acabó el Gemini gratis de hoy</b>\n\n"
+        f"Esperando: {escape(', '.join(f'«{t}»' for t in titles[:5]))}.\n"
+        f"Sigo solo el {when:%d/%m} a las {when:%H:%M}, cuando Google lo renueva. "
+        "No se pierde nada y no hace falta que hagas nada.\n"
+        "<i>Consejo: con dos vídeos a la vez se gasta el doble. Mientras, puedes hacer en "
+        "Flow las imágenes de un vídeo que ya tenga escenas.</i>"
+    )
+    set_setting(db, "quota_notified", key)
+    return [Reply(text)]
+
+
 def notifications(db: Session) -> list[Reply]:
     """Avisos de las tareas que terminaron (o fallaron) desde la última vez."""
     if not linked_chats(db):
@@ -2666,6 +2710,7 @@ def tick(db: Session, now: datetime | None = None) -> list[Reply]:
     siguen y sus avisos se mandan igual (cada paso ya apuntó que los había preparado)."""
     steps = [
         lambda: notifications(db),
+        lambda: quota_notice(db, now),
         lambda: research_notices(db),
         lambda: reference_alerts(db, now),
         lambda: reminder_alerts(db, now),

@@ -29,7 +29,7 @@
 {% macro job_status(job) %}
 {% if job and job.active %}
 <div class="live">
-  <p class="muted" data-live-message="{{ job.stage }}">{{ job.message }}…</p>
+  <p class="muted" data-live-message="{{ job.stage }}">{{ job.message }}{% if job.status == 'running' %}…{% endif %}</p>
   <div class="progress"><div data-live-bar="{{ job.stage }}" style="width: {{ job.progress }}%"></div></div>
   <p class="muted small">Puedes salir de esta página: el trabajo sigue en segundo plano.</p>
 </div>
@@ -64,7 +64,7 @@
       for (const [stage, job] of Object.entries(state)) {
         const label = document.querySelector(`[data-live-message="${stage}"]`);
         const bar = document.querySelector(`[data-live-bar="${stage}"]`);
-        if (label) label.textContent = job.message + "…";
+        if (label) label.textContent = job.message + (job.status === "running" ? "…" : "");
         if (bar) bar.style.width = job.progress + "%";
       }
       if (!Object.values(state).some(j => j.status === "queued" || j.status === "running")) {

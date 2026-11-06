@@ -173,7 +173,9 @@ def production(db: Session) -> list[dict]:
                     "project": project.title,
                     "stage": STAGES.get(job.stage, job.stage),
                     "progress": job.progress if job.status == "running" else 0,
-                    "message": job.message if job.status == "running" else "En cola",
+                    "message": job.message
+                    if job.status == "running" or (job.message or "").startswith(jobs.QUOTA_WAIT)
+                    else "En cola",
                     "running": job.status == "running",
                 }
             )

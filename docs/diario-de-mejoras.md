@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-06 — Versión 0.100: si se acaba el Gemini gratis, sigue solo
+
+- Con **dos vídeos a la vez** se gasta el doble del Gemini gratis. Antes, al acabarse, la
+  tarea quedaba en **«Falló»** y había que reintentarla a mano al día siguiente.
+- Ahora **espera sola** hasta que Google renueva el uso gratis (de madrugada) y sigue por su
+  cuenta. En la página del vídeo pone a qué hora seguirá.
+- **JARVIS te avisa una vez por Telegram**: qué vídeos esperan y a qué hora siguen. En
+  «estado» verás «esperando a Gemini».
+- Si pulsas **«Reintentar»** mientras espera (p. ej. tras poner otra clave), lo intenta ya.
+- Si la tarea lleva más de 3 días sin poder seguir, sí se marca «Falló» para que lo mires.
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-06 — Versión 0.99.1: las dos líneas de mejoras, juntas
 
 - Había **dos líneas de mejoras separadas**: la de otra conversación (imágenes con Google

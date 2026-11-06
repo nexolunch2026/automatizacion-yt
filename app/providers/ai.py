@@ -19,11 +19,15 @@ class ProviderError(Exception):
     """Error de un proveedor externo con un mensaje entendible para el usuario.
 
     `transient=True` significa que tiene sentido reintentar (límite de uso, servicio caído…).
+    `daily_quota=True`: se acabó el uso gratis del día; tiene sentido reintentar mañana.
     """
 
-    def __init__(self, message: str, *, transient: bool = False, detail: str = ""):
+    def __init__(
+        self, message: str, *, transient: bool = False, detail: str = "", daily_quota: bool = False
+    ):
         super().__init__(message)
         self.transient = transient
+        self.daily_quota = daily_quota
         self.detail = detail  # mensaje original del proveedor, para diagnosticar
 
 
@@ -162,7 +166,11 @@ class GeminiProvider:
                     )
                 )
             except ModelUnavailable as exc:
-                last_error = exc.error
+                # Qué error se cuenta si ninguno funciona: primero uno que se pasa en un rato
+                # (límite por minuto), luego «se acabó lo de hoy» (la tarea espera a mañana)
+                # y, si no, el del último modelo probado.
+                if _error_rank(exc.error) >= _error_rank(last_error):
+                    last_error = exc.error
                 continue
             if self._models[0] != model:  # pone delante el que funciona
                 self._models.remove(model)
@@ -367,6 +375,12 @@ class GeminiProvider:
             ) from exc
 
 
+def _error_rank(error: ProviderError | None) -> int:
+    if error is None:
+        return -1
+    return 2 if error.transient else 1 if error.daily_quota else 0
+
+
 class ModelUnavailable(Exception):
     """Uso interno: este modelo no se puede usar ahora; hay que probar el siguiente."""
 
@@ -406,6 +420,7 @@ def _friendly_error(
             return ProviderError(
                 "Se agotó el uso gratuito de Gemini de hoy. Vuelve a intentarlo mañana.",
                 detail=detail,
+                daily_quota=True,
             )
         if "PerMinute" in ids or "per minute" in raw.lower():
             return ProviderError(

@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (6 de noviembre de 2026: stickman y documentales de fútbol)
+
+- [How I Created An Epic Football Documentary (4 specific lessons I learned)](https://www.youtube.com/watch?v=4dxsU7LwiX0)
+  — 4 lecciones al hacer un documental de fútbol (para ModoOffside y el vídeo de Bale).
+- [How To Make VIRAL Stickman Explainer Videos (ft. Simple Paint, The Painful Explainer)](https://www.youtube.com/watch?v=MJgV6Z2O95U)
+  — cómo trabajan canales grandes de explicaciones con monigotes, como el estilo nuevo.
+- [The Easiest Faceless Channel to Start in 2026 (Stickman Animation, 100% Free)](https://www.youtube.com/watch?v=d9qsk9p7zjM)
+  — mantener el mismo personaje en todas las escenas y encadenarlas (lo que hace Flow).
+
 ## Nuevos (5 de noviembre de 2026: subir Shorts desde el móvil)
 
 - [How to Upload Youtube Short from Phone!](https://www.youtube.com/watch?v=UJ2lx7KD81w)

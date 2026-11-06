@@ -7,7 +7,7 @@ al volver a abrirlo se retoman. Un único trabajador las ejecuta de una en una.
 import logging
 import threading
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from sqlalchemy import or_, select
@@ -49,6 +49,22 @@ log = logging.getLogger(__name__)
 
 MAX_ATTEMPTS = 4
 RETRY_DELAYS = [timedelta(seconds=30), timedelta(seconds=90), timedelta(minutes=3)]
+# Google renueva el uso gratis de Gemini a medianoche de California (07:00 u 08:00 UTC según
+# el horario de verano). A las 08:05 UTC ya está renovado siempre.
+QUOTA_RESET_UTC = (8, 5)
+QUOTA_WAIT = "Se agotó el uso gratuito de Gemini de hoy."
+QUOTA_MAX_WAIT = timedelta(days=3)  # una tarea con más días ya no espera: se marca «Falló»
+
+
+def next_quota_reset(now: datetime) -> datetime:
+    """Cuándo vuelve el uso gratis de Gemini, en hora local (sin zona, como el resto)."""
+    utc_now = now.astimezone(UTC)
+    hour, minute = QUOTA_RESET_UTC
+    reset = utc_now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if reset <= utc_now:
+        reset += timedelta(days=1)
+    return reset.astimezone().replace(tzinfo=None)
+
 
 # Estado del proyecto cuando termina cada etapa.
 STAGE_DONE_STATUS = {
@@ -624,6 +640,13 @@ def enqueue(db: Session, project_id: int, stage: str, params: dict | None = None
         )
     )
     if existing:
+        if existing.status == "queued" and existing.run_after:
+            # Estaba esperando (p. ej. a que vuelva el Gemini gratis) y la pides otra vez a
+            # mano: se intenta ya, con lo nuevo que pidas (si sigue sin cuota, vuelve a esperar).
+            existing.run_after = None
+            if params is not None:
+                existing.params = params
+            db.commit()
         return existing
     job = Job(project_id=project_id, stage=stage, params=params)
     db.add(job)
@@ -771,7 +794,20 @@ def _handle_failure(db: Session, job: Job, exc: Exception) -> None:
     if not isinstance(exc, ProviderError):
         log.exception("Fallo inesperado en la tarea %s", job.id)
 
-    if transient and job.attempts < MAX_ATTEMPTS:
+    daily = isinstance(exc, ProviderError) and getattr(exc, "daily_quota", False)
+    # SQLite guarda la fecha de creación en UTC.
+    age = datetime.now(UTC).replace(tzinfo=None) - (job.created_at or datetime.now())
+    if daily and age < QUOTA_MAX_WAIT:
+        # Sin uso gratis hasta mañana: la tarea espera sola. La espera no gasta intentos (los
+        # reintentos rápidos siguen intactos); el tope es la edad de la tarea.
+        job.attempts = max(job.attempts - 1, 0)
+        job.status = "queued"
+        job.run_after = next_quota_reset(datetime.now())
+        job.message = (
+            f"{QUOTA_WAIT} Sigo solo el {job.run_after:%d/%m} a las {job.run_after:%H:%M}, "
+            "cuando Google lo renueva (no hace falta que hagas nada)."
+        )
+    elif transient and job.attempts < MAX_ATTEMPTS:
         delay = RETRY_DELAYS[min(job.attempts - 1, len(RETRY_DELAYS) - 1)]
         job.status = "queued"
         job.run_after = datetime.now() + delay
