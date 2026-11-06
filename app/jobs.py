@@ -353,6 +353,11 @@ def _run_publish(db: Session, project: Project, progress, params: dict) -> dict:
     music = last_render({"edit": get_result(db, project.id, "edit") or {}}).get("music")
     credits = "\n\n".join(x for x in (credits_text(visuals), credit_line(db, music)) if x)
     language = "en" if project.language.lower().startswith("ingl") else "es"
+    from app import factcheck
+
+    original = factcheck.description_sources(get_result(db, project.id, factcheck.STAGE))
+    if original:  # las fuentes originales comprobadas, en vez de solo Wikipedia
+        research = {**research, "sources": original}
     data = run_seo(
         project,
         script,
@@ -609,6 +614,23 @@ def _run_consistency(db: Session, project: Project, progress, params: dict) -> d
     return data
 
 
+def _run_factcheck(db: Session, project: Project, progress, params: dict) -> dict:
+    """Comprueba los datos del guion con fuentes fiables (ver app/factcheck.py)."""
+    from app import factcheck
+
+    script = _require(db, project, "script", "Primero hay que escribir el guion.")
+    research = get_result(db, project.id, "research") or {}
+    titles = [
+        s["title"].removeprefix("Wikipedia: ")
+        for s in research.get("sources", [])
+        if s.get("title", "").startswith("Wikipedia: ")
+    ]
+    ai = get_ai_provider(db)
+    data = factcheck.run_factcheck(script, project.topic or project.title, titles, ai, progress)
+    remember_working_model(db, ai)
+    return data
+
+
 Runner = Callable[[Session, Project, Callable[[int, str], None], dict], dict]
 RUNNERS: dict[str, Runner] = {
     "research": _run_research,
@@ -622,6 +644,7 @@ RUNNERS: dict[str, Runner] = {
     "thumbnail": _run_thumbnail,
     "shorts": _run_shorts,
     "consistency": _run_consistency,  # no es una etapa: revisión del protagonista
+    "factcheck": _run_factcheck,  # no es una etapa: comprobar datos del guion
 }
 
 

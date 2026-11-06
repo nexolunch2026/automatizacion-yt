@@ -1959,7 +1959,7 @@ def reference_alerts(db: Session, now: datetime | None = None) -> list[Reply]:
     set_setting(db, "ref_alert_checked", now.isoformat(timespec="minutes"))
     seen = set(_json_setting(db, "ref_alerted", []))
     try:
-        top = references.top_outliers(references.overview(db), limit=10)
+        top = references.top_outliers(references.overview(db, now), limit=10)
     except Exception:  # noqa: BLE001 — un fallo de red no debe parar a JARVIS
         log.info("No se pudieron revisar las referencias", exc_info=True)
         return []

@@ -927,3 +927,12 @@ h1, h2, .brand { font-family: "Bricolage Grotesque", "Montserrat", system-ui, sa
   .rail nav a, .rail-search { padding: 6px 4px; gap: 2px; }
   .rail-foot .avatar { width: 34px; height: 34px; }
 }
+
+/* Comprobar datos */
+.fact-list { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 6px; }
+.fact { padding: 8px 10px; border-radius: 8px; border-left: 4px solid rgba(255, 255, 255, .2); background: rgba(255, 255, 255, .03); }
+.fact-confirmado { border-left-color: #2ecc71; }
+.fact-una_fuente { border-left-color: #4c8dff; }
+.fact-corregir { border-left-color: #e63946; background: rgba(230, 57, 70, .08); }
+.fact-sin_confirmar, .fact-solo_wikipedia { border-left-color: #888; }
+.fact-inline { color: #ffb3b4; margin: 4px 0; }

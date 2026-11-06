@@ -131,7 +131,39 @@ def script_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         format_label=FORMATS.get(project.video_format or "auto", ("",))[0],
         script_map=script_map(script) if script else None,
         human=script_issues(script) if script else None,
+        **_facts_context(db, project_id),
     )
+
+
+def _facts_context(db: DB, project_id: int) -> dict:
+    """Lo que necesita el recuadro «Comprobar datos» del guion."""
+    from app import factcheck
+
+    script_row = _result_row(db, project_id, "script")
+    facts_row = _result_row(db, project_id, factcheck.STAGE)
+    facts = facts_row.data if facts_row else None
+    by_paragraph: dict[str, list] = {}
+    for claim in (facts or {}).get("claims", []):
+        by_paragraph.setdefault(claim.get("paragraph_id") or "", []).append(claim)
+    return {
+        "facts": facts,
+        "facts_job": jobs.latest_jobs(db, project_id).get(factcheck.STAGE),
+        "facts_old": bool(
+            facts_row and script_row and script_row.updated_at > facts_row.updated_at
+        ),
+        "facts_by_paragraph": by_paragraph,
+        "facts_sorted": sorted(  # primero lo que hay que corregir
+            (facts or {}).get("claims", []),
+            key=lambda c: [
+                "corregir",
+                "sin_confirmar",
+                "solo_wikipedia",
+                "una_fuente",
+                "confirmado",
+            ].index(c.get("status", "sin_confirmar")),
+        ),
+        "fact_labels": factcheck.STATUS_LABELS,
+    }
 
 
 def script_map(script: dict) -> dict:
@@ -1161,6 +1193,18 @@ def rewrite_with_ai(db, project, research, script, paragraph_id, action, tone):
     return updated
 
 
+@router.post("/guion/comprobar")
+def check_facts(db: DB, user: CurrentUser, project_id: int):
+    """Botón «Comprobar datos con fuentes fiables»."""
+    from app import factcheck
+
+    _project(db, project_id)
+    if jobs.get_result(db, project_id, "script") is None:
+        raise HTTPException(400, "Primero hay que escribir el guion.")
+    jobs.enqueue(db, project_id, factcheck.STAGE)
+    return _redirect(f"/proyectos/{project_id}/guion#datos")
+
+
 @router.post("/guion/parrafos/{paragraph_id}")
 def edit_paragraph(
     request: Request,
@@ -1218,6 +1262,7 @@ def edit_paragraph(
                 script_map=script_map(script),
                 human=script_issues(script),
                 error=f"No se pudo cambiar el párrafo: {exc}",
+                **_facts_context(db, project_id),
             )
     row.data = script
     db.commit()

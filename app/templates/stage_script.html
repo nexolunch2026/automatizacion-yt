@@ -59,6 +59,58 @@
 </div>
 
 {% if script %}
+<div class="card" id="datos">
+  <div class="row">
+    <div>
+      <h3>🔎 Comprobar datos con fuentes fiables</h3>
+      <p class="muted small">Un botón y listo: saca las cifras, fechas y nombres del guion, va a las fuentes
+        originales (informes oficiales, juicios, Reuters, BBC, UEFA, RSSSF, Transfermarkt…) a través de las notas
+        de Wikipedia y las compara. Gratis. Hazlo antes de grabar la voz.</p>
+    </div>
+    {% if not (facts_job and facts_job.active) %}
+    <form method="post" action="/proyectos/{{ project.id }}/guion/comprobar">
+      <button class="btn {{ 'secondary' if facts and not facts_old }}" {{ 'disabled' if not has_gemini }}>
+        {% if facts %}Comprobar otra vez{% else %}Comprobar datos{% endif %}</button>
+    </form>
+    {% endif %}
+  </div>
+  {% if facts_job and (facts_job.active or (facts_job.status == 'failed')) %}{{ ui.job_status(facts_job) }}{% endif %}
+  {% if facts and not (facts_job and facts_job.active) %}
+    {% if facts_old %}<p class="alert warn">El guion cambió después de la comprobación: vuelve a pulsar «Comprobar otra vez».</p>{% endif %}
+    {% set s = facts.summary %}
+    <p class="small">
+      <span class="status-done">✓ {{ s.confirmado }} confirmados</span> ·
+      <span>◐ {{ s.una_fuente }} con una sola fuente fiable</span> ·
+      <span class="muted">W {{ s.solo_wikipedia or 0 }} solo en Wikipedia</span> ·
+      <span class="status-failed">⚠ {{ s.corregir }} para corregir</span> ·
+      <span class="muted">? {{ s.sin_confirmar }} sin confirmar</span>
+      <span class="muted"> — {{ facts.downloaded }} fuentes originales descargadas de {{ facts.tried }} encontradas.</span>
+    </p>
+    <ul class="fact-list">
+      {% for c in facts_sorted %}
+      <li class="fact fact-{{ c.status }}">
+        <strong>{{ {'confirmado': '✓', 'una_fuente': '◐', 'solo_wikipedia': 'W', 'corregir': '⚠', 'sin_confirmar': '?'}[c.status] }} {{ fact_labels[c.status] }}:</strong>
+        {{ c.text }}
+        {% if c.correction %}<br><span class="small">👉 Según las fuentes: <strong>{{ c.correction }}</strong></span>{% endif %}
+        <span class="small muted">
+          {% for i in c.supports %}<a href="{{ facts.sources[i].url }}" target="_blank" rel="noopener">{{ facts.sources[i].site }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+          {% if c.contradicts %} · dice otra cosa: {% for i in c.contradicts %}<a href="{{ facts.sources[i].url }}" target="_blank" rel="noopener">{{ facts.sources[i].site }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
+          {% if c.paragraph_id %} · <a href="#p-{{ c.paragraph_id }}">ir al párrafo</a>{% endif %}
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+    <details class="para-tools">
+      <summary>Fuentes usadas ({{ facts.sources|selectattr('used')|list|length }})</summary>
+      <ul class="small">
+        {% for src in facts.sources if src.used %}
+        <li><a href="{{ src.url }}" target="_blank" rel="noopener">{{ src.site }}</a> — {{ src.title }}{% if src.archived %} <span class="muted">(copia de Internet Archive)</span>{% endif %}</li>
+        {% endfor %}
+      </ul>
+      <p class="muted small">Estas fuentes irán en la descripción del vídeo (en vez de solo Wikipedia) cuando se hagan los textos de Publicación.</p>
+    </details>
+  {% endif %}
+</div>
 <div class="card script">
   <div class="row">
     <h2>{{ script.title }}</h2>
@@ -104,6 +156,9 @@
       <p>{{ p.text }}
         {% for n in p.sources %}<a class="cite" href="/proyectos/{{ project.id }}/investigacion#fuente-{{ n }}">[{{ n }}]</a>{% endfor %}
       </p>
+      {% for c in facts_by_paragraph.get(p.id, []) if c.status == 'corregir' %}
+      <p class="small fact-inline">⚠ «{{ c.text }}» → según las fuentes: <strong>{{ c.correction }}</strong>. Corrígelo en «Editar».</p>
+      {% endfor %}
       {% if issues %}
       <form method="post" action="/proyectos/{{ project.id }}/guion/parrafos/{{ p.id }}" class="human-issues">
         <span class="small">{% for i in issues %}<span class="issue issue-{{ i.kind }}">{{ i.detail }}</span>{% endfor %}</span>

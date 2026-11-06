@@ -64,6 +64,8 @@ def _days_since(published: str, now: datetime) -> float:
 def analyze(videos: list[dict], now: datetime | None = None) -> list[dict]:
     """Cada vídeo con sus visitas por día y cuántas veces supera la mediana del canal."""
     now = now or datetime.now(UTC)
+    if now.tzinfo is None:  # JARVIS usa la hora local sin zona: se toma como UTC
+        now = now.replace(tzinfo=UTC)
     rows = []
     for v in videos:
         days = _days_since(v.get("published", ""), now)
@@ -88,21 +90,21 @@ def _fetch(handle: str, key: str | None) -> dict:
             "subscribers": data.get("subscribers"), "videos": data.get("latest") or []}  # fmt: skip
 
 
-def channel(handle: str, key: str | None) -> dict:
+def channel(handle: str, key: str | None, now: datetime | None = None) -> dict:
     found = info.cached(f"ref:{handle}:{bool(key)}", CACHE_SECONDS, lambda: _fetch(handle, key))
     if not found:
         return {"handle": handle, "name": handle, "error": True, "videos": []}
-    return {**found, "videos": analyze(found["videos"])}
+    return {**found, "videos": analyze(found["videos"], now)}
 
 
-def overview(db: Session) -> list[dict]:
+def overview(db: Session, now: datetime | None = None) -> list[dict]:
     """Todos los canales de referencia (en paralelo: tarda lo que el más lento)."""
     key = get_api_key(db, "youtube")
     current = handles(db)
     if not current:
         return []
     with ThreadPoolExecutor(max_workers=min(len(current), 6)) as pool:
-        return list(pool.map(lambda h: channel(h, key), current))
+        return list(pool.map(lambda h: channel(h, key, now), current))
 
 
 def cached_overview(db: Session) -> list[dict]:
