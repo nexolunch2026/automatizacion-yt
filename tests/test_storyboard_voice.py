@@ -246,3 +246,14 @@ def test_say_numbers_reads_thousands_as_a_whole_number():
     )
     assert say("subió un 4.5% en 2015.") == "subió un 4.5% en 2015."
     assert say("Fin. 700 millones") == "Fin. 700 millones"
+
+
+def test_say_names_spells_foreign_names_as_spoken():
+    say = voice_mod.for_speech
+    assert say("Gareth Bale fichó por el Tottenham por 10.000 euros") == (
+        "Gáret Béil fichó por el Tótenam por 10 mil euros"
+    )
+    assert (
+        say("Las islas Baleares y balear siguen igual")
+        == "Las islas Baleares y balear siguen igual"
+    )

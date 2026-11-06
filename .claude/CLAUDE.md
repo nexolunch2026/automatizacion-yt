@@ -84,6 +84,25 @@ Cuándo usarlos:
   filtro con el ffmpeg de `imageio_ffmpeg`.
 - Al terminar: `verification-loop` (ruff, formato, pytest) antes del commit.
 
+## Skills que usamos en el día a día (desde nov 2026)
+Elegidas para este proyecto entre los plugins instalados (marketing, Matt Pocock «Skills For
+Real Engineers», Task Observer) y las de ECC de arriba. Úsalas sin que Simón las pida:
+
+| Momento | Skill | Para qué |
+|---|---|---|
+| Elegir temas (1 vez al mes, o si un canal se estanca) | `marketing:competitive-brief` | Qué funciona en la competencia, huecos, 10 temas por canal |
+| Decisiones grandes (nuevo canal, cambiar de estilo, estrategia) | `grill-me` | Preguntar de una en una hasta no dejar nada sin decidir |
+| Antes de grabar cada guion | `research` | Comprobar cifras, fechas y nombres en fuentes originales (p. ej. Theranos 9.000 vs 10.000 M) |
+| Gancho, títulos, descripción y Shorts | `content-engine` | Los primeros 30 s y los títulos de misterio que funcionan |
+| Fallos del programa | `diagnosing-bugs` | Reproducir, aislar, arreglar y dejar un test |
+| Antes de subir cambios a GitHub | `verification-loop` + `code-review` | ruff, formato, pytest y revisión del diff |
+| Cuando Simón y Esteban se turnan o la sesión es larga | `handoff` | Documento con dónde quedó todo para que el otro siga |
+| Al terminar un vídeo o una sesión larga | `retro` | Qué mejorar en el proceso, lo más grave primero |
+| Cada semana, cuando haya vídeos con datos | `marketing:performance-report` | Qué funcionó, qué no y qué cambiar |
+| Siempre (automático) | Task Observer | Cada corrección de Simón/Esteban se guarda como regla |
+
+No usar (no aportan aquí): tickets/PR/TypeScript de Matt Pocock, ni el paquete de Addy Osmani.
+
 ## Estilo de los vídeos (desde la v0.70)
 - Todo en **stickman 2D** con el mismo protagonista (`flow.STICKMAN_STYLE`); voz por defecto
   **es-MX-JorgeNeural**. Piper, Pollinations y el estilo realista se quitaron a petición de Simón.
