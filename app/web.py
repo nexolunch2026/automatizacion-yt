@@ -61,6 +61,38 @@ def dashboard(request: Request, db: DB, user: CurrentUser, canal: int | None = N
 
 CHANNEL_COLORS = ("#ff5a61", "#3ddc84", "#5b9dff", "#ffb020", "#c084fc")
 
+PALETTE_PAGES = (
+    ("Crear un vídeo nuevo", "/proyectos/nuevo"),
+    ("JARVIS", "/jarvis"),
+    ("Semana: qué publicar y cuándo", "/semana"),
+    ("Rendimiento en YouTube", "/rendimiento"),
+    ("Aprender de YouTube", "/aprender"),
+    ("Canales", "/canales"),
+    ("Ajustes", "/configuracion"),
+)
+
+
+@router.get("/paleta")
+def palette(db: DB, user: CurrentUser) -> dict:
+    """Lo que busca la ventana de Ctrl+K: los vídeos (más recientes primero) y las páginas."""
+    projects = db.scalars(
+        select(Project)
+        .options(selectinload(Project.channel))
+        .order_by(Project.id.desc())
+        .limit(200)
+    ).all()
+    return {
+        "projects": [
+            {
+                "title": p.title,
+                "url": f"/proyectos/{p.id}",
+                "hint": f"{p.channel.name} · {p.status}",
+            }
+            for p in projects
+        ],
+        "pages": [{"title": t, "url": u} for t, u in PALETTE_PAGES],
+    }
+
 
 def _shelves(db, projects, channels) -> dict:
     """La portada tipo «sala de estreno»: el próximo estreno, lo que está en el taller,

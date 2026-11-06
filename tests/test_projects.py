@@ -137,3 +137,14 @@ def test_quick_start_creates_and_researches(logged_in):
         assert project.video_format == "lista"
         assert jobs.latest_jobs(db, 1)["research"].status == "queued"
     assert logged_in.post("/rapido", data={"topic": "  "}).url.path == "/"
+
+
+def test_palette_lists_projects_and_pages(logged_in):
+    create_channel(logged_in)
+    logged_in.post("/proyectos/nuevo", data=project_data(topic="La caída de Nokia", title="Nokia"))
+    data = logged_in.get("/paleta").json()
+    assert data["projects"][0]["title"] == "Nokia" and data["projects"][0]["url"] == "/proyectos/1"
+    assert any(p["url"] == "/jarvis" for p in data["pages"])
+    assert (
+        'id="palette"' in logged_in.get("/").text
+    )  # la ventana de Ctrl+K está en todas las páginas

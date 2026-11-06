@@ -867,3 +867,57 @@ h1, h2, .brand { font-family: "Bricolage Grotesque", "Montserrat", system-ui, sa
 .bubble.me { align-self: flex-end; background: #2a2410; color: #ffe9a3; }
 .copilot-ask { margin-top: auto; display: flex; gap: 8px; }
 .copilot-ask input { flex: 1 1 auto; min-width: 0; }
+
+/* Ctrl+K: buscar un vídeo o pedirle algo a JARVIS (v0.73) */
+.rail-search {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 9px 4px; width: 100%;
+  border: 1px dashed #2d3833; border-radius: 14px; background: transparent; color: var(--muted);
+  font: 600 .72rem Inter, system-ui, sans-serif; cursor: pointer; margin-bottom: 6px;
+}
+.rail-search:hover { color: var(--accent); border-color: var(--accent); }
+.palette {
+  width: min(680px, calc(100vw - 32px)); margin: 12vh auto auto; padding: 0; border: 1px solid #2d3833;
+  border-radius: 20px; background: #0f1513; color: var(--text); box-shadow: 0 40px 80px -30px #000;
+}
+.palette::backdrop { background: rgba(3, 5, 4, .7); }
+.palette-box { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line); margin: 0; }
+.palette-box svg { color: var(--accent); flex: 0 0 auto; }
+.palette-box input { flex: 1 1 auto; border: 0; background: transparent; font-size: 1.05rem; padding: 6px 0; }
+.palette-box input:focus { outline: none; }
+.palette-box kbd { font: 600 .72rem Inter, sans-serif; color: var(--muted); border: 1px solid #2d3833; border-radius: 6px; padding: 2px 6px; }
+.palette-list { list-style: none; margin: 0; padding: 8px; max-height: 50vh; overflow-y: auto; }
+.palette-list li { display: flex; justify-content: space-between; gap: 12px; padding: 11px 12px; border-radius: 12px; cursor: pointer; }
+.palette-list li strong { font-weight: 600; font-size: .95rem; }
+.palette-list li span { color: var(--muted); font-size: .8rem; white-space: nowrap; }
+.palette-list li.on, .palette-list li:hover { background: #1a221e; }
+.palette-list li.on strong { color: var(--accent); }
+.palette-answer { white-space: pre-line; margin: 0 16px 16px; padding: 14px; border-radius: 14px; background: #161e1a; font-size: .92rem; line-height: 1.5; max-height: 40vh; overflow-y: auto; }
+
+/* Móvil: filas que se deslizan, estreno compacto y la sala de montaje en columna */
+@media (max-width: 760px) {
+  .page { padding: 18px 14px; }
+  .rail nav { gap: 0; }
+  .rail-search { border: 0; margin: 0; min-width: 56px; padding: 8px 6px; width: auto; }
+  .command-row { margin-bottom: 14px; }
+  .command { flex-basis: 100%; }
+  .command .btn { padding: 10px 14px; }
+  .channel-pills { overflow-x: auto; flex-wrap: nowrap; width: 100%; }
+  .channel-pills a { white-space: nowrap; }
+  .premiere { min-height: 300px; }
+  .premiere h1 { font-size: 1.9rem; }
+  .premiere-actions .btn { flex: 1 1 auto; text-align: center; }
+  .studio-home .stats { grid-template-columns: repeat(2, 1fr); }
+  .shelf-row { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 14px; padding-bottom: 6px; }
+  .shelf-card { flex: 0 0 78%; scroll-snap-align: start; }
+  .room { flex-direction: column; }
+  .copilot { flex-basis: auto; }
+  .palette { margin-top: 8vh; }
+}
+/* El menú lateral cabe en pantallas bajas */
+.rail { overflow-y: auto; }
+.rail-brand { flex: 0 0 50px; }
+@media (max-height: 760px) and (min-width: 761px) {
+  .rail { gap: 6px; padding: 10px 0; }
+  .rail nav a, .rail-search { padding: 6px 4px; gap: 2px; }
+  .rail-foot .avatar { width: 34px; height: 34px; }
+}
