@@ -127,6 +127,24 @@ def single_message(board: dict, portrait: bool = False) -> str:
     )
 
 
+def reference_message(board: dict) -> str:
+    """Paso 0: el mensaje para que Flow dibuje la ficha del protagonista (antes que las
+    escenas). Vacío si el vídeo no tiene protagonista."""
+    hero = protagonist_hint((board or {}).get("visual_bible") or {})
+    if not hero:
+        return ""
+    name = re.split(r"[:(,]", hero, maxsplit=1)[0].strip()
+    return (
+        "Create ONE image (Nano Banana, 16:9): a CHARACTER REFERENCE SHEET of the main "
+        "character, full body, standing, front view and a smaller three-quarter view next to "
+        f"it, plain light background. STYLE: {STICKMAN_STYLE}. MAIN CHARACTER: "
+        f"{soccer_words(hero.rstrip('.'))}. It must be clearly recognizable as a caricature of "
+        f"{name}: exaggerate his most famous features (hair, beard, face). Hair and beard filled "
+        "with their real colour, never white or just an outline. No white frame, no text, "
+        "no logos."
+    )
+
+
 REFERENCE_RULE = (
     "REFERENCE IMAGE: I attached a picture of the MAIN CHARACTER. Draw him EXACTLY like that "
     "reference in every image where he appears: same hair style and hair colour (filled, never "

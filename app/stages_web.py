@@ -411,6 +411,7 @@ def visuals_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         )
         if board
         else [],
+        reference_message=flow.reference_message(board),
         flow_bookmarklet=flow.bookmarklet(len(rows)),
         flow_direct=flow.direct_bookmarklet(str(request.base_url), project.id, len(rows)),
     )
@@ -459,11 +460,15 @@ def place_flow_pictures(
     """Coloca imágenes de Flow en sus escenas: Gemini mira cada una (de 8 en 8) y elige su
     escena entre las que aún no tienen imagen de Flow; si no puede, por orden. Las que no
     encajan (de otros vídeos del mismo proyecto de Flow) se descartan."""
-    from app import flow
+    from app import consistency, flow
 
     board = jobs.get_result(db, project_id, "storyboard")
     if board is None:
         raise HTTPException(404, "Primero crea las escenas")
+    reference = project_dir(project_id) / consistency.REFERENCE_FILE
+    if reference.is_file():  # la ficha está en el mismo proyecto de Flow: no es una escena
+        ref = reference.read_bytes()
+        pictures = [p for p in pictures if not consistency.is_reference(p, ref)]
     scenes = board["scenes"]
     by_number = {s["number"]: s for s in scenes}
     items = (jobs.get_result(db, project_id, "visuals") or {}).get("items", {})
@@ -523,6 +528,25 @@ def set_hero_reference(db: DB, user: CurrentUser, project_id: int, paragraph_id:
         db, project_id, consistency.STAGE, consistency.set_reference(folder, image, scene["number"])
     )
     return _redirect(f"/proyectos/{project_id}/visuales#protagonista")
+
+
+@router.post("/visuales/ficha")
+async def upload_hero_reference(
+    db: DB, user: CurrentUser, project_id: int, image: Annotated[UploadFile, File()]
+):
+    """Paso 0 de Visuales: la ficha del protagonista hecha en Flow, subida desde el ordenador."""
+    from app import consistency
+
+    _project(db, project_id)
+    data = await image.read(MAX_UPLOAD + 1)
+    if len(data) > MAX_UPLOAD:
+        raise HTTPException(400, "La imagen pesa demasiado (máximo 20 MB).")
+    try:
+        result = consistency.save_uploaded_reference(project_dir(project_id), data)
+    except ValueError as exc:
+        raise HTTPException(400, f"La ficha {exc}.") from exc
+    _save_stage(db, project_id, consistency.STAGE, result)
+    return _redirect(f"/proyectos/{project_id}/visuales#flow")
 
 
 @router.post("/visuales/revisar-protagonista")

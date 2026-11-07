@@ -14,6 +14,34 @@
   {% elif not (job and job.active) %}
   <div class="flow-steps" id="flow">
     <h3>Imágenes con Google Flow (gratis)</h3>
+    {% if reference_message %}
+    <div class="{{ 'alert info' if not hero else 'para-tools' }}" id="ficha">
+      {% if not hero %}
+      <p><strong>Paso 0, antes de las escenas: crea la ficha del protagonista.</strong> Así sale
+        igual en todas las imágenes.</p>
+      <ol class="small">
+        <li>En tu proyecto de Flow, pega en el asistente este mensaje (botón <strong>Copiar ficha</strong>).
+          Si no se parece, pídele «más parecido».</li>
+        <li>Descarga la imagen que te guste a tu ordenador.</li>
+        <li>Súbela aquí con <strong>Guardar la ficha</strong>. Después, los mensajes de abajo piden
+          dibujarlo igual que en ella.</li>
+      </ol>
+      {% else %}
+      <p class="small"><img src="/proyectos/{{ project.id }}/archivos/{{ hero.reference }}?v={{ hero.from_scene }}"
+        alt="Ficha del protagonista" style="max-height:90px;vertical-align:middle;border-radius:6px">
+        Ficha del protagonista lista. ¿Quieres cambiarla? Sube otra.</p>
+      {% endif %}
+      {% if not hero %}
+      <textarea id="flow-ficha" rows="4" readonly>{{ reference_message }}</textarea>
+      <button class="btn small" type="button"
+        onclick="navigator.clipboard.writeText(document.getElementById('flow-ficha').value); this.textContent='¡Copiado!'">Copiar ficha</button>
+      {% endif %}
+      <form method="post" action="/proyectos/{{ project.id }}/visuales/ficha" enctype="multipart/form-data" class="stack">
+        <label>Imagen de la ficha <input type="file" name="image" accept="image/*" required></label>
+        <button class="btn small {{ 'secondary' if hero }}">Guardar la ficha</button>
+      </form>
+    </div>
+    {% endif %}
     <ol class="small">
       <li>Abre <a href="https://flow.google.com" target="_blank" rel="noopener">flow.google.com</a>, entra en un
         proyecto y abre el <strong>asistente</strong> (el chat «¿Qué quieres crear?» de la derecha).</li>

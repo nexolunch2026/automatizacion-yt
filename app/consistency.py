@@ -30,6 +30,43 @@ def set_reference(project_folder: Path, image: Path, scene_number: int) -> dict:
     return {"reference": REFERENCE_FILE, "from_scene": scene_number, "checked": {}}
 
 
+def save_uploaded_reference(project_folder: Path, data: bytes) -> dict:
+    """La ficha hecha aparte en Flow y subida desde el ordenador (antes de las escenas)."""
+    import io
+
+    from PIL import Image, UnidentifiedImageError
+
+    try:
+        picture = Image.open(io.BytesIO(data)).convert("RGB")
+    except (UnidentifiedImageError, OSError) as exc:
+        raise ValueError("no es una imagen válida") from exc
+    picture.save(project_folder / REFERENCE_FILE, "JPEG", quality=95)
+    return {"reference": REFERENCE_FILE, "from_scene": 0, "checked": {}}
+
+
+def _fingerprint(data: bytes) -> list[int] | None:
+    import io
+
+    from PIL import Image, UnidentifiedImageError
+
+    try:
+        small = Image.open(io.BytesIO(data)).convert("L").resize((16, 16))
+    except (UnidentifiedImageError, OSError):
+        return None
+    pixels = list(small.tobytes())
+    mean = sum(pixels) / len(pixels)
+    return [p > mean for p in pixels]
+
+
+def is_reference(data: bytes, reference: bytes, tolerance: int = 20) -> bool:
+    """¿Es esta imagen de Flow la propia ficha? (está en el mismo proyecto de Flow y no debe
+    acabar en una escena). Compara una huella de 16×16 píxeles."""
+    a, b = _fingerprint(data), _fingerprint(reference)
+    if a is None or b is None:
+        return False
+    return sum(x != y for x, y in zip(a, b, strict=True)) <= tolerance
+
+
 HAIR = ("black", "brown", "blond", "white_or_grey", "outline_only", "none")
 HAIR_ES = {
     "black": "pelo negro",
