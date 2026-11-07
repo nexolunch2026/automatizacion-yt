@@ -495,6 +495,8 @@ def place_flow_pictures(
         new_items[by_number[number]["paragraph_id"]] = _flow_entry(filename)
     if new_items:
         _save_visual_items(db, project_id, new_items)
+        if reference.is_file():  # revisa sola, mientras se hace otra cosa
+            jobs.enqueue(db, project_id, consistency.STAGE)
     _save_upload_report(db, project_id, len(new_items), problems)
     project = _project(db, project_id)
     items = (jobs.get_result(db, project_id, "visuals") or {}).get("items", {})

@@ -12,8 +12,10 @@ imágenes a ojo. Ahora:
 """
 
 import json
+import re
 import shutil
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from app.providers.ai import ProviderError
@@ -21,6 +23,7 @@ from app.providers.ai import ProviderError
 STAGE = "consistency"  # se guarda como un resultado más del proyecto
 REFERENCE_FILE = "referencia-protagonista.jpg"
 BATCH = 4  # imágenes por consulta (más, y Gemini se fija menos en los detalles)
+PARALLEL = 4  # consultas a la vez: de 10-15 minutos a 2-3 (cabe en el límite por minuto)
 REDO = "rehacer"  # proveedor de las escenas pendientes de rehacer en Flow
 
 
@@ -158,6 +161,17 @@ def check_batch(ai, reference: bytes, hero: str, batch: list[tuple[int, bytes]])
     return found
 
 
+def appears(hero: str, scene: dict) -> bool:
+    """¿Sale el protagonista en esta escena? (su nombre o apellido en la descripción)."""
+    name = re.split(r"[:(,]", hero or "", maxsplit=1)[0].strip()
+    words = [w for w in re.findall(r"[\w']+", name) if len(w) > 2 and w.lower() not in SKIP]
+    text = " ".join(str(scene.get(k) or "") for k in ("image_prompt", "visual")).lower()
+    return bool(words) and any(re.search(r"\b" + re.escape(w.lower()) + r"\b", text) for w in words)
+
+
+SKIP = {"jr", "the", "del", "los", "las"}
+
+
 def run_check(
     ai,
     project_folder: Path,
@@ -184,28 +198,35 @@ def run_check(
         path = project_folder / "visuales" / entry.get("file", "")
         if entry.get("kind") == "image" and entry.get("file") and path.exists():
             todo.append((scene, entry["file"], path))
+    todo = [t for t in todo if appears(hero, t[0])] or todo  # sin él no hay nada que mirar
     checked: dict = {}
     problems = []
-    for start in range(0, len(todo), BATCH):
-        chunk = todo[start : start + BATCH]
-        progress(
-            5 + int(90 * start / max(len(todo), 1)),
-            f"Revisando las escenas {chunk[0][0]['number']}–{chunk[-1][0]['number']}",
-        )
-        batch = [(scene["number"], thumbnail(path.read_bytes(), 640)) for scene, _, path in chunk]
-        try:
-            verdicts = check_batch(ai, ref, hero, batch)
-        except ProviderError as exc:
-            problems.append(f"Escenas {chunk[0][0]['number']}–{chunk[-1][0]['number']}: {exc}")
-            continue
-        for scene, filename, _ in chunk:
-            verdict = verdicts.get(scene["number"])
-            if verdict is not None:
-                checked[scene["paragraph_id"]] = {
-                    "number": scene["number"],
-                    "file": filename,
-                    **verdict,
-                }
+    chunks = [todo[i : i + BATCH] for i in range(0, len(todo), BATCH)]
+
+    def check(chunk):
+        batch = [(scene["number"], thumbnail(path.read_bytes(), 512)) for scene, _, path in chunk]
+        return check_batch(ai, ref, hero, batch)
+
+    progress(5, f"Revisando {len(todo)} escenas donde sale el protagonista")
+    with ThreadPoolExecutor(max_workers=PARALLEL) as pool:  # varias consultas a la vez
+        futures = {pool.submit(check, chunk): chunk for chunk in chunks}
+        for done, future in enumerate(as_completed(futures), 1):
+            chunk = futures[future]
+            label = f"{chunk[0][0]['number']}–{chunk[-1][0]['number']}"
+            progress(5 + int(90 * done / len(chunks)), f"Revisadas las escenas {label}")
+            try:
+                verdicts = future.result()
+            except ProviderError as exc:
+                problems.append(f"Escenas {label}: {exc}")
+                continue
+            for scene, filename, _ in chunk:
+                verdict = verdicts.get(scene["number"])
+                if verdict is not None:
+                    checked[scene["paragraph_id"]] = {
+                        "number": scene["number"],
+                        "file": filename,
+                        **verdict,
+                    }
     if todo and not checked:
         raise ProviderError("Gemini no pudo revisar ninguna imagen. Prueba otra vez en un rato.")
     progress(100, "Revisión terminada")

@@ -70,3 +70,40 @@ def test_step_zero_upload_saves_the_reference(logged_in, monkeypatch):
     page = logged_in.get("/proyectos/1/visuales").text
     assert "Paso 0" not in page and "Ficha del protagonista lista" in page
     assert "REFERENCE IMAGE" in page  # los mensajes ya piden dibujarlo como la ficha
+
+
+def test_review_skips_scenes_without_the_hero_and_runs_batches_together(tmp_path):
+    import threading
+
+    from tests.test_mejoras_v074 import HeroAI
+
+    hero = BOARD["visual_bible"]["characters"][0]
+    (tmp_path / "visuales").mkdir()
+    scenes, items = [], {}
+    for n in range(1, 13):
+        name = f"{n:03}.jpg"
+        Image.new("RGB", (64, 36), (n * 20, 50, 90)).save(tmp_path / "visuales" / name)
+        who = "Gareth Bale running" if n <= 8 else "a map of Wales"
+        scenes.append({"number": n, "paragraph_id": f"p{n}", "image_prompt": who})
+        items[f"p{n}"] = {"kind": "image", "file": name}
+    (tmp_path / consistency.REFERENCE_FILE).write_bytes(_picture())
+
+    threads = set()
+
+    class Spy(HeroAI):
+        def _generate(self, contents, config):
+            threads.add(threading.get_ident())
+            return super()._generate(contents, config)
+
+    data = consistency.run_check(
+        Spy(), tmp_path, scenes, {"items": items}, {}, hero, lambda *_: None
+    )
+    assert sorted(v["number"] for v in data["checked"].values()) == list(range(1, 9))
+    assert len(threads) >= 1 and data["summary"]["bad"] == 1  # la 2 sale con pelo blanco
+
+
+def test_appears_uses_name_words():
+    hero = BOARD["visual_bible"]["characters"][0]
+    assert consistency.appears(hero, {"image_prompt": "stick figure Bale kicking"})
+    assert not consistency.appears(hero, {"image_prompt": "a stadium at night"})
+    assert not consistency.appears("", {"image_prompt": "Bale"})

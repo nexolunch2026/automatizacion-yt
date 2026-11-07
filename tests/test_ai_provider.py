@@ -237,7 +237,7 @@ def test_model_list_is_asked_once_per_key(monkeypatch):
             return [N(name="models/gemini-flash-latest")]
 
     class Client:
-        def __init__(self, api_key):
+        def __init__(self, api_key, http_options=None):
             self.models = Models()
 
     monkeypatch.setattr("google.genai.Client", Client)
