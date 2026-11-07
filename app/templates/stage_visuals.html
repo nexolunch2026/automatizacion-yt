@@ -77,8 +77,10 @@
     {% endif %}
     <form method="post" action="/proyectos/{{ project.id }}/visuales/subir-varias"
           enctype="multipart/form-data" class="bulk-upload full">
-      <label>3) Elige todas las imágenes a la vez (puedes seleccionar varias con Ctrl o arrastrando)
-        <input type="file" name="images" accept="image/*" multiple required>
+      <label>3) Elige todas las imágenes a la vez (puedes seleccionar varias con Ctrl o arrastrando).
+        También valen <strong>clips animados de Flow (.mp4)</strong>: llámalos con el número de su
+        escena (por ejemplo <code>escena 3.mp4</code>) y se colocan en su sitio.
+        <input type="file" name="images" accept="image/*,video/mp4,video/quicktime" multiple required>
       </label>
       <label>Empezar por la escena
         <input type="number" name="start" value="1" min="1" max="{{ rows|length }}">
@@ -202,10 +204,12 @@
       </form>
     </div>
     <details class="para-tools">
-      <summary>Subir imagen (por ejemplo, de ChatGPT)</summary>
+      <summary>Subir imagen o clip animado de Flow (.mp4)</summary>
       <form method="post" action="/proyectos/{{ project.id }}/visuales/subir/{{ s.paragraph_id }}"
             enctype="multipart/form-data" class="stack">
-        <input type="file" name="image" accept="image/*" required>
+        <p class="muted small">Un clip animado de Flow (Veo) se usa tal cual, sin repetirse: si es
+          más corto que la escena, se queda quieto al final. Úsalos en el gancho y en los momentos clave.</p>
+        <input type="file" name="image" accept="image/*,video/mp4,video/quicktime" required>
         <label class="radio"><input type="checkbox" name="is_ai" value="1" checked> Es una imagen generada con IA</label>
         <button class="btn small">Usar esta imagen</button>
       </form>

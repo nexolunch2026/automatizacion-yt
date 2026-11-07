@@ -137,6 +137,7 @@ def test_video_form_sends_options(produced, monkeypatch):
         "subtitles": True,
         "film_look": False,
         "callouts": False,  # casilla de cifras animadas sin marcar
+        "puppet": False,  # casilla de movimiento de muñeco sin marcar
         "look": "auto",  # tono de color automático (se turna entre vídeos)
         "music": "",
         "music_volume": "media",

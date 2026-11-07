@@ -442,7 +442,7 @@ def render_style(db: Session, params: dict | None = None) -> dict:
 
     saved = get_setting(db, "render_style")
     style = {**DEFAULT_STYLE, **(json.loads(saved) if saved else {})}
-    for key in ("subtitles", "film_look", "callouts", "look", "music", "music_volume"):
+    for key in ("subtitles", "film_look", "callouts", "puppet", "look", "music", "music_volume"):
         if params and key in params:
             style[key] = params[key]
     if style["music"] not in ("", AUTO, *music_library()):
@@ -503,7 +503,11 @@ def media_map(folder: Path, visuals: dict) -> dict:
     media = {}
     for pid, entry in visuals["items"].items():
         if entry.get("file") and (folder / "visuales" / entry["file"]).exists():
-            media[pid] = {"path": folder / "visuales" / entry["file"], "kind": entry["kind"]}
+            media[pid] = {
+                "path": folder / "visuales" / entry["file"],
+                "kind": entry["kind"],
+                "animated": bool(entry.get("animated")),  # clip de Flow: sin bucle
+            }
     return media
 
 

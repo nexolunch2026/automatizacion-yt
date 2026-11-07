@@ -55,6 +55,9 @@ DEFAULT_STYLE = {
     "music": "",
     "music_volume": "media",
     "callouts": True,  # cifras clave que aparecen animadas cuando se dicen
+    # Balanceo de toda la imagen. Apagado: Simón quiere que se mueva el PERSONAJE, no la cámara
+    # (ver agentes/informes/2026-11-07_animar_al_personaje.md).
+    "puppet": False,
 }
 AUTO = "auto"
 # Acabados de color. Se turnan entre vídeos («auto») para que el canal no parezca hecho en
@@ -286,6 +289,26 @@ def _motion_filter(motion: str, frames: int) -> tuple[str, str, str]:
     return f"1+0.15*{ease}", center_x, center_y  # zoom_in
 
 
+PUPPET_OVERSCAN = 1.05  # margen para que al balancear nunca se vean bordes negros
+
+
+def puppet_filter(w: int, h: int, seed: int = 0) -> str:
+    """«Movimiento de muñeco» (gratis, sin IA): sobre el zoom de cámara, la imagen se balancea
+    un poco y rebota como si respirara, igual que un dibujo animado sencillo. Cada escena
+    lleva su propio ritmo (`seed`) para que no parezcan todas iguales."""
+    bw, bh = int(w * PUPPET_OVERSCAN) // 2 * 2, int(h * PUPPET_OVERSCAN) // 2 * 2
+    sway = 2.4 + (seed % 5) * 0.3  # segundos por balanceo (2,4-3,6 s)
+    breath = 1.5 + (seed % 3) * 0.25  # segundos por rebote (1,5-2,0 s)
+    phase = (seed % 7) * 0.9
+    angle = f"0.007*sin(2*PI*(t+{phase:.1f})/{sway:.2f})"  # ±0,4 grados
+    bob = f"{h * 0.006:.1f}*sin(2*PI*(t+{phase:.1f})/{breath:.2f})"  # ±0,6 % de alto
+    drift = f"{w * 0.004:.1f}*sin(2*PI*(t+{phase:.1f})/{sway * 2:.2f})"
+    return (
+        f"scale={bw}:{bh},rotate='{angle}':ow=iw:oh=ih:c=black,"
+        f"crop={w}:{h}:x='(iw-{w})/2+{drift}':y='(ih-{h})/2+{bob}'"
+    )
+
+
 def _encode(preset: str, crf: int, fps: int) -> list[str]:
     return [
         "-c:v",
@@ -319,15 +342,24 @@ def scene_clip(
     workdir: Path,
     factor: int = 1,
     first_motion: int = 0,
+    puppet: bool = False,
+    hold_last: bool = False,
 ) -> None:
-    """Clip de una escena. Las fotos se dividen en planos con movimientos distintos."""
+    """Clip de una escena. Las fotos se dividen en planos con movimientos distintos.
+    `hold_last`: los clips animados de Flow no se repiten en bucle (se vería el salto): si son
+    más cortos que la escena, se quedan quietos en su último fotograma."""
     w, h = size
     inputs: list[str] = []
     if kind == "video":
-        inputs += ["-stream_loop", "-1", "-i", str(visual_path)]
+        if hold_last:
+            inputs += ["-i", str(visual_path)]
+            pad = f"tpad=stop_mode=clone:stop_duration={seconds:.3f},"
+        else:
+            inputs += ["-stream_loop", "-1", "-i", str(visual_path)]
+            pad = ""
         chain = (
             f"[0:v]scale={w}:{h}:force_original_aspect_ratio=increase,"
-            f"crop={w}:{h},fps={fps},setsar=1,trim=duration={seconds:.3f}[v0]"
+            f"crop={w}:{h},fps={fps},setsar=1,{pad}trim=duration={seconds:.3f}[v0]"
         )
     else:
         inputs += ["-i", str(visual_path)]
@@ -343,9 +375,10 @@ def scene_clip(
             parts.append(
                 f"[i{k}]zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={w}x{h}:fps={fps}[s{k}]"
             )
-        parts.append(
-            "".join(f"[s{k}]" for k in range(len(shots))) + f"concat=n={len(shots)}:v=1:a=0[v0]"
-        )
+        joined = "".join(f"[s{k}]" for k in range(len(shots))) + f"concat=n={len(shots)}:v=1:a=0"
+        if puppet:
+            joined += "," + puppet_filter(w, h, first_motion + int(scene.get("number") or 0))
+        parts.append(joined + "[v0]")
         chain = ";".join(parts)
     last = "[v0]"
     if scene.get("on_screen_text"):
@@ -621,15 +654,20 @@ def _link_or_copy(source: Path, target: Path) -> None:
         shutil.copyfile(source, target)
 
 
-def _build_scene(scene, visual, i, length, clip, size, fps, crf, factor, motion, workdir) -> None:
+def _build_scene(
+    scene, visual, i, length, clip, size, fps, crf, factor, motion, workdir, puppet=False
+) -> None:
     w, h = size
+    hold_last = False
     if visual is None or visual["kind"] == "card":
         text = scene.get("on_screen_text") or scene.get("visual") or ""
         path = text_card(text, (w * factor, h * factor), workdir / f"tarjeta-{scene['number']}.png")
         kind = "image"
+        puppet = False  # los carteles de texto, quietos
         scene = {**scene, "on_screen_text": ""}  # el texto ya va en la tarjeta
     else:
         path, kind = Path(visual["path"]), visual["kind"]
+        hold_last = bool(visual.get("animated"))  # clip animado de Flow: sin bucle
     if scene.get("chart"):  # gráfico animado con las cifras de esta escena
         from app.pipeline.charts import chart_clip
 
@@ -637,7 +675,7 @@ def _build_scene(scene, visual, i, length, clip, size, fps, crf, factor, motion,
         path = chart_clip(
             scene["chart"], workdir / f"grafico-{i:03}.mp4", (w, h), fps, length, background
         )
-        kind = "video"
+        kind, hold_last = "video", False
         scene = {**scene, "on_screen_text": ""}  # el gráfico ya lleva su título
     # Clips intermedios casi sin pérdida: se recodifican una vez más al final.
     scene_clip(
@@ -653,6 +691,8 @@ def _build_scene(scene, visual, i, length, clip, size, fps, crf, factor, motion,
         workdir,
         factor,
         motion,
+        puppet=puppet,
+        hold_last=hold_last,
     )
 
 
@@ -695,7 +735,10 @@ def render_video(
                 scene = {**scene, "callout": found}
         motion = first_motion(pid, previous_last)
         clip = workdir / f"escena-{i:03}.mp4"
-        key = scene_key(scene, visual, length, (w, h), fps, crf, factor, motion)
+        puppet = bool(style.get("puppet"))
+        # Con «muñeco» cambia la huella (se rehace); sin él, las escenas guardadas siguen valiendo.
+        print_motion = [motion, "muñeco"] if puppet else motion
+        key = scene_key(scene, visual, length, (w, h), fps, crf, factor, print_motion)
         cached = cache / f"{key}.mp4"
         used.add(cached.name)
         if cached.exists() and cached.stat().st_size > 0:
@@ -706,7 +749,9 @@ def render_video(
             reused += 1
         else:
             progress(round(3 + 70 * i / len(scenes)), f"Montando escena {i + 1} de {len(scenes)}")
-            _build_scene(scene, visual, i, length, clip, (w, h), fps, crf, factor, motion, workdir)
+            _build_scene(
+                scene, visual, i, length, clip, (w, h), fps, crf, factor, motion, workdir, puppet
+            )
             _link_or_copy(clip, cached)
         previous_last = (motion + len(split_shots(length)) - 1) % len(MOTIONS)
         clips.append(clip)
