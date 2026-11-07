@@ -70,11 +70,11 @@
   {% for s in data.shorts %}
   <div class="card short-card">
     <div class="short-media">
-      <video class="short-player" src="/proyectos/{{ project.id }}/archivos/{{ s.file }}?v={{ job.id if job else 0 }}" controls preload="metadata"></video>
+      <video class="short-player" src="/proyectos/{{ project.id }}/archivos/{{ s.file }}?v={{ file_version(project.id, s.file) }}" controls preload="metadata"></video>
       {% if s.cover %}
       <div class="short-cover">
-        <img src="/proyectos/{{ project.id }}/archivos/{{ s.cover }}?t={{ s.hook|length }}{{ loop.index }}" alt="Portada del Short {{ loop.index }}">
-        <a class="btn small" href="/proyectos/{{ project.id }}/archivos/{{ s.cover }}" download="portada-short-{{ project.id }}-{{ loop.index }}.jpg">Descargar portada</a>
+        <img src="/proyectos/{{ project.id }}/archivos/{{ s.cover }}?v={{ file_version(project.id, s.cover) }}" alt="Portada del Short {{ loop.index }}">
+        <a class="btn small" href="/proyectos/{{ project.id }}/archivos/{{ s.cover }}?v={{ file_version(project.id, s.cover) }}" download="portada-short-{{ project.id }}-{{ loop.index }}.jpg">Descargar portada</a>
         <form method="post" action="/proyectos/{{ project.id }}/shorts/{{ loop.index }}/portada" class="cover-form">
           <input name="text" value="{{ s.hook }}" maxlength="40" title="Texto de la portada">
           <button class="btn small secondary">Rehacer</button>
@@ -94,7 +94,7 @@
     <pre class="copy-text description" id="short-desc-{{ loop.index }}">{{ s.description }}</pre>
     <div class="row-actions">
       <button class="btn small secondary" data-copy="short-desc-{{ loop.index }}">Copiar descripción</button>
-      <a class="btn small" href="/proyectos/{{ project.id }}/archivos/{{ s.file }}" download="short-{{ project.id }}-{{ loop.index }}.mp4">Descargar</a>
+      <a class="btn small" href="/proyectos/{{ project.id }}/archivos/{{ s.file }}?v={{ file_version(project.id, s.file) }}" download="short-{{ project.id }}-{{ loop.index }}.mp4">Descargar</a>
       <span class="muted small">{{ '%.0f'|format(s.seconds) }} s · párrafos {{ s.paragraphs[0] }}–{{ s.paragraphs[1] }}</span>
     </div>
   </div>

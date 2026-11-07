@@ -65,9 +65,9 @@
     <h2>{{ label }}</h2>
     <span class="muted small">{{ (r.seconds / 60)|round(1) }} min · {{ r.width }}×{{ r.height }}</span>
   </div>
-  <video controls class="player" src="/proyectos/{{ project.id }}/archivos/{{ r.file }}?v={{ r.seconds }}"></video>
+  <video controls class="player" src="/proyectos/{{ project.id }}/archivos/{{ r.file }}?v={{ file_version(project.id, r.file) }}"></video>
   <div class="row-actions">
-    <a class="btn small" href="/proyectos/{{ project.id }}/archivos/{{ r.file }}" download>Descargar MP4</a>
+    <a class="btn small" href="/proyectos/{{ project.id }}/archivos/{{ r.file }}?v={{ file_version(project.id, r.file) }}" download>Descargar MP4</a>
     {% if r.srt or has_srt %}<a class="btn small secondary" href="/proyectos/{{ project.id }}/archivos/{{ r.srt or 'video/subtitulos.srt' }}" download>Descargar subtítulos (.srt)</a>{% endif %}
     {% if has_credits %}<a class="btn small secondary" href="/proyectos/{{ project.id }}/archivos/video/creditos.txt" download>Créditos de imágenes</a>{% endif %}
   </div>

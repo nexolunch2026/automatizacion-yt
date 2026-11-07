@@ -22,7 +22,7 @@ from app.pipeline.monetization import project_review
 from app.pipeline.script import FORMATS
 from app.settings_store import api_key_hint, get_setting, set_setting
 from app.stages_web import SLUGS
-from app.templating import render
+from app.templating import file_version, render
 
 router = APIRouter()
 
@@ -196,7 +196,8 @@ def _showcase(db, project, results: dict) -> dict | None:
     title = (seo.get("titles") or [None])[0] or (results.get("script") or {}).get("title")
     minutes, seconds = divmod(int(round(float(render_.get("seconds") or 0))), 60)
     return {
-        "video": f"/proyectos/{project.id}/archivos/{render_['file']}",
+        "video": f"/proyectos/{project.id}/archivos/{render_['file']}"
+        f"?v={file_version(project.id, render_['file'])}",
         "thumb": _thumb_url(db, project.id),
         "title": title or project.title,
         "duration": f"{minutes}:{seconds:02d}",

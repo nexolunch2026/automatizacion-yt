@@ -107,3 +107,18 @@ def test_appears_uses_name_words():
     assert consistency.appears(hero, {"image_prompt": "stick figure Bale kicking"})
     assert not consistency.appears(hero, {"image_prompt": "a stadium at night"})
     assert not consistency.appears("", {"image_prompt": "Bale"})
+
+
+def test_video_link_changes_when_the_file_is_remade(tmp_path, monkeypatch):
+    import os
+
+    from app import media, templating
+
+    monkeypatch.setattr(media, "project_dir", lambda pid: tmp_path)
+    video = tmp_path / "video.mp4"
+    video.write_bytes(b"uno")
+    os.utime(video, (1_000, 1_000))
+    first = templating.file_version(1, "video.mp4")
+    os.utime(video, (2_000, 2_000))  # mismo vídeo rehecho (misma duración)
+    assert templating.file_version(1, "video.mp4") != first
+    assert templating.file_version(1, "no-existe.mp4") == 0
