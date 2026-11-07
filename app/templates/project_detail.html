@@ -4,6 +4,16 @@
 {{ ui.header(project) }}
 {{ ui.tabs(project, 'overview', slugs, stages, results, jobs) }}
 
+{% if launch %}
+{% set missing = launch.people|rejectattr('ok')|list %}
+<div class="x-launch">
+  <div class="faces">{% for p in launch.people %}<span class="x-face {{ 'ok' if p.ok else 'no' }}" title="{{ p.name }}: {{ 'aprobado' if p.ok else 'falta' }}">{{ p.initial }}</span>{% endfor %}</div>
+  <p><b>{% if not missing %}Aprobado por los dos{% elif missing|length < launch.people|length %}Falta el visto bueno de {{ missing|map(attribute='name')|join(' y ') }}{% else %}Montado: falta que lo veáis{% endif %}</b>
+    <small>{{ ('Sale el ' ~ launch.date) if launch.date else 'Todavía sin fecha de estreno' }}</small></p>
+  <a class="btn x-magnet" href="/proyectos/{{ project.id }}/estreno">Preparar el estreno →</a>
+</div>
+{% endif %}
+
 {% if timeline or copilot %}
 <div class="room">
   <section class="room-main" aria-label="Sala de montaje">

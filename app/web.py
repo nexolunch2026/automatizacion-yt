@@ -478,7 +478,23 @@ def project_detail(request: Request, db: DB, user: CurrentUser, project_id: int)
         copilot=editing_room.copilot(project_id, results, qc),
         month_usage=usage.month_usage(db),
         stage_names=STAGES,
+        launch=_launch_strip(db, project),
     )
+
+
+def _launch_strip(db, project) -> dict | None:
+    """La franja de la sala de montaje: quién lo ha visto y cuándo sale."""
+    from datetime import date
+
+    from app import estreno
+
+    if not estreno.is_ready(db, project):
+        return None
+    chosen = estreno.get(db, project.id).get("date")
+    return {
+        "people": estreno.approvals_view(db, project.id),
+        "date": estreno.nice_date(date.fromisoformat(chosen)) if chosen else "",
+    }
 
 
 @router.get("/proyectos/{project_id}/estado")

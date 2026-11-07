@@ -3,11 +3,14 @@
 {% macro header(project) %}
 <div class="page-head">
   <div>
-    <p class="muted small"><a href="/">← Proyectos</a></p>
+    <a class="x-crumb" href="/">← Proyectos · {{ project.channel.name }}</a>
     <h1>{{ project.title }}</h1>
-    <p class="muted">{{ project.channel.name }} · {{ project.video_type }} · {{ project.duration }} · {{ project.language }}</p>
+    <div class="x-head-meta"><span class="x-chip">{{ project.video_type }}</span><span class="x-chip">{{ project.duration }}</span><span class="x-chip">{{ project.language }}</span></div>
   </div>
-  <span class="badge big">{{ project.status }}</span>
+  <div class="x-head-side">
+    <span class="badge big">{{ project.status }}</span>
+    <a class="btn small x-magnet" href="/proyectos/{{ project.id }}/estreno">Preparar el estreno →</a>
+  </div>
 </div>
 {% endmacro %}
 
