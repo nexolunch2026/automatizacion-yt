@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from app import (
     agenda,
+    claude_code,
     coach,
     daily,
     demand,
@@ -1342,13 +1343,49 @@ def _text(db: Session, text: str, chat_id: int = 0) -> list[Reply]:
     if not text:
         return help_replies()
     intent = quick_intent(text)
+    notice: list[Reply] = []
+    if intent is None and claude_code.find_claude():
+        try:
+            return _claude(db, text, chat_id)  # desde la v0.76 piensa Claude, no Gemini
+        except claude_code.ClaudeUnavailable as exc:  # sin sesión: contesta Gemini y avisa
+            log.warning("Claude no disponible: %s | %s", exc, exc.detail)
+            notice = [error_reply("Claude no está disponible; te contesto con Gemini", exc)]
     if intent is None:
         try:
             intent = _ai_intent(db, text, chat_id)
         except ProviderError as exc:
             log.warning("JARVIS no pudo entender «%s»: %s | %s", text[:80], exc, exc.detail)
-            return [error_reply("No pude pensar la respuesta", exc)]
-    replies = _act(db, intent, text, chat_id)
+            return [*notice, error_reply("No pude pensar la respuesta", exc)]
+    replies = [*notice, *_act(db, intent, text, chat_id)]
+    remember(chat_id, text, replies)
+    return replies
+
+
+def _claude(db: Session, text: str, chat_id: int = 0) -> list[Reply]:
+    """Lo que no es una orden rápida lo contesta Claude (ver app/claude_code.py), siguiendo
+    la misma conversación de ese chat hasta que digan «nueva conversación»."""
+    key = claude_code.SESSION_KEY.format(chat_id=chat_id)
+    if text.lower().strip(" .!¡¿?") in claude_code.NEW_CHAT:
+        set_setting(db, key, "")
+        return [Reply("🧹 Listo: empezamos una conversación nueva.")]
+    session = get_setting(db, key) or None
+    try:
+        try:
+            answer, session = claude_code.ask(text, session)
+        except claude_code.ClaudeUnavailable:
+            raise
+        except ProviderError:
+            if not session:
+                raise
+            answer, session = claude_code.ask(text, None)  # la conversación vieja ya no existe
+    except claude_code.ClaudeUnavailable:
+        raise  # sin Claude, _text contesta con Gemini
+    except ProviderError as exc:
+        log.warning("Claude no pudo responder «%s»: %s | %s", text[:80], exc, exc.detail)
+        return [error_reply("Claude no pudo responder", exc)]
+    if session:
+        set_setting(db, key, session)
+    replies = [Reply(claude_code.to_html(answer) or "🤔 Claude no dijo nada. ¿Me lo repites?")]
     remember(chat_id, text, replies)
     return replies
 

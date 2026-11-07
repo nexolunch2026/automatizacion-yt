@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {% set sections = {'/jarvis': 'JARVIS', '/semana': 'Semana', '/rendimiento': 'Rendimiento', '/aprender': 'Aprender',
+  {% set sections = {'/jarvis': 'Claude', '/semana': 'Semana', '/rendimiento': 'Rendimiento', '/aprender': 'Aprender',
      '/canales': 'Canales', '/configuracion': 'Configuración', '/bienvenida': 'Mi perfil'} %}
   {% set here = request.url.path %}
   <title>{% block title %}{% if project is defined and project %}{{ project.title }} · {% else %}{% for prefix, name in sections.items() if here.startswith(prefix) %}{{ name }} · {% endfor %}{% endif %}Faceless Studio{% endblock %}</title>
@@ -44,7 +44,7 @@
         <span>Buscar</span>
       </button>
       {{ item('/', 'Proyectos', 'home', path == '/' or path.startswith('/proyectos')) }}
-      {{ item('/jarvis', 'JARVIS', 'jarvis', path.startswith('/jarvis')) }}
+      {{ item('/jarvis', 'Claude', 'jarvis', path.startswith('/jarvis')) }}
       {{ item('/semana', 'Semana', 'week', path.startswith('/semana')) }}
       {{ item('/rendimiento', 'Rendimiento', 'stats', path.startswith('/rendimiento')) }}
       {{ item('/aprender', 'Aprender', 'learn', path.startswith('/aprender')) }}
@@ -67,7 +67,7 @@
   <dialog class="palette" id="palette" aria-label="Buscar o pedir algo">
     <form method="dialog" class="palette-box" id="palette-form">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/></svg>
-      <input id="palette-q" autocomplete="off" placeholder="Busca un vídeo o pídeselo a JARVIS: «¿qué hago hoy?»" aria-label="Buscar o pedir algo">
+      <input id="palette-q" autocomplete="off" placeholder="Busca un vídeo o pídeselo a Claude: «¿qué hago hoy?»" aria-label="Buscar o pedir algo">
       <kbd>Esc</kbd>
     </form>
     <ul class="palette-list" id="palette-list" role="listbox"></ul>

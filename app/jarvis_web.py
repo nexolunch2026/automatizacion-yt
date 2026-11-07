@@ -10,7 +10,7 @@ from typing import Annotated
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import RedirectResponse
 
-from app import agenda, assistant, telegram
+from app import agenda, assistant, claude_code, telegram
 from app.assistant import Incoming
 from app.auth import DB, CurrentUser
 from app.media import PROJECTS_DIR
@@ -53,6 +53,7 @@ def _page(request: Request, db: DB, status_code: int = 200, **ctx):
         youtube_channel=get_setting(db, "youtube_channel") or "",
         youtube_hint=api_key_hint(db, "youtube"),
         currency=get_setting(db, "jarvis_currency") or "COP",
+        has_claude=bool(claude_code.find_claude()),
         **ctx,
     )
 
