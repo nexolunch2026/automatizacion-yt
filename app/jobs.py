@@ -631,6 +631,27 @@ def _run_factcheck(db: Session, project: Project, progress, params: dict) -> dic
     return data
 
 
+def _run_humanize(db: Session, project: Project, progress, params: dict) -> dict:
+    """«Humanizar todo el guion»: reescribe solo los párrafos con avisos (ver humanize.py).
+    Guarda después de cada párrafo: si Gemini falla a mitad, lo hecho no se pierde."""
+    import copy
+
+    from app.pipeline.humanize import script_issues
+    from app.pipeline.script import rewrite_paragraph
+
+    script = copy.deepcopy(_require(db, project, "script", "Primero hay que escribir el guion."))
+    research = get_result(db, project.id, "research") or {}
+    flagged = list(script_issues(script)["paragraphs"])
+    ai = get_ai_provider(db)
+    for done, paragraph_id in enumerate(flagged):
+        progress(5 + 90 * done // len(flagged), f"Párrafo {done + 1} de {len(flagged)}")
+        script = rewrite_paragraph(project, research, script, paragraph_id, "humanize", ai)
+        _save_result(db, project, "script", script)
+        db.commit()
+    remember_working_model(db, ai)
+    return {"changed": len(flagged), "left": len(script_issues(script)["paragraphs"])}
+
+
 Runner = Callable[[Session, Project, Callable[[int, str], None], dict], dict]
 RUNNERS: dict[str, Runner] = {
     "research": _run_research,
@@ -645,6 +666,7 @@ RUNNERS: dict[str, Runner] = {
     "shorts": _run_shorts,
     "consistency": _run_consistency,  # no es una etapa: revisión del protagonista
     "factcheck": _run_factcheck,  # no es una etapa: comprobar datos del guion
+    "humanize": _run_humanize,  # no es una etapa: humanizar todo el guion
 }
 
 

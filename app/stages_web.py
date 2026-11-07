@@ -148,6 +148,7 @@ def _facts_context(db: DB, project_id: int) -> dict:
     return {
         "facts": facts,
         "facts_job": jobs.latest_jobs(db, project_id).get(factcheck.STAGE),
+        "human_job": jobs.latest_jobs(db, project_id).get("humanize"),
         "facts_old": bool(
             facts_row and script_row and script_row.updated_at > facts_row.updated_at
         ),
@@ -1203,6 +1204,16 @@ def check_facts(db: DB, user: CurrentUser, project_id: int):
         raise HTTPException(400, "Primero hay que escribir el guion.")
     jobs.enqueue(db, project_id, factcheck.STAGE)
     return _redirect(f"/proyectos/{project_id}/guion#datos")
+
+
+@router.post("/guion/humanizar")
+def humanize_script(db: DB, user: CurrentUser, project_id: int):
+    """Botón «Humanizar todo el guion»: la IA cambia las frases marcadas en amarillo."""
+    _project(db, project_id)
+    if jobs.get_result(db, project_id, "script") is None:
+        raise HTTPException(400, "Primero hay que escribir el guion.")
+    jobs.enqueue(db, project_id, "humanize")
+    return _redirect(f"/proyectos/{project_id}/guion#humano")
 
 
 @router.post("/guion/parrafos/{paragraph_id}")

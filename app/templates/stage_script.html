@@ -136,12 +136,21 @@
   {% endif %}
   {% if human %}
   {% set flagged = human.paragraphs|length %}
-  <div class="human-summary {{ 'ok' if not flagged }}">
+  <div class="human-summary {{ 'ok' if not flagged }}" id="humano">
+    {% if human_job and (human_job.active or human_job.status == 'failed') %}{{ ui.job_status(human_job) }}{% endif %}
     {% if flagged %}
     <p class="small"><strong>🗣️ Guion más humano:</strong> {{ flagged }} de {{ human.total }} párrafos
       tienen frases que suenan raras al narrarlas
-      ({{ human.counts.long }} largas · {{ human.counts.repeat }} repeticiones · {{ human.counts.filler }} rellenos).
-      Están marcadas en amarillo: pulsa «Hacerlo más humano» en cada una y la IA cambia solo esas frases.</p>
+      ({{ human.counts.long }} largas · {{ human.counts.repeat }} repeticiones · {{ human.counts.filler }} rellenos
+      · {{ human.counts.cliche }} frases de IA).
+      Están marcadas en amarillo: pulsa «Hacerlo más humano» en cada una, o arréglalas todas de una vez.
+      La IA cambia solo esas frases y deja los datos igual.</p>
+    {% if not (human_job and human_job.active) %}
+    <form method="post" action="/proyectos/{{ project.id }}/guion/humanizar">
+      <button class="btn small" {{ 'disabled' if not has_gemini }}
+        title="Un párrafo detrás de otro; tarda un poco">Humanizar todo el guion</button>
+    </form>
+    {% endif %}
     {% else %}
     <p class="small">🗣️ Guion más humano: sin frases largas, repeticiones ni relleno. ¡Bien!</p>
     {% endif %}

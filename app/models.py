@@ -42,7 +42,12 @@ class _Labels(dict):
 
 # Nombre de cada tarea en avisos y mensajes (las etapas y alguna tarea extra).
 JOB_LABELS = _Labels(
-    {**STAGES, "consistency": "Revisión del protagonista", "factcheck": "Comprobación de datos"}
+    {
+        **STAGES,
+        "consistency": "Revisión del protagonista",
+        "factcheck": "Comprobación de datos",
+        "humanize": "Humanizar el guion",
+    }
 )
 
 DURATIONS = ["Short", "3–5 min", "5–10 min", "10–15 min", "15–30 min"]

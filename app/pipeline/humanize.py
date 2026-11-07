@@ -5,8 +5,10 @@ oído en un documental:
 - Frases demasiado largas: al narrarlas se pierde el hilo (y la voz no respira).
 - Palabras repetidas: la misma palabra varias veces en el mismo párrafo.
 - Palabras de relleno: «básicamente», «cabe destacar»… alargan sin decir nada.
+- Frases de IA: «en un mundo donde», «fascinante», «no solo… sino»… delatan a la máquina.
 
-El botón «Hacerlo más humano» de cada párrafo pide a la IA que cambie solo esas frases.
+El botón «Hacerlo más humano» de cada párrafo pide a la IA que cambie solo esas frases;
+«Humanizar todo el guion» (jobs._run_humanize) lo hace con todos los párrafos marcados.
 """
 
 import re
@@ -38,6 +40,47 @@ FILLERS = (
     "dicho esto",
     "no es ningun secreto",
 )
+
+# Frases hechas que delatan un texto escrito por IA (sin tildes, en minúsculas). No son
+# relleno: dicen algo, pero de la forma en que lo diría cualquier máquina.
+CLICHES = (
+    "en un mundo donde",
+    "en un mundo en el que",
+    "sumergete",
+    "sumerjamonos",
+    "adentremonos",
+    "un viaje fascinante",
+    "fascinante",
+    "crucial",
+    "en conclusion",
+    "en resumen",
+    "juega un papel",
+    "jugo un papel",
+    "cabe senalar",
+    "pero eso no es todo",
+    "y aqui es donde",
+    "en el corazon de",
+    "a medida que avanzamos",
+    "un testimonio de",
+    "dejo una huella imborrable",
+    "un antes y un despues",
+    "en la era de",
+    "el panorama",
+    "redefinir",
+    "redefinio",
+)
+# Va en todos los prompts del guion (escribir y reescribir párrafos): así ya sale humano.
+HUMAN_VOICE = (
+    "Voz humana: escribe como habla un narrador que se lo cuenta a un amigo, no como un "
+    "texto de IA. Mezcla frases cortas con alguna más larga, usa palabras sencillas y "
+    "concretas (cifras, nombres, lugares) y algún giro coloquial. Nunca uses frases hechas "
+    "de IA como «en un mundo donde», «fascinante», «crucial», «juega un papel», «en "
+    "resumen», «pero eso no es todo», «un antes y un después» ni la estructura «no solo… "
+    "sino también»."
+)
+
+# «No solo… sino (también)…»: la estructura favorita de los textos de IA.
+NOT_ONLY = re.compile(r"\bno solo\b[^.!?…]*\bsino\b")
 
 # Palabras largas que se repiten sin que suene mal (conectores y verbos comunes).
 COMMON = {
@@ -135,6 +178,18 @@ def paragraph_issues(text: str, names: set[str] | None = None) -> list[dict]:
         if found:
             original = text[found.start() : found.end()].lower()
             issues.append({"kind": "filler", "text": original, "detail": f"Relleno: «{original}»"})
+
+    for cliche in CLICHES:
+        found = re.search(rf"\b{cliche}\b", plain)
+        if found:
+            original = text[found.start() : found.end()].lower()
+            issues.append(
+                {"kind": "cliche", "text": original, "detail": f"Suena a IA: «{original}»"}
+            )
+    found = NOT_ONLY.search(plain)
+    if found:
+        original = text[found.start() : found.end()]
+        issues.append({"kind": "cliche", "text": original, "detail": "Suena a IA: «no solo… sino»"})
     return issues
 
 
@@ -149,7 +204,7 @@ def script_issues(script: dict | None) -> dict:
             issues = paragraph_issues(paragraph["text"], names)
             if issues:
                 by_paragraph[paragraph["id"]] = issues
-    counts = {"long": 0, "repeat": 0, "filler": 0}
+    counts = {"long": 0, "repeat": 0, "filler": 0, "cliche": 0}
     for issues in by_paragraph.values():
         for issue in issues:
             counts[issue["kind"]] += 1
@@ -167,6 +222,11 @@ def humanize_instruction(text: str, title: str = "") -> str:
             lines.append(f"- Parte en dos o tres frases cortas: «{issue['text']}»")
         elif issue["kind"] == "repeat":
             lines.append(f"- Cambia a veces «{issue['text']}» por un sinónimo o un pronombre.")
+        elif issue["kind"] == "cliche":
+            lines.append(
+                f"- «{issue['text']}» suena a texto de máquina: dilo como lo contaría una "
+                "persona a un amigo, con palabras sencillas y concretas."
+            )
         else:
             lines.append(f"- Quita el relleno «{issue['text']}» (o di algo concreto en su lugar).")
     return (
