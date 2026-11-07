@@ -24,6 +24,7 @@ from app.providers.ai import ProviderError
 
 log = logging.getLogger(__name__)
 
+MODEL = "sonnet"  # gasta mucho menos del plan Pro que Opus y basta para el día a día
 TIMEOUT = 240  # segundos: buscar en internet o lanzar un agente puede tardar
 SESSION_KEY = "claude_session:{chat_id}"  # la conversación sigue donde se quedó
 NEW_CHAT = {"nueva conversacion", "nueva conversación", "olvida", "empezar de nuevo", "/nueva"}
@@ -88,7 +89,8 @@ def ask(question: str, session_id: str | None = None, runner=subprocess.run) -> 
             "Claude no está instalado en este PC.",
             detail="Instala Claude Code y entra con tu cuenta (en una terminal: claude).",
         )
-    args = [exe, "-p", "--output-format", "json", "--append-system-prompt", INSTRUCTIONS]
+    args = [exe, "-p", "--output-format", "json", "--model", MODEL]
+    args += ["--append-system-prompt", INSTRUCTIONS]
     args += ["--allowedTools", *ALLOWED, "--disallowedTools", *DENIED]
     if session_id:
         args += ["--resume", session_id]
