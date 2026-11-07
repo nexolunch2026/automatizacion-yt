@@ -32,15 +32,12 @@
 {% macro stale_banner(project, back) %}
 {% set stale = project.stale if project.stale is defined else {} %}
 {% if stale %}
-<div class="alert warn stale-banner">
-  <strong>⚠ Hay cosas desactualizadas en este vídeo:</strong>
-  <ul>
-    {% for stage, reason in stale.items() %}<li>{{ {'edit': 'Vídeo', 'publish': 'Textos', 'thumbnail': 'Miniaturas', 'shorts': 'Shorts'}[stage] }}: {{ reason }}.</li>{% endfor %}
-  </ul>
+<div class="x-jarvis stale-banner"><span class="x-orb" aria-hidden="true"></span>
+  <div class="x-jarvis-text"><b>Hay cosas desactualizadas en este vídeo.</b>
+    <ul>{% for stage, reason in stale.items() %}<li>{{ {'edit': 'Vídeo', 'publish': 'Textos', 'thumbnail': 'Miniaturas', 'shorts': 'Shorts'}[stage] }}: {{ reason }}.</li>{% endfor %}</ul></div>
   <form method="post" action="/proyectos/{{ project.id }}/rehacer-desactualizado">
     <input type="hidden" name="back" value="{{ back }}">
-    <button class="btn small">Rehacer lo desactualizado</button>
-    <span class="muted small">Se hace en orden: vídeo, textos, miniaturas y Shorts. Tarda unos minutos.</span>
+    <button class="btn" title="Se hace en orden: vídeo, textos, miniaturas y Shorts. Tarda unos minutos.">Rehacer lo desactualizado</button>
   </form>
 </div>
 {% endif %}

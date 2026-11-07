@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block main_class %}page studio-home{% endblock %}
+{% block content %}
+{% set channel_short = project.channel.name.split()[-1] if project.channel else '' %}
+<p class="muted small"><a href="/proyectos/{{ project.id }}">← Volver al proyecto</a></p>
+<div class="x-head" style="margin-top:10px">
+  <div><span class="x-eyebrow">Preparar el estreno · {{ project.channel.name }}</span><h1 class="x-title">{{ project.title }}</h1></div>
+  <p>Todo lo que lleva el vídeo, quién lo ha aprobado y cuándo sale, en una sola claqueta.</p>
+</div>
+
+{% if stale %}
+<div class="x-jarvis"><span class="x-orb" aria-hidden="true"></span>
+  <div class="x-jarvis-text"><b>Hay cosas de antes del último cambio.</b>
+    <ul>{% for stage, reason in stale.items() %}<li>{{ {'edit': 'Vídeo', 'publish': 'Textos', 'thumbnail': 'Miniaturas', 'shorts': 'Shorts'}[stage] }}: {{ reason }}.</li>{% endfor %}</ul></div>
+  <form method="post" action="/proyectos/{{ project.id }}/rehacer-desactualizado"><button class="btn">Rehacerlo todo</button></form>
+</div>
+{% endif %}
+
+<div class="x-prep">
+  <div style="display:grid; gap:22px">
+    <div class="x-clapper">
+      <div class="x-clap-top"></div>
+      <div class="x-clap-body">
+        <div class="x-clap-row">
+          <div><small>Canal</small><b>{{ channel_short }}</b></div>
+          <div><small>Duración</small><b>{{ (lines[0].detail if lines[0].ok else '—') }}</b></div>
+          <div><small>Toma</small><b>{{ done }} / {{ total }}</b></div>
+        </div>
+        <div>
+          {% for l in lines %}
+          <a class="x-take {{ 'ok' if l.ok else 'no' }}" href="/proyectos/{{ project.id }}/{{ l.link }}">
+            <span class="ck">{{ '✓' if l.ok else '!' }}</span>{{ l.label }}<small>{{ l.detail }}</small></a>
+          {% endfor %}
+          {% set missing = people|rejectattr('ok')|list %}
+          <div class="x-take {{ 'no' if missing else 'ok' }}"><span class="ck">{{ '!' if missing else '✓' }}</span>Visto bueno de los dos
+            <small>{% if missing %}falta {{ missing|map(attribute='name')|join(' y ') }}{% else %}aprobado{% endif %}</small></div>
+        </div>
+      </div>
+    </div>
+    {% if thumb %}
+    <div>
+      <div class="x-cover"><img src="{{ thumb }}" alt="Miniatura elegida"></div>
+      <div class="x-yt"><span class="av">{{ project.channel.name[:1] }}</span><div><p>{{ title }}</p><span class="muted small">{{ project.channel.name }} · así se verá en la portada de YouTube</span></div></div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div style="display:grid; gap:22px">
+    <div class="x-panel">
+      <h3>¿Lo habéis visto?</h3>
+      <div class="x-votes">
+        {% for p in people %}
+        <div class="x-vote {{ 'yes' if p.ok else 'no' }}">
+          {% if p.ok %}<span class="x-rubber">Aprobado</span>{% else %}<span class="x-face no" style="width:44px;height:44px;font-size:1rem">{{ p.initial }}</span>{% endif %}
+          <b>{{ p.name }}</b>
+          <small>{{ p.when if p.ok else 'Aún no lo ha visto' }}</small>
+          {% if p.id == me.id %}
+          <form method="post" action="/proyectos/{{ project.id }}/estreno/aprobar">
+            <input type="hidden" name="yes" value="{{ '0' if p.ok else '1' }}">
+            <button class="btn {{ 'secondary' if p.ok }} small">{{ 'Quitar mi aprobación' if p.ok else 'Lo he visto: aprobado' }}</button>
+          </form>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <p class="muted small" style="margin:12px 0 0">Si el vídeo se vuelve a montar, las aprobaciones se borran solas: hay que volver a verlo.</p>
+    </div>
+
+    <div class="x-panel">
+      <h3>¿Cuándo sale?</h3>
+      <form method="post" action="/proyectos/{{ project.id }}/estreno/fecha" class="x-slots">
+        {% for s in slots %}
+        <button class="x-slotb{{ ' on' if chosen == s.date.isoformat() }}" name="day" value="{{ s.date.isoformat() }}" {{ 'disabled' if s.busy }} title="{{ ('Ya sale ' ~ s.busy) if s.busy else 'Elegir este día' }}">{{ s.name }}<b>{{ s.date.day }}</b>{{ 'ocupado' if s.busy else '18:00 · libre' }}</button>
+        {% endfor %}
+      </form>
+      <p class="muted small" style="margin:10px 0 0">{% if chosen_text %}Elegido: <strong>{{ chosen_text }}</strong>. Los Shorts salen los días siguientes de Shorts.{% else %}Sin fecha: la portada propone el primer día libre de su canal.{% endif %}</p>
+    </div>
+
+    <form method="post" action="/proyectos/{{ project.id }}/estreno/carpeta">
+      <button class="btn big x-go x-magnet">Preparar carpeta para subir</button>
+    </form>
+    {% if folder %}<p class="x-path">Carpeta: {{ folder }}</p>{% endif %}
+  </div>
+</div>
+
+{% if toast %}<div class="x-toast" role="status"><span class="tick">✓</span>{{ toast }}</div>{% endif %}
+{% endblock %}

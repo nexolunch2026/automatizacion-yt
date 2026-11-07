@@ -9,8 +9,9 @@
   <title>{% block title %}{% if project is defined and project %}{{ project.title }} · {% else %}{% for prefix, name in sections.items() if here.startswith(prefix) %}{{ name }} · {% endfor %}{% endif %}Faceless Studio{% endblock %}</title>
   <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=Big+Shoulders+Display:wght@700;900&amp;family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;700&amp;family=Permanent+Marker&amp;display=swap">
   <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}?v={{ version }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='estreno.css') }}?v={{ version }}">
   <meta name="theme-color" content="#07090a">
 </head>
 <body class="{{ 'studio' if user }}">
@@ -170,5 +171,11 @@
       setTimeout(() => { button.disabled = false; button.classList.remove("is-loading"); }, 15000);
     });
   </script>
+  {% if user %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+  <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js" defer></script>
+  <script src="{{ url_for('static', path='estreno.js') }}?v={{ version }}" defer></script>
+  {% endif %}
 </body>
 </html>

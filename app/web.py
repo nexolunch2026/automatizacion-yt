@@ -56,9 +56,38 @@ def dashboard(request: Request, db: DB, user: CurrentUser, canal: int | None = N
         has_gemini=api_key_hint(db, "gemini") is not None,
         summary=_studio_summary(db, projects) if projects else None,
         shelves=_shelves(db, projects, channels),
+        **_week_context(db, projects, channels),
     )
 
 
+def _week_context(db, projects, channels) -> dict:
+    """La semana en tira de película (calendario fijo de publicación)."""
+    from datetime import date
+
+    from app import estreno
+
+    today = date.today()
+    start = today  # los próximos 7 días (lo pasado ya no hace falta verlo)
+    days = estreno.week(db, projects, start, today)
+    for day in days:
+        day["holes"] = estreno.holes(db, day, channels)
+        for item in day["items"]:
+            item["thumb"] = _thumb_url(db, item["project"].id)
+    end = start.toordinal() + 6
+    return {
+        "week": days,
+        "week_label": f"Del {start.day} al {date.fromordinal(end).day} de "
+        f"{MONTH_NAMES[date.fromordinal(end).month - 1]}",
+        "channel_colors": {
+            c.id: CHANNEL_COLORS[i % len(CHANNEL_COLORS)] for i, c in enumerate(channels)
+        },
+    }
+
+
+MONTH_NAMES = (
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+)  # fmt: skip
 CHANNEL_COLORS = ("#ff5a61", "#3ddc84", "#5b9dff", "#ffb020", "#c084fc")
 
 PALETTE_PAGES = (
@@ -97,7 +126,7 @@ def palette(db: DB, user: CurrentUser) -> dict:
 def _shelves(db, projects, channels) -> dict:
     """La portada tipo «sala de estreno»: el próximo estreno, lo que está en el taller,
     lo listo para estrenar y lo ya publicado (cada vídeo con su miniatura y su paso)."""
-    from app import coach
+    from app import coach, estreno, factcheck
     from app.pipeline.monetization import last_render
 
     colors = {c.id: CHANNEL_COLORS[i % len(CHANNEL_COLORS)] for i, c in enumerate(channels)}
@@ -122,6 +151,9 @@ def _shelves(db, projects, channels) -> dict:
             "needs_you": bool(step.get("stage")),
             "active": active,
             "duration": f"{minutes}:{seconds:02d}" if render_.get("seconds") else "",
+            "people": estreno.approvals_view(db, p.id) if render_.get("file") else [],
+            "facts": (jobs.get_result(db, p.id, factcheck.STAGE) or {}).get("summary"),
+            "date": estreno.get(db, p.id).get("date"),
         }
         if p.id in published or p.status == "Publicado":
             card.update(step="", needs_you=False)  # ya está en YouTube: no falta nada
@@ -130,7 +162,12 @@ def _shelves(db, projects, channels) -> dict:
             shelves["ready"].append(card)
         else:
             shelves["workshop"].append(card)
-    featured = next((c for c in shelves["ready"] if c["thumb"]), None)
+    # El próximo estreno: el que tiene la fecha más cercana; si no, el más aprobado.
+    candidates = sorted(
+        (c for c in shelves["ready"] if c["thumb"]),
+        key=lambda c: (c["date"] or "9999", -sum(p["ok"] for p in c["people"])),
+    )
+    featured = candidates[0] if candidates else None
     shelves["featured"] = featured
     if featured:
         shelves["ready"] = [c for c in shelves["ready"] if c is not featured]

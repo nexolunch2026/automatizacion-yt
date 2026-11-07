@@ -148,7 +148,7 @@ def test_hero_check_marks_and_redoes_only_bad_scenes(logged_in, monkeypatch):
     run_all()
     assert fake.calls >= 1
     page = logged_in.get("/proyectos/1/visuales").text
-    assert "1 no se parecen" in page and "pelo blanco" in page
+    assert "1 escena no se parece a la ficha" in page and "pelo blanco" in page
 
     logged_in.post("/proyectos/1/visuales/rehacer-marcadas")
     with SessionLocal() as db:
