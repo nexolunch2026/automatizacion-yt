@@ -24,7 +24,7 @@ def channel(monkeypatch):
              "views": 20, "likes": 1, "comments": 0, "published": "2026-10-01"},
         ],
     }  # fmt: skip
-    monkeypatch.setattr(analytics, "fetch_videos", lambda db: state)
+    monkeypatch.setattr(analytics, "fetch_videos", lambda db, handle=None: state)
     return state
 
 
@@ -68,7 +68,7 @@ def test_maybe_refresh_waits_and_retries(logged_in, monkeypatch):
 
     calls = []
 
-    def fail(db):
+    def fail(db, handle=None):
         calls.append(1)
         raise httpx.ConnectError("sin internet")
 

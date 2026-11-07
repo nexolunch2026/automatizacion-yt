@@ -20,7 +20,7 @@ from app.models import (
 )
 from app.pipeline.monetization import project_review
 from app.pipeline.script import FORMATS
-from app.settings_store import api_key_hint, get_setting
+from app.settings_store import api_key_hint, get_setting, set_setting
 from app.stages_web import SLUGS
 from app.templating import render
 
@@ -280,7 +280,7 @@ def channels_page(request: Request, db: DB, user: CurrentUser):
 
 
 def _channels_page(request: Request, db, channels, status_code: int = 200, **ctx):
-    from app import niche
+    from app import info, niche
     from app.pipeline import accent
 
     kits = {c.id: niche.kit_for(db, c) for c in channels}
@@ -297,6 +297,7 @@ def _channels_page(request: Request, db, channels, status_code: int = 200, **ctx
         own=own,
         has_gemini=api_key_hint(db, "gemini") is not None,
         palette={name: accent.css(name) for name in accent.PALETTE},
+        youtube={c.id: info.channel_setting(db, c.id) for c in channels},
         **ctx,
     )
 
@@ -341,6 +342,17 @@ def change_color(db: DB, user: CurrentUser, channel_id: int, color: Annotated[st
 
     _channel(db, channel_id).color = color if color in PALETTE else None
     db.commit()
+    return _redirect(f"/canales#c-{channel_id}")
+
+
+@router.post("/canales/{channel_id}/youtube")
+def change_youtube(db: DB, user: CurrentUser, channel_id: int, handle: Annotated[str, Form()] = ""):
+    """La cuenta de YouTube de este canal (@usuario o enlace): Rendimiento lee sus vídeos."""
+    from app import info
+
+    _channel(db, channel_id)
+    set_setting(db, info.CHANNEL_KEY.format(id=channel_id), " ".join(handle.split())[:120])
+    info._cache.clear()
     return _redirect(f"/canales#c-{channel_id}")
 
 
@@ -479,7 +491,17 @@ def project_detail(request: Request, db: DB, user: CurrentUser, project_id: int)
         month_usage=usage.month_usage(db),
         stage_names=STAGES,
         launch=_launch_strip(db, project),
+        all_channels=db.scalars(select(Channel).order_by(Channel.name)).all(),
     )
+
+
+@router.post("/proyectos/{project_id}/canal")
+def move_project(db: DB, user: CurrentUser, project_id: int, channel_id: Annotated[int, Form()]):
+    """Cambia el vídeo de canal (p. ej. si se creó en el canal equivocado)."""
+    project = _get_project(db, project_id)
+    project.channel_id = _channel(db, channel_id).id
+    db.commit()
+    return _redirect(f"/proyectos/{project_id}")
 
 
 def _launch_strip(db, project) -> dict | None:

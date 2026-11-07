@@ -19,6 +19,7 @@ from datetime import datetime
 from email.utils import parsedate_to_datetime
 
 import httpx
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.settings_store import get_api_key, get_setting, set_setting
@@ -55,14 +56,42 @@ def _get(url: str, **params) -> httpx.Response:
 # ---------------------------------------------------------------- YouTube
 
 
-def channel_handle(db: Session) -> str:
-    raw = (get_setting(db, "youtube_channel") or DEFAULT_CHANNEL).strip()
+CHANNEL_KEY = "youtube_channel:{id}"  # la cuenta de YouTube de cada canal (Canales → Vincular)
+
+
+def normalize_handle(raw: str) -> str:
+    """«@Canal», un enlace del canal o un id «UC…» → «@Canal» / «UC…»."""
+    raw = (raw or "").strip()
     if not raw:
         return ""
     match = re.search(r"(@[\w.\-]+)|(UC[\w-]{22})", raw)
     if match:
         return match.group(0)
-    return "@" + raw.lstrip("@") if raw else DEFAULT_CHANNEL
+    return "@" + raw.lstrip("@")
+
+
+def channel_handle(db: Session) -> str:
+    raw = (get_setting(db, "youtube_channel") or DEFAULT_CHANNEL).strip()
+    return normalize_handle(raw) if raw else ""
+
+
+def channel_setting(db: Session, channel_id: int) -> str:
+    return get_setting(db, CHANNEL_KEY.format(id=channel_id)) or ""
+
+
+def channel_handles(db: Session) -> list[str]:
+    """Todas las cuentas de YouTube que hay que leer: la principal (Configuración) y la que se
+    haya vinculado a cada canal en «Canales», sin repetir."""
+    from app.models import Channel
+
+    handles = [channel_handle(db)]
+    for channel_id in db.scalars(select(Channel.id)):
+        handles.append(normalize_handle(channel_setting(db, channel_id)))
+    seen: list[str] = []
+    for handle in handles:
+        if handle and handle.lower() not in {h.lower() for h in seen}:
+            seen.append(handle)
+    return seen
 
 
 def channel_url(db: Session) -> str:

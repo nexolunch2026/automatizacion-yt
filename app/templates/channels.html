@@ -41,7 +41,13 @@
         {% endfor %}
       </form>
       <p class="muted small">Se usa en subtítulos, textos en pantalla, gráficos, miniaturas y Shorts.</p>
-      <form method="post" action="/canales/{{ c.id }}/nicho" class="row-actions">
+      <form method="post" action="/canales/{{ c.id }}/youtube" class="row-actions">
+<span class="small">▶️ Cuenta de YouTube:</span>
+<input name="handle" value="{{ youtube.get(c.id, '') }}" placeholder="@ModoOffside o el enlace del canal" maxlength="120" style="flex:1;min-width:12rem">
+<button class="btn small secondary">Vincular</button>
+</form>
+<p class="muted small">Rendimiento lee las vistas y suscriptores de esta cuenta (cada pocas horas).</p>
+<form method="post" action="/canales/{{ c.id }}/nicho" class="row-actions">
         <input name="niche" value="{{ c.niche }}" placeholder="Nicho (vacío: el de tu perfil)" maxlength="200" style="flex:1;min-width:12rem">
         <button class="btn small secondary">Cambiar nicho</button>
       </form>

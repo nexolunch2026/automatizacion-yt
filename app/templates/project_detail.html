@@ -266,6 +266,15 @@
   </div>
 </div>
 
+<form method="post" action="/proyectos/{{ project.id }}/canal" class="row-actions">
+  <label class="small">📺 Canal de este vídeo
+    <select name="channel_id">
+      {% for c in all_channels %}<option value="{{ c.id }}" {% if c.id == project.channel_id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <button class="btn small secondary">Mover a este canal</button>
+</form>
+
 <form method="post" action="/proyectos/{{ project.id }}/borrar"
       onsubmit="return confirm('¿Seguro que quieres borrar este proyecto? No se puede deshacer.')">
   <button class="btn danger">Borrar proyecto</button>
