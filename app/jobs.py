@@ -528,6 +528,7 @@ def _run_shorts(db: Session, project: Project, progress, params: dict) -> dict:
     folder = project_dir(project.id)
     quality = params.get("quality") if params.get("quality") in ("preview", "final") else "preview"
     seo = get_result(db, project.id, "publish") or {}
+    previous_shorts = get_result(db, project.id, "shorts")
     data = run_shorts(
         project,
         script,
@@ -541,6 +542,8 @@ def _run_shorts(db: Session, project: Project, progress, params: dict) -> dict:
         style=style,
         music=music_path(style["music"]),
         hashtags=seo.get("hashtags"),
+        # Rehacer = los mismos momentos y títulos; «nuevos» = que la IA elija otros.
+        keep=None if params.get("nuevos") else (previous_shorts or {}).get("shorts"),
     )
     if ai is not None:
         remember_working_model(db, ai)

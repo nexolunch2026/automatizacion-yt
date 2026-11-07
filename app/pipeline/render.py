@@ -12,6 +12,7 @@ Acabado («paquete de calidad»):
 - Acabado de cine: contraste suave, viñeta y grano de película.
 """
 
+import logging
 import os
 import re
 import shutil
@@ -28,13 +29,16 @@ from PIL import Image, ImageDraw, ImageFont
 from app.pipeline import accent
 from app.providers.voice import spoken_text
 
+log = logging.getLogger(__name__)
+
 PAUSE = 0.35  # la misma pausa que se deja entre párrafos al grabar la voz
 CROSSFADE = 0.4  # fundido entre escenas (segundos)
 
 QUALITIES = {
     # nombre: (ancho, alto, fps, preset de x264, crf, factor de zoom suave) en horizontal
     "preview": (1280, 720, 30, "veryfast", 24, 2),
-    "final": (1920, 1080, 30, "veryfast", 20, 3),
+    # Zoom suave ×2 (antes ×3): casi el doble de rápido y apenas se nota (Simón, 7 nov 2026).
+    "final": (1920, 1080, 30, "veryfast", 20, 2),
     "test": (192, 108, 12, "ultrafast", 35, 1),
 }
 
@@ -309,6 +313,25 @@ def puppet_filter(w: int, h: int, seed: int = 0) -> str:
     )
 
 
+_qsv: bool | None = None
+
+
+def has_qsv() -> bool:
+    """¿Puede codificar la gráfica Intel (Quick Sync)? Se prueba una vez con un vídeo mínimo.
+    FACELESS_NO_QSV=1 lo desactiva (las pruebas automáticas lo usan)."""
+    global _qsv
+    if os.environ.get("FACELESS_NO_QSV"):
+        return False
+    if _qsv is None:
+        try:
+            run_ffmpeg(["-f", "lavfi", "-i", "color=black:s=256x144:d=0.2", "-c:v", "h264_qsv",
+                        "-pix_fmt", "nv12", "-f", "null", "-"])  # fmt: skip
+            _qsv = True
+        except (RuntimeError, OSError):
+            _qsv = False
+    return _qsv
+
+
 def _encode(preset: str, crf: int, fps: int) -> list[str]:
     return [
         "-c:v",
@@ -323,6 +346,23 @@ def _encode(preset: str, crf: int, fps: int) -> list[str]:
         str(fps),
         "-an",
     ]
+
+
+def blur_fill_height(image: Path, w: int, h: int) -> int | None:
+    """En un vídeo vertical, el alto que ocupa una imagen horizontal mostrada entera (con fondo
+    desenfocado). None si no hace falta: vídeo horizontal, imagen vertical o ilegible."""
+    if h <= w:
+        return None
+    try:
+        from PIL import Image
+
+        with Image.open(image) as picture:
+            iw, ih = picture.size
+    except OSError:
+        return None
+    if iw <= ih * 1.1:  # ya es vertical o casi cuadrada: se recorta como siempre
+        return None
+    return max(int(w * ih / iw) // 2 * 2, 2)
 
 
 def _end_start(seconds: float) -> float:
@@ -364,21 +404,42 @@ def scene_clip(
     else:
         inputs += ["-i", str(visual_path)]
         shots = split_shots(seconds)
-        bw, bh = w * factor // 2 * 2, h * factor // 2 * 2
-        parts = [
-            f"[0:v]scale={bw}:{bh}:force_original_aspect_ratio=increase,crop={bw}:{bh},"
+        # Vertical (Shorts) con imagen horizontal: la imagen ENTERA en el centro y, detrás,
+        # la misma ampliada y desenfocada. Recortar el centro dejaba fuera a los personajes.
+        fh = blur_fill_height(visual_path, w, h)
+        ph = fh or h  # alto de la imagen que se mueve
+        bw, bh = w * factor // 2 * 2, ph * factor // 2 * 2
+        src = "[0:v]"
+        parts = []
+        if fh:
+            total = int(seconds * fps) + 2
+            parts.append("[0:v]split=2[fgsrc][bgsrc]")
+            parts.append(
+                f"[bgsrc]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},"
+                # (el radio del desenfoque no puede pasar del tamaño de la imagen)
+                f"boxblur={max(min(24, w // 8), 1)}:2,eq=brightness=-0.18,setsar=1,"
+                f"loop=loop={total}:size=1:start=0,"
+                f"setpts=N/{fps}/TB,trim=duration={seconds:.3f}[bg]"
+            )
+            src = "[fgsrc]"
+        parts.append(
+            f"{src}scale={bw}:{bh}:force_original_aspect_ratio=increase,crop={bw}:{bh},"
             f"setsar=1,split={len(shots)}" + "".join(f"[i{k}]" for k in range(len(shots)))
-        ]
+        )
         for k, shot in enumerate(shots):
             frames = max(int(round(shot * fps)), 1)
             z, x, y = _motion_filter(MOTIONS[(first_motion + k) % len(MOTIONS)], frames)
             parts.append(
-                f"[i{k}]zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={w}x{h}:fps={fps}[s{k}]"
+                f"[i{k}]zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={w}x{ph}:fps={fps}[s{k}]"
             )
         joined = "".join(f"[s{k}]" for k in range(len(shots))) + f"concat=n={len(shots)}:v=1:a=0"
         if puppet:
-            joined += "," + puppet_filter(w, h, first_motion + int(scene.get("number") or 0))
-        parts.append(joined + "[v0]")
+            joined += "," + puppet_filter(w, ph, first_motion + int(scene.get("number") or 0))
+        if fh:
+            parts.append(joined + "[fg]")
+            parts.append(f"[bg][fg]overlay=0:{(h - fh) // 2}:shortest=1,setsar=1[v0]")
+        else:
+            parts.append(joined + "[v0]")
         chain = ";".join(parts)
     last = "[v0]"
     if scene.get("on_screen_text"):
@@ -619,7 +680,7 @@ def scene_key(scene: dict, visual: dict | None, length: float, size, fps, crf, f
             stat.st_mtime if stat else 0,
         ]
     data = {
-        "v": 1,
+        "v": 2,  # 2: Shorts con imagen entera y fondo desenfocado (no valen las escenas viejas)
         "scene": {k: v for k, v in scene.items() if k != "number"},  # el nº solo nombra archivos
         "visual": source,
         "length": round(length, 3),
@@ -798,35 +859,26 @@ def render_video(
 
     name = "video" if quality == "final" else f"video-{quality}"
     tmp_out = workdir / f"{name}.mp4"
-    run_ffmpeg(
-        [
-            *inputs,
-            "-filter_complex",
-            graph,
-            "-map",
-            "[vout]",
-            "-map",
-            audio_map,
-            "-c:v",
-            "libx264",
-            "-preset",
-            preset,
-            "-crf",
-            str(crf),
-            "-r",
-            str(fps),
-            "-c:a",
-            "aac",
-            "-b:a",
-            "192k",
-            "-t",
-            f"{t:.3f}",
-            "-movflags",
-            "+faststart",
-            tmp_out.name,
-        ],
-        cwd=workdir,
-    )
+
+    def join(codec: list[str]) -> None:
+        run_ffmpeg(
+            [*inputs, "-filter_complex", graph, "-map", "[vout]", "-map", audio_map, *codec,
+             "-r", str(fps), "-c:a", "aac", "-b:a", "192k", "-t", f"{t:.3f}",
+             "-movflags", "+faststart", tmp_out.name],
+            cwd=workdir,
+        )  # fmt: skip
+
+    software = ["-c:v", "libx264", "-preset", preset, "-crf", str(crf)]
+    if has_qsv():
+        try:  # la gráfica Intel codifica más rápido; si falla, se hace como siempre
+            join(["-c:v", "h264_qsv", "-global_quality", str(crf + 2), "-pix_fmt", "nv12"])
+        except RuntimeError as exc:
+            log.warning(
+                "La gráfica Intel no pudo codificar el vídeo (%s): se usa el procesador", exc
+            )
+            join(software)
+    else:
+        join(software)
     out = replace_file(tmp_out, folder / f"{name}.mp4")
     tmp_srt = workdir / "subtitulos.srt"
     tmp_srt.write_text(build_srt(segments), encoding="utf-8")

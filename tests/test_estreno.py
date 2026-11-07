@@ -16,17 +16,17 @@ def test_calendar_days_and_slots(logged_in, monkeypatch):
         assert estreno.is_ready(db, project)  # montado y sin publicar
         days = estreno.week(db, [project], friday, today=friday)
         long_days = [d["name"] for d in days if d["long"]]
-        assert long_days == ["Sábado", "Martes", "Jueves"]
-        # Sin fecha: se propone el primer día de vídeo largo libre (el sábado 7)
-        saturday = next(d for d in days if d["date"] == date(2026, 11, 7))
-        assert saturday["items"][0]["proposed"] and saturday["items"][0]["label"] == "Sin ver"
+        assert long_days == ["Domingo", "Martes", "Jueves"]
+        # Sin fecha: se propone el primer día de vídeo largo libre (el domingo 8)
+        sunday = next(d for d in days if d["date"] == date(2026, 11, 8))
+        assert sunday["items"][0]["proposed"] and sunday["items"][0]["label"] == "Sin ver"
         # Con fecha elegida, va ese día y deja de ser propuesta
         estreno.set_date(db, 1, date(2026, 11, 10))
         days = estreno.week(db, [project], friday, today=friday)
         tuesday = next(d for d in days if d["date"] == date(2026, 11, 10))
         assert tuesday["items"][0]["project"].id == 1 and not tuesday["items"][0]["proposed"]
         slots = estreno.next_slots(db, project, today=friday)
-        assert [s["name"] for s in slots] == ["Sábado", "Martes", "Jueves"]
+        assert [s["name"] for s in slots] == ["Domingo", "Martes", "Jueves"]
 
 
 def test_approvals_reset_when_video_is_remade(logged_in, monkeypatch):

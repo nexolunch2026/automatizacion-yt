@@ -1175,6 +1175,7 @@ def run_stage(
     film_look: Annotated[str | None, Form()] = None,
     callouts: Annotated[str | None, Form()] = None,
     puppet: Annotated[str | None, Form()] = None,
+    nuevos: Annotated[str | None, Form()] = None,
     music: Annotated[str | None, Form()] = None,
     look: Annotated[str | None, Form()] = None,
     music_volume: Annotated[str | None, Form()] = None,
@@ -1203,7 +1204,10 @@ def run_stage(
             "music_volume": music_volume if music_volume in MUSIC_VOLUMES else "media",
         }
     elif stage == "shorts":
-        params = {"quality": quality if quality in ("preview", "final") else "preview"}
+        params = {
+            "quality": quality if quality in ("preview", "final") else "preview",
+            "nuevos": nuevos == "1",  # que la IA elija otros momentos (si no, los mismos)
+        }
     elif stage == "visuals" and mode in ("stock", "ai"):
         params = {"mode": mode}
     elif stage == "voice":

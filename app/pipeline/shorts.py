@@ -193,6 +193,21 @@ def make_cover(media: dict, paragraph_ids: list[str], text: str, out: Path) -> P
     )
 
 
+def kept_picks(keep: list[dict] | None, total: int) -> list[ShortPick]:
+    """Los Shorts anteriores como elecciones (si siguen encajando en el guion actual)."""
+    picks = []
+    for short in keep or []:
+        try:
+            start, end = (int(n) for n in short["paragraphs"])
+            pick = ShortPick(start=start, end=end, title=short["title"], hook=short["hook"])
+        except (KeyError, TypeError, ValueError):
+            return []
+        if not 1 <= start <= end <= total:
+            return []  # el guion cambió: mejor elegir de nuevo
+        picks.append(pick)
+    return picks
+
+
 def run_shorts(
     project: Project,
     script: dict,
@@ -206,15 +221,20 @@ def run_shorts(
     style: dict | None = None,
     music: Path | None = None,
     hashtags: list[str] | None = None,
+    keep: list[dict] | None = None,
 ) -> dict:
+    """`keep`: los Shorts que ya había. Al rehacerlos se repiten los mismos momentos, títulos
+    y ganchos (solo cambia el montaje); sin `keep`, la IA elige momentos nuevos."""
     takes = {t["paragraph_id"]: t["seconds"] for t in voice["takes"]}
     files = {t["paragraph_id"]: project_folder / t["file"] for t in voice["takes"]}
     rows = paragraph_table(script, takes)
     if not rows:
         raise ProviderError("No hay narración grabada para hacer Shorts.")
-    progress(5, "Buscando los mejores momentos del vídeo")
-    count = how_many(voice.get("seconds") or sum(takes.values()))
-    picks = choose_segments(project, script, rows, ai, count)
+    picks = kept_picks(keep, len(rows))
+    if not picks:
+        progress(5, "Buscando los mejores momentos del vídeo")
+        count = how_many(voice.get("seconds") or sum(takes.values()))
+        picks = choose_segments(project, script, rows, ai, count)
     if not picks:  # no es un error: simplemente no hay material suficiente
         progress(100, "Vídeo demasiado corto para Shorts")
         return {

@@ -71,7 +71,7 @@ def test_pipeline_makes_vertical_shorts(logged_in, monkeypatch):
 
     logged_in.post("/proyectos/1/etapas/shorts", data={"quality": "final"})
     with SessionLocal() as db:
-        assert jobs.latest_jobs(db, 1)["shorts"].params == {"quality": "final"}
+        assert jobs.latest_jobs(db, 1)["shorts"].params == {"quality": "final", "nuevos": False}
 
 
 def test_shorts_reach_telegram(logged_in, monkeypatch):
