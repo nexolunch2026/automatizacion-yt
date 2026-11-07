@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from app.models import WORDS_BY_DURATION, Project
 from app.pipeline.context import research_summary
-from app.pipeline.humanize import humanize_instruction
+from app.pipeline.humanize import HUMAN_VOICE, humanize_instruction
 from app.providers.ai import AIProvider, ProviderError
 
 SECTION_LABELS = {
@@ -146,7 +146,7 @@ def _style(params: dict) -> str:
     return (
         f"Tono: {params.get('tone', 'Documental')}. "
         f"Nivel de dramatismo: {params.get('drama', 'Medio')}. "
-        f"Nivel técnico: {params.get('technical', 'Bajo')}."
+        f"Nivel técnico: {params.get('technical', 'Bajo')}.\n{HUMAN_VOICE}"
     )
 
 

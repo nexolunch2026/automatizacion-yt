@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from app import (
     agenda,
+    claude_code,
     coach,
     daily,
     demand,
@@ -35,7 +36,7 @@ from app import (
     yt_research,
 )
 from app.media import project_dir
-from app.models import DURATIONS, STAGES, Channel, Job, Project, StageResult, User
+from app.models import DURATIONS, JOB_LABELS, Channel, Job, Project, StageResult, User
 from app.pipeline.monetization import project_review, summary_text
 from app.pipeline.render import run_ffmpeg
 from app.pipeline.script import guess_format
@@ -1406,7 +1407,7 @@ def status_text(db: Session, html: bool = True) -> str:
                     state = f"esperando a Gemini ({job.run_after:%d/%m %H:%M})"
                 else:
                     state = "en cola"
-                lines.append(f"🎬 {b(project.title)} — {STAGES[stage]}: {escape(state)}")
+                lines.append(f"🎬 {b(project.title)} — {JOB_LABELS[stage]}: {escape(state)}")
     waiting = _waiting_choice(db)
     for project in waiting:
         lines.append(f"🧭 {b(project.title)} — esperando que elijas un enfoque")
@@ -1909,13 +1910,49 @@ def _text(db: Session, text: str, chat_id: int = 0) -> list[Reply]:
     if not text:
         return help_replies()
     intent = quick_intent(text)
+    notice: list[Reply] = []
+    if intent is None and claude_code.find_claude():
+        try:
+            return _claude(db, text, chat_id)  # desde la v0.76 piensa Claude, no Gemini
+        except claude_code.ClaudeUnavailable as exc:  # sin sesión: contesta Gemini y avisa
+            log.warning("Claude no disponible: %s | %s", exc, exc.detail)
+            notice = [error_reply("Claude no está disponible; te contesto con Gemini", exc)]
     if intent is None:
         try:
             intent = _ai_intent(db, text, chat_id)
         except ProviderError as exc:
             log.warning("JARVIS no pudo entender «%s»: %s | %s", text[:80], exc, exc.detail)
-            return [error_reply("No pude pensar la respuesta", exc)]
-    replies = _act(db, intent, text, chat_id)
+            return [*notice, error_reply("No pude pensar la respuesta", exc)]
+    replies = [*notice, *_act(db, intent, text, chat_id)]
+    remember(chat_id, text, replies)
+    return replies
+
+
+def _claude(db: Session, text: str, chat_id: int = 0) -> list[Reply]:
+    """Lo que no es una orden rápida lo contesta Claude (ver app/claude_code.py), siguiendo
+    la misma conversación de ese chat hasta que digan «nueva conversación»."""
+    key = claude_code.SESSION_KEY.format(chat_id=chat_id)
+    if text.lower().strip(" .!¡¿?") in claude_code.NEW_CHAT:
+        set_setting(db, key, "")
+        return [Reply("🧹 Listo: empezamos una conversación nueva.")]
+    session = get_setting(db, key) or None
+    try:
+        try:
+            answer, session = claude_code.ask(text, session)
+        except claude_code.ClaudeUnavailable:
+            raise
+        except ProviderError:
+            if not session:
+                raise
+            answer, session = claude_code.ask(text, None)  # la conversación vieja ya no existe
+    except claude_code.ClaudeUnavailable:
+        raise  # sin Claude, _text contesta con Gemini
+    except ProviderError as exc:
+        log.warning("Claude no pudo responder «%s»: %s | %s", text[:80], exc, exc.detail)
+        return [error_reply("Claude no pudo responder", exc)]
+    if session:
+        set_setting(db, key, session)
+    replies = [Reply(claude_code.to_html(answer) or "🤔 Claude no dijo nada. ¿Me lo repites?")]
     remember(chat_id, text, replies)
     return replies
 
@@ -2231,7 +2268,7 @@ def _button(db: Session, data: str) -> list[Reply]:
     if kind == "retry" and arg in jobs.RUNNERS:
         last = jobs.latest_jobs(db, project.id).get(arg)
         jobs.enqueue(db, project.id, arg, last.params if last else None)
-        return [Reply(f"🔁 Lo intento otra vez: {STAGES[arg]} de «{escape(project.title)}».")]
+        return [Reply(f"🔁 Lo intento otra vez: {JOB_LABELS[arg]} de «{escape(project.title)}».")]
     return [Reply("Ese botón ya no sirve. Escribe «ayuda».")]
 
 
@@ -2381,7 +2418,7 @@ def _concepts_reply(project: Project, strategy: dict) -> Reply:
 
 def _next_up(db: Session, project: Project) -> str:
     active = [s for s, j in jobs.latest_jobs(db, project.id).items() if j.active]
-    return f" Sigo con: {STAGES[active[0]].lower()}." if active else ""
+    return f" Sigo con: {JOB_LABELS[active[0]].lower()}." if active else ""
 
 
 def _done_replies(db: Session, job: Job, project: Project) -> list[Reply]:
@@ -2452,7 +2489,8 @@ def _video_replies(db: Session, project: Project, data: dict) -> list[Reply]:
 def _failed_reply(job: Job, project: Project) -> Reply:
     reason = (job.error or "Error desconocido").split("\n\n")[0]
     return Reply(
-        f"⚠️ <b>{escape(project.title)}</b>: falló {STAGES[job.stage].lower()}.\n{escape(reason)}",
+        f"⚠️ <b>{escape(project.title)}</b>: falló {JOB_LABELS[job.stage].lower()}."
+        f"\n{escape(reason)}",
         buttons=[[("🔁 Reintentar", f"retry:{project.id}:{job.stage}")]],
     )
 
@@ -2678,7 +2716,7 @@ def reference_alerts(db: Session, now: datetime | None = None) -> list[Reply]:
     set_setting(db, "ref_alert_checked", now.isoformat(timespec="minutes"))
     seen = set(_json_setting(db, "ref_alerted", []))
     try:
-        top = references.top_outliers(references.overview(db), limit=10)
+        top = references.top_outliers(references.overview(db, now), limit=10)
     except Exception:  # noqa: BLE001 — un fallo de red no debe parar a JARVIS
         log.info("No se pudieron revisar las referencias", exc_info=True)
         return []

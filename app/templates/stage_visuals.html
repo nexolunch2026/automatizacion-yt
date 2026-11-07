@@ -28,6 +28,16 @@
       marcadores de tu navegador (si no la ves, pulsa <strong>Ctrl + Mayús + B</strong>):
       <a class="btn small" href="{{ flow_direct }}" onclick="alert('Arrástralo con el ratón hasta la barra de marcadores. Luego púlsalo dentro de tu proyecto de Flow.'); return false;">Enviar a Faceless: {{ project.title|truncate(25) }}</a>
     </p>
+    {% if redo_numbers %}
+    <p class="alert info">Estos mensajes piden solo las escenas que hay que rehacer:
+      <strong>{{ redo_numbers|join(', ') }}</strong>. Al recogerlas de Flow ocuparán su sitio.</p>
+    {% endif %}
+    {% if hero %}
+    <p class="alert info"><strong>Antes de pegar cada mensaje, adjunta en Flow la ficha del protagonista</strong>
+      (botón + o el clip del asistente):
+      <a href="/proyectos/{{ project.id }}/archivos/{{ hero.reference }}" download="ficha-protagonista.jpg">descargar la ficha</a>.
+      El mensaje le pide que lo dibuje igual que en esa imagen.</p>
+    {% endif %}
     <p class="muted small">El asistente de Flow acepta como máximo 24 imágenes por mensaje. Si se para o
       pregunta, contéstale: <strong>«sí, créalas todas ahora»</strong>.</p>
     {% for m in flow_messages %}
@@ -100,14 +110,58 @@
 </div>
 
 {% if result %}
+<section id="protagonista">
+  <div class="x-head" style="margin-top:30px"><div><span class="x-eyebrow">Revisión del protagonista</span><h2 class="x-title">Hoja de contactos</h2></div>
+    <p>{% if hero %}Gemini compara cada escena con la ficha y marca en rojo, como un montador, las que no se parecen.{% else %}Elige abajo la escena donde el protagonista sale perfecto («Usar como ficha del protagonista») y luego revisa todas.{% endif %}</p></div>
+  {% set hj = hero_job %}
+  {% if hj and hj.active %}{{ ui.job_status(hj) }}{% endif %}
+  {% if hj and hj.status == 'failed' %}{{ ui.job_status(hj) }}{% endif %}
+  <div class="x-sheet">
+    {% if hero %}<div class="x-ref"><img src="/proyectos/{{ project.id }}/archivos/{{ hero.reference }}?v={{ hero.from_scene }}" alt="Ficha del protagonista"><span>la ficha · esc. {{ hero.from_scene }}</span></div>{% endif %}
+    <div class="x-sheet-head"><b>Rollo {{ project.id }} · {{ rows|length }} fotogramas</b>
+      <div class="x-filters" role="group" aria-label="Filtrar escenas">
+        <button class="x-f on" type="button" data-filter="all">Todas <b>{{ rows|length }}</b></button>
+        <button class="x-f" type="button" data-filter="bad">No se parecen <b>{{ hero_bad|length }}</b></button>
+        <button class="x-f" type="button" data-filter="redo">Para rehacer <b>{{ redo_numbers|length }}</b></button>
+        <button class="x-f" type="button" data-filter="empty">Sin imagen <b>{{ rows|selectattr('visual', 'none')|list|length }}</b></button>
+      </div>
+    </div>
+    <div class="x-contacts">
+      {% for row in rows %}{% set s = row.scene %}{% set v = row.visual %}{% set c = row.check %}
+      {% set redo = v and v.provider == 'rehacer' %}
+      <a class="x-ct{{ ' bad' if c and not c.ok and not redo }}{{ ' redo' if redo }}{{ ' empty' if not v }}" href="#escena-{{ s.paragraph_id }}">
+        {% if v and v.kind == 'image' %}<img src="/proyectos/{{ project.id }}/archivos/visuales/{{ v.file }}" alt="Escena {{ s.number }}" loading="lazy">
+        {% elif v and v.poster %}<img src="/proyectos/{{ project.id }}/archivos/visuales/{{ v.poster }}" alt="Escena {{ s.number }}" loading="lazy">
+        {% else %}<div style="aspect-ratio:16/9;background:#2a251c;border-radius:3px"></div>{% endif %}
+        {% if c and not c.ok and not redo %}<svg viewBox="0 0 100 70" preserveAspectRatio="none" aria-hidden="true"><path d="M8 38 C 6 12, 40 2, 70 6 C 98 10, 99 44, 78 60 C 56 74, 14 68, 9 46 C 7 36, 14 26, 22 22"/></svg>{% endif %}
+        <span class="n"><span>{{ '%02d'|format(s.number) }}</span><span>{{ '↻' if redo else ('✗' if c and not c.ok else ('✓' if c else '')) }}</span></span>
+        {% if redo %}<span class="note">pendiente de Flow</span>{% elif c and not c.ok %}<span class="note">{{ c.reason }}</span>{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+    <div class="x-dock">
+      <p>{% if hero_bad %}{{ hero_bad|length }} escena{{ 's' if hero_bad|length > 1 }} no se parece{{ 'n' if hero_bad|length > 1 }} a la ficha<small>Se piden solo esas a Flow, con la ficha adjunta</small>
+        {% elif hero_checked %}Todas se parecen a la ficha<small>Revisadas {{ hero_checked }} imágenes</small>
+        {% elif hero %}Ficha elegida: escena {{ hero.from_scene }}<small>Pulsa «Revisar» para comparar todas las escenas</small>
+        {% else %}Sin ficha del protagonista<small>Elige una escena abajo con «Usar como ficha del protagonista»</small>{% endif %}</p>
+      {% if hero %}
+      <form method="post" action="/proyectos/{{ project.id }}/visuales/revisar-protagonista"><button class="btn {{ 'secondary' if hero_bad }}" {{ 'disabled' if not has_gemini }}>{{ 'Revisar otra vez' if hero_checked else 'Revisar todas las imágenes' }}</button></form>
+      {% endif %}
+      {% if hero_bad %}<form method="post" action="/proyectos/{{ project.id }}/visuales/rehacer-marcadas"><button class="btn x-magnet">Rehacer las {{ hero_bad|length }} en Flow</button></form>{% endif %}
+    </div>
+  </div>
+</section>
 <div class="scenes">
   {% for row in rows %}
-  {% set s = row.scene %}{% set v = row.visual %}
-  <div class="card scene" id="escena-{{ s.paragraph_id }}">
+  {% set s = row.scene %}{% set v = row.visual %}{% set c = row.check %}
+  <div class="card scene {{ 'consistency-bad' if c and not c.ok }}" id="escena-{{ s.paragraph_id }}">
     <div class="row">
       <strong>Escena {{ '%02d'|format(s.number) }}</strong>
       <span class="muted small">{{ s.seconds }} s</span>
     </div>
+    {% if v and v.provider == 'rehacer' %}<p class="small stale-mark">↻ Pendiente de rehacer en Flow</p>
+    {% elif c and not c.ok %}<p class="small status-failed">✗ No se parece a la ficha: {{ c.reason }}</p>
+    {% elif c %}<p class="small status-done">✓ {{ c.reason or 'Igual que la ficha' }}</p>{% endif %}
     <div class="visual-preview">
       {% if v and v.kind == 'image' %}
         <img src="/proyectos/{{ project.id }}/archivos/visuales/{{ v.file }}" alt="{{ s.visual }}" loading="lazy">
@@ -133,6 +187,16 @@
     {% endif %}
     {% if not (job and job.active) %}
     <div class="row-actions">
+      {% if v and v.kind == 'image' and (not hero or hero.from_scene != s.number) %}
+      <form method="post" action="/proyectos/{{ project.id }}/visuales/protagonista/{{ s.paragraph_id }}">
+        <button class="btn small secondary">Usar como ficha del protagonista</button>
+      </form>
+      {% endif %}
+      {% if c and not c.ok and v.provider != 'rehacer' %}
+      <form method="post" action="/proyectos/{{ project.id }}/visuales/protagonista-bien/{{ s.paragraph_id }}">
+        <button class="btn small secondary">Está bien así</button>
+      </form>
+      {% endif %}
       <form method="post" action="/proyectos/{{ project.id }}/visuales/ia/{{ s.paragraph_id }}">
         <button class="btn small">{{ 'Otra imagen con IA' if v and v.ai else 'Generar con IA' }}</button>
       </form>

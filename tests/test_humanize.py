@@ -38,6 +38,52 @@ def test_filler_is_found_without_accents_and_whole_words():
     assert kinds("Fue una idea irrealmente buena.") == []  # no es «realmente»
 
 
+def test_ai_cliches_are_flagged():
+    assert kinds("En un mundo donde todo cambia, Nokia dudó.") == ["cliche"]
+    assert kinds("Fue un momento fascinante.") == ["cliche"]
+    issues = paragraph_issues("No solo vendía móviles, sino también sueños.")
+    assert [i["detail"] for i in issues] == ["Suena a IA: «no solo… sino»"]
+    assert kinds("No solo eso. Sino que además cayó.") == []  # frases distintas
+    assert kinds(GOOD) == []
+    instruction = humanize_instruction("Fue crucial para la marca.")
+    assert "«crucial» suena a texto de máquina" in instruction
+
+
+def test_script_prompts_ask_for_a_human_voice():
+    from app.pipeline.script import _style, default_params
+
+    assert "Voz humana" in _style(default_params())
+
+
+def test_humanize_whole_script_job(with_script, monkeypatch):  # noqa: F811
+    from app import jobs
+    from app.pipeline import script as script_mod
+    from tests.test_strategy_script import first_paragraph_id, script_data
+
+    pid = first_paragraph_id()
+    with_script.post(f"/proyectos/1/guion/parrafos/{pid}", data={"action": "save", "text": LONG})
+    assert "Humanizar todo el guion" in with_script.get("/proyectos/1/guion").text
+
+    rewritten = []
+
+    def fake_rewrite(project, research, script, paragraph_id, action, provider, tone=None):
+        assert action == "humanize"
+        rewritten.append(paragraph_id)
+        for section in script["sections"]:
+            for p in section["paragraphs"]:
+                if p["id"] == paragraph_id:
+                    p["text"] = "Frase corta. Otra frase corta."
+        return script
+
+    monkeypatch.setattr(script_mod, "rewrite_paragraph", fake_rewrite)
+    r = with_script.post("/proyectos/1/guion/humanizar", follow_redirects=False)
+    assert r.status_code == 303
+    while jobs.process_next_job():
+        pass
+    assert pid in rewritten
+    assert script_data()["sections"][1]["paragraphs"][0]["text"] == "Frase corta. Otra frase corta."
+
+
 def test_brand_name_from_the_title_is_not_a_repetition():
     text = "Kodak inventó la cámara digital. Kodak la escondió. Al final Kodak quebró."
     assert kinds(text) == ["repeat"]
@@ -56,7 +102,7 @@ def test_issues_keep_the_accents_of_the_script():
 def test_script_issues_counts_by_kind():
     found = script_issues(script(GOOD, LONG, "Literalmente todo cambió."))
     assert set(found["paragraphs"]) == {"p1", "p2"}
-    assert found["counts"] == {"long": 1, "repeat": 0, "filler": 1}
+    assert found["counts"] == {"long": 1, "repeat": 0, "filler": 1, "cliche": 0}
     assert found["total"] == 3
     assert script_issues(None)["total"] == 0
 

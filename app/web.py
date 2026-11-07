@@ -5,7 +5,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app import jobs, profile, usage
+from app import editing_room, jobs, profile, usage
 from app.auth import DB, CurrentUser
 from app.media import delete_project_files
 from app.models import (
@@ -55,7 +55,134 @@ def dashboard(request: Request, db: DB, user: CurrentUser, canal: int | None = N
         thumbs={p.id: url for p in projects if (url := _thumb_url(db, p.id))},
         has_gemini=api_key_hint(db, "gemini") is not None,
         summary=_studio_summary(db, projects) if projects else None,
+        shelves=_shelves(db, projects, channels),
+        **_week_context(db, projects, channels),
     )
+
+
+def _week_context(db, projects, channels) -> dict:
+    """La semana en tira de película (calendario fijo de publicación)."""
+    from datetime import date
+
+    from app import estreno
+
+    today = date.today()
+    start = today  # los próximos 7 días (lo pasado ya no hace falta verlo)
+    days = estreno.week(db, projects, start, today)
+    for day in days:
+        day["holes"] = estreno.holes(db, day, channels)
+        for item in day["items"]:
+            item["thumb"] = _thumb_url(db, item["project"].id)
+    end = start.toordinal() + 6
+    return {
+        "week": days,
+        "week_label": f"Del {start.day} al {date.fromordinal(end).day} de "
+        f"{MONTH_NAMES[date.fromordinal(end).month - 1]}",
+        "channel_colors": {
+            c.id: CHANNEL_COLORS[i % len(CHANNEL_COLORS)] for i, c in enumerate(channels)
+        },
+    }
+
+
+MONTH_NAMES = (
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+)  # fmt: skip
+CHANNEL_COLORS = ("#ff5a61", "#3ddc84", "#5b9dff", "#ffb020", "#c084fc")
+
+PALETTE_PAGES = (
+    ("Crear un vídeo nuevo", "/proyectos/nuevo"),
+    ("JARVIS", "/jarvis"),
+    ("Semana: qué publicar y cuándo", "/semana"),
+    ("Rendimiento en YouTube", "/rendimiento"),
+    ("Aprender de YouTube", "/aprender"),
+    ("Canales", "/canales"),
+    ("Ajustes", "/configuracion"),
+)
+
+
+@router.get("/paleta")
+def palette(db: DB, user: CurrentUser) -> dict:
+    """Lo que busca la ventana de Ctrl+K: los vídeos (más recientes primero) y las páginas."""
+    projects = db.scalars(
+        select(Project)
+        .options(selectinload(Project.channel))
+        .order_by(Project.id.desc())
+        .limit(200)
+    ).all()
+    return {
+        "projects": [
+            {
+                "title": p.title,
+                "url": f"/proyectos/{p.id}",
+                "hint": f"{p.channel.name} · {p.status}",
+            }
+            for p in projects
+        ],
+        "pages": [{"title": t, "url": u} for t, u in PALETTE_PAGES],
+    }
+
+
+def _shelves(db, projects, channels) -> dict:
+    """La portada tipo «sala de estreno»: el próximo estreno, lo que está en el taller,
+    lo listo para estrenar y lo ya publicado (cada vídeo con su miniatura y su paso)."""
+    from app import coach, estreno, factcheck
+    from app.pipeline.monetization import last_render
+
+    colors = {c.id: CHANNEL_COLORS[i % len(CHANNEL_COLORS)] for i, c in enumerate(channels)}
+    published = coach._published_ids(db)
+    shelves = {"workshop": [], "ready": [], "published": []}
+    for p in projects:
+        results = {
+            stage: data
+            for stage in ("edit", "thumbnail", "visuals", "storyboard")
+            if (data := jobs.get_result(db, p.id, stage))
+        }
+        render_ = last_render(results)
+        step = coach.project_step(db, p) or {}
+        latest = jobs.latest_jobs(db, p.id)
+        active = next((j for j in latest.values() if j.active), None)
+        minutes, seconds = divmod(int(round(float(render_.get("seconds") or 0))), 60)
+        card = {
+            "project": p,
+            "thumb": _thumb_url(db, p.id) or _first_scene_url(p.id, results),
+            "color": colors.get(p.channel_id, CHANNEL_COLORS[0]),
+            "step": step.get("text") or "",
+            "needs_you": bool(step.get("stage")),
+            "active": active,
+            "duration": f"{minutes}:{seconds:02d}" if render_.get("seconds") else "",
+            "people": estreno.approvals_view(db, p.id) if render_.get("file") else [],
+            "facts": (jobs.get_result(db, p.id, factcheck.STAGE) or {}).get("summary"),
+            "date": estreno.get(db, p.id).get("date"),
+        }
+        if p.id in published or p.status == "Publicado":
+            card.update(step="", needs_you=False)  # ya está en YouTube: no falta nada
+            shelves["published"].append(card)
+        elif render_.get("file") and not active:
+            shelves["ready"].append(card)
+        else:
+            shelves["workshop"].append(card)
+    # El próximo estreno: el que tiene la fecha más cercana; si no, el más aprobado.
+    candidates = sorted(
+        (c for c in shelves["ready"] if c["thumb"]),
+        key=lambda c: (c["date"] or "9999", -sum(p["ok"] for p in c["people"])),
+    )
+    featured = candidates[0] if candidates else None
+    shelves["featured"] = featured
+    if featured:
+        shelves["ready"] = [c for c in shelves["ready"] if c is not featured]
+    return shelves
+
+
+def _first_scene_url(project_id: int, results: dict) -> str | None:
+    """Sin miniatura, la primera imagen de escena (para que la tarjeta no salga vacía)."""
+    items = (results.get("visuals") or {}).get("items") or {}
+    scenes = (results.get("storyboard") or {}).get("scenes") or []
+    for scene in scenes:
+        entry = items.get(scene.get("paragraph_id")) or {}
+        if entry.get("file"):
+            return f"/proyectos/{project_id}/archivos/visuales/{entry['file']}"
+    return None
 
 
 def _showcase(db, project, results: dict) -> dict | None:
@@ -328,6 +455,7 @@ def _get_project(db: DB, project_id: int) -> Project:
 @router.get("/proyectos/{project_id}")
 def project_detail(request: Request, db: DB, user: CurrentUser, project_id: int):
     project = _get_project(db, project_id)
+    project.stale = jobs.stale_stages(db, project_id)
     results = {
         r.stage: r.data
         for r in db.scalars(select(StageResult).where(StageResult.project_id == project_id))
@@ -343,12 +471,30 @@ def project_detail(request: Request, db: DB, user: CurrentUser, project_id: int)
         runnable=set(jobs.RUNNERS),
         slugs=SLUGS,
         has_gemini=api_key_hint(db, "gemini") is not None,
-        qc=project_review(db, project) if "script" in results else None,
+        qc=(qc := project_review(db, project) if "script" in results else None),
         usage=usage.project_usage(db, project_id),
         showcase=_showcase(db, project, results),
+        timeline=editing_room.timeline(project_id, results),
+        copilot=editing_room.copilot(project_id, results, qc),
         month_usage=usage.month_usage(db),
         stage_names=STAGES,
+        launch=_launch_strip(db, project),
     )
+
+
+def _launch_strip(db, project) -> dict | None:
+    """La franja de la sala de montaje: quién lo ha visto y cuándo sale."""
+    from datetime import date
+
+    from app import estreno
+
+    if not estreno.is_ready(db, project):
+        return None
+    chosen = estreno.get(db, project.id).get("date")
+    return {
+        "people": estreno.approvals_view(db, project.id),
+        "date": estreno.nice_date(date.fromisoformat(chosen)) if chosen else "",
+    }
 
 
 @router.get("/proyectos/{project_id}/estado")

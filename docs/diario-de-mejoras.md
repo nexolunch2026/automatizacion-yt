@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-07 — Versión 0.100.1: juntas otra vez las dos líneas
+
+- La otra conversación siguió mejorando el programa (versiones 0.71–0.76): **diseño nuevo
+  «estudio de cine»**, sala de montaje con JARVIS de copiloto, vista de móvil y Ctrl+K,
+  **ficha del protagonista**, miniaturas con Flow, botón «Comprobar datos con fuentes
+  fiables», **guion más humano** y JARVIS con Claude como cerebro.
+- Se juntó todo con las mejoras de las noches (control de calidad, Short del día por
+  Telegram, avisos de cifras paradas y de Gemini agotado…). No se perdió nada de ninguna.
+- Las miniaturas con Flow también usan ahora «lo que suele ganar en tu canal».
+- Las 853 pruebas pasan con todo junto.
+
 ## 2026-11-06 — Versión 0.100: si se acaba el Gemini gratis, sigue solo
 
 - Con **dos vídeos a la vez** se gasta el doble del Gemini gratis. Antes, al acabarse, la

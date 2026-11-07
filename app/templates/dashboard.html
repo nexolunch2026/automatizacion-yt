@@ -1,16 +1,36 @@
 {% extends "base.html" %}
+{% block main_class %}page studio-home{% endblock %}
 {% block content %}
-<div class="page-head">
-  <div>
-    <h1>Proyectos</h1>
-    <p class="muted">Cada vídeo es un proyecto.</p>
+
+{% macro card(c, wide=False) %}
+<a class="x-poster" href="/proyectos/{{ c.project.id }}{{ '/estreno' if c.people else '' }}" data-search>
+  <div class="x-poster-img">
+    {% if c.thumb %}<img src="{{ c.thumb }}" alt="" loading="lazy">
+    {% else %}
+    <div class="shelf-empty" aria-hidden="true">
+      <svg viewBox="0 0 64 64" width="56" height="56"><circle cx="32" cy="18" r="9" fill="currentColor"/><path d="M32 27v16M32 32l-9 5M32 32l9-8M32 43l-6 11M32 43l6 11" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/></svg>
+    </div>
+    {% endif %}
+    {% if c.active %}<span class="shelf-tag live">MONTANDO {{ c.active.progress }} %</span>
+    {% elif c.needs_you %}<span class="shelf-tag you">TE TOCA</span>{% endif %}
+    {% if c.duration %}<span class="shelf-time">{{ c.duration }}</span>{% endif %}
+    {% if c.people %}
+    <div class="x-poster-faces">{% for p in c.people %}<span class="x-pf"><span class="x-face {{ 'ok' if p.ok else 'no' }}">{{ p.initial }}</span>{{ 'visto' if p.ok else 'falta' }}</span>{% endfor %}</div>
+    {% endif %}
   </div>
-  <a class="btn" href="/proyectos/nuevo">+ Nuevo vídeo</a>
-</div>
+  <span class="x-chip" style="width:max-content"><i class="x-dot" style="background: {{ c.color }}"></i>{{ c.project.channel.name }} · {{ c.duration or c.project.status }}</span>
+  <h3>{{ c.project.title }}</h3>
+  {% if c.active %}<div class="progress"><div style="width: {{ c.active.progress }}%"></div></div>{% endif %}
+  {% if c.facts %}{% set f = c.facts %}{% set total = (f.confirmado or 0) + (f.una_fuente or 0) + (f.solo_wikipedia or 0) + (f.corregir or 0) + (f.sin_confirmar or 0) %}
+  <div class="x-facts"><span class="x-meter"><i style="width: {{ (100 * (f.confirmado or 0) / (total or 1))|round }}%; background: var(--x-pitch)"></i><i style="width: {{ (100 * (f.corregir or 0) / (total or 1))|round }}%; background: var(--x-grease)"></i></span>
+    {% if f.corregir %}{{ f.corregir }} dato{{ 's' if f.corregir > 1 }} para revisar{% else %}{{ f.confirmado or 0 }} de {{ total }} datos confirmados{% endif %}</div>
+  {% elif c.step %}<span class="step{{ ' you' if c.needs_you }}">{{ c.step }}</span>{% endif %}
+</a>
+{% endmacro %}
 
 {% if needs_profile %}
 <div class="card">
-  <p class="alert info">👋 Cuéntale al programa de qué va tu canal (nombre, nicho y país) para que
+  <p class="alert info">Cuéntale al programa de qué va tu canal (nombre, nicho y país) para que
     los guiones, JARVIS y los consejos se adapten a ti. <a class="btn small" href="/bienvenida">Completar mi perfil</a></p>
 </div>
 {% endif %}
@@ -23,69 +43,112 @@
 </div>
 {% else %}
 
+<div class="command-row">
+  <form method="post" action="/rapido" class="command">
+    <label for="quick-topic" class="sr-only">¿Sobre qué hacemos el próximo vídeo?</label>
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/></svg>
+    <input id="quick-topic" name="topic" placeholder="¿Sobre qué hacemos el próximo vídeo? Ej.: la caída de FTX" maxlength="300" required>
+    <button class="btn" {% if not has_gemini %}disabled title="Conecta Gemini en Configuración"{% endif %}>Crear vídeo</button>
+  </form>
+  <nav class="channel-pills" aria-label="Canal">
+    <a class="{{ 'active' if not selected_channel }}" href="/">Todo</a>
+    {% for c in channels %}
+    <a class="{{ 'active' if selected_channel == c.id }}" href="/?canal={{ c.id }}"><i style="background: {{ ['#ff5a61','#3ddc84','#5b9dff','#ffb020','#c084fc'][loop.index0 % 5] }}"></i>{{ c.name }}</a>
+    {% endfor %}
+  </nav>
+</div>
 
-<form method="post" action="/rapido" class="card quick-start">
-  <label for="quick-topic"><strong>✨ ¿Sobre qué hacemos el próximo vídeo?</strong>
-    <span class="muted small">Escribe la idea y empieza: usa el canal y la duración de tu último vídeo.
-      Si escribes «top 10 de…» o «explica por qué…», elige ese formato.</span></label>
-  <div class="quick-row">
-    <input id="quick-topic" name="topic" placeholder="Ej.: la caída de Nokia" maxlength="300" required>
-    <button class="btn" {% if not has_gemini %}disabled title="Conecta Gemini en Configuración"{% endif %}>Empezar</button>
+{% set f = shelves.featured %}
+{% if f %}
+{% set parts = f.project.title.split(':', 1) %}
+<section class="x-hero{{ ' long' if f.project.title|length > 34 }}" aria-label="Próximo estreno">
+  <div>
+    <span class="x-eyebrow">Próximo estreno · {{ f.project.channel.name }}</span>
+    {% if parts|length > 1 %}
+    <h1><span class="out" data-split>{{ parts[0]|trim }}</span><br><span data-split style="font-size:.5em;display:inline-block;line-height:1">{{ parts[1]|trim }}</span></h1>
+    {% else %}
+    <h1><span data-split>{{ f.project.title }}</span></h1>
+    {% endif %}
+    <p class="lead">{{ f.project.video_type }} montado y esperando su día. {% if f.people %}{% set seen = f.people|selectattr('ok')|list %}{% if seen|length == f.people|length %}Ya lo habéis aprobado los dos.{% elif seen %}Falta que lo vea {{ (f.people|rejectattr('ok')|first).name }}.{% else %}Todavía nadie le ha dado el visto bueno.{% endif %}{% endif %}</p>
+    <div class="meta">
+      <span class="x-chip"><i class="x-dot" style="background: {{ f.color }}"></i>{{ f.project.channel.name }}</span>
+      {% if f.duration %}<span class="x-chip x-tc">00:{{ '%05s'|format(f.duration)|replace(' ', '0') }}:00</span>{% endif %}
+      <span class="x-chip">{% if f.date %}Sale el {{ f.date[8:10]|int }}/{{ f.date[5:7]|int }} · 18:00{% else %}Sin fecha todavía{% endif %}</span>
+    </div>
+    <div class="cta">
+      <a class="btn big x-magnet" href="/proyectos/{{ f.project.id }}/estreno">Preparar el estreno →</a>
+      <a class="btn secondary big x-magnet" href="/proyectos/{{ f.project.id }}">Ver el montaje</a>
+    </div>
   </div>
-</form>
+  <div class="x-stage">
+    <div class="x-screen"><img src="{{ f.thumb }}" alt="Miniatura de {{ f.project.title }}"><span class="x-rec"><i></i>{{ f.duration or 'MONTAJE' }}</span></div>
+    {% if f.people %}{% set seen = f.people|selectattr('ok')|list %}
+    <div class="x-badge"><b>{{ seen|length }}/{{ f.people|length }}</b><span>visto bueno</span></div>{% endif %}
+  </div>
+</section>
+{% endif %}
+
+<section aria-label="Esta semana">
+  <div class="x-head"><div><span class="x-eyebrow">{{ week_label }}</span><h2 class="x-title">Próximos 7 días</h2></div>
+    <p>Largos martes, jueves y sábado; Shorts el resto de días. Todo a las 18:00. Lo de borde discontinuo es una propuesta: cámbiala en «Preparar el estreno».</p></div>
+  <div class="x-film-pin"><div class="x-film">
+    {% for d in week %}
+    <div class="x-frame{{ ' today' if d.today }}"><div class="x-frame-in">
+      <div class="x-frame-h"><span class="x-frame-day">{{ d.name }}</span><span class="x-frame-num">{{ '%02d'|format(d.date.day) }}</span></div>
+      <span class="x-kind">{{ d.kind }}</span>
+      {% for it in d['items'] %}
+      <a class="x-slot{{ ' proposed' if it.proposed }}" href="/proyectos/{{ it.project.id }}/estreno">
+        {% if it.thumb %}<img src="{{ it.thumb }}" alt="" loading="lazy">{% else %}<div style="aspect-ratio:16/9"></div>{% endif %}
+        <span class="x-stamp {{ it.state }}">{{ it.label }}</span>
+        <span class="cap"><i class="x-dot" style="background: {{ channel_colors.get(it.project.channel_id, '#888') }}"></i>{{ it.project.title|truncate(26) }}</span>
+      </a>
+      {% endfor %}
+      {% for c in d.holes %}<div class="x-hole"><b>Hueco libre</b>{{ c.name }}: no hay vídeo listo para este día</div>{% endfor %}
+      {% if not d['items'] and not d.holes %}<div class="x-rest">Sin nada previsto</div>{% endif %}
+    </div></div>
+    {% endfor %}
+  </div></div>
+</section>
 
 {% if summary %}
-<div class="stats">
+<div class="stats" style="margin-top:34px">
   <div class="stat"><span class="stat-num">{{ summary.working }}</span><span class="stat-label">En marcha</span></div>
   <div class="stat"><span class="stat-num">{{ summary.ready }}</span><span class="stat-label">Listos para subir</span></div>
   <div class="stat"><span class="stat-num">{{ summary.published }}</span><span class="stat-label">Publicados</span></div>
-  <div class="stat"><span class="stat-num {% if summary.score is not none %}{{ 'good' if summary.score >= 85 else 'warn' }}{% endif %}">{{ summary.score if summary.score is not none else '—' }}</span>
-    <span class="stat-label">Nota media de calidad</span></div>
-</div>
-{% if summary.steps %}
-<div class="card next-list">
-  <h2>👉 Lo siguiente</h2>
-  <ul>
-    {% for project, step in summary.steps %}
-    <li><a href="/proyectos/{{ project.id }}"><strong>{{ project.title }}</strong></a>
-      <span class="muted">— {{ step.text }}</span></li>
-    {% endfor %}
-  </ul>
+  <div class="stat"><span class="stat-num {% if summary.score is not none %}{{ 'good' if summary.score >= 85 else 'warn' }}{% endif %}">{{ summary.score if summary.score is not none else '—' }}</span><span class="stat-label">Nota media de calidad</span></div>
 </div>
 {% endif %}
-{% endif %}
 
-<div class="filters">
-  {% if projects|length > 6 %}
-  <input id="project-search" class="project-search" type="search" placeholder="🔎 Buscar un vídeo…" aria-label="Buscar un vídeo">
-  {% endif %}
-  <a class="chip {% if not selected_channel %}active{% endif %}" href="/">Todos</a>
-  {% for c in channels %}
-  <a class="chip {% if selected_channel == c.id %}active{% endif %}" href="/?canal={{ c.id }}">{{ c.name }}</a>
-  {% endfor %}
-</div>
-
-{% if projects %}
+{% if projects|length > 6 %}
+<input id="project-search" class="project-search" type="search" placeholder="Buscar un vídeo…" aria-label="Buscar un vídeo">
 <p class="muted small" id="search-empty" hidden>Ningún vídeo coincide con la búsqueda.</p>
-<div class="grid" id="project-grid">
-  {% for p in projects %}
-  <a class="card project" href="/proyectos/{{ p.id }}">
-    {% if thumbs.get(p.id) %}<img class="thumb" src="{{ thumbs[p.id] }}" alt="" loading="lazy">
-    {% else %}<div class="thumb">Sin miniatura</div>{% endif %}
-    <h3>{{ p.title }}</h3>
-    <p class="muted small">{{ p.channel.name }} · {{ p.video_type }} · {{ p.duration }}</p>
-    <div class="row">
-      <span class="badge">{{ p.status }}</span>
-      <span class="muted small">{{ p.created_at.strftime('%d/%m/%Y') }}</span>
-    </div>
-    <div class="progress"><div style="width: {{ p.progress }}%"></div></div>
-  </a>
-  {% endfor %}
-</div>
-{% else %}
+{% endif %}
+
+{% if shelves.workshop %}
+<section aria-label="En el taller">
+  <div class="x-head"><div><span class="x-eyebrow">se están haciendo o esperan algo de vosotros</span><h2 class="x-title">En el taller</h2></div></div>
+  <div class="x-posters">{% for c in shelves.workshop %}{{ card(c) }}{% endfor %}</div>
+</section>
+{% endif %}
+
+{% if shelves.ready %}
+<section aria-label="Listos para estrenar">
+  <div class="x-head"><div><span class="x-eyebrow">montados y esperando vuestro visto bueno</span><h2 class="x-title">Listos para estrenar</h2></div></div>
+  <div class="x-posters">{% for c in shelves.ready %}{{ card(c) }}{% endfor %}</div>
+</section>
+{% endif %}
+
+{% if shelves.published %}
+<section aria-label="Publicados">
+  <div class="x-head"><div><span class="x-eyebrow">ya en YouTube</span><h2 class="x-title">Publicados</h2></div></div>
+  <div class="x-posters">{% for c in shelves.published %}{{ card(c) }}{% endfor %}</div>
+</section>
+{% endif %}
+
+{% if not projects %}
 <div class="card empty">
   <h2>Todavía no hay vídeos</h2>
-  <p class="muted">Pulsa «+ Nuevo vídeo» y escribe tu idea.</p>
+  <p class="muted">Escribe tu idea arriba y pulsa «Crear vídeo».</p>
 </div>
 {% endif %}
 {% endif %}
@@ -93,11 +156,11 @@
   (() => {
     const box = document.getElementById("project-search");
     if (!box) return;
-    const plain = (t) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const plain = (t) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
     box.addEventListener("input", () => {
       const q = plain(box.value.trim());
       let shown = 0;
-      document.querySelectorAll("#project-grid .project").forEach((card) => {
+      document.querySelectorAll("[data-search]").forEach((card) => {
         const hit = !q || plain(card.textContent).includes(q);
         card.hidden = !hit;
         shown += hit;

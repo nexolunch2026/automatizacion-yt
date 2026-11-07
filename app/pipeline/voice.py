@@ -12,8 +12,10 @@ from app.models import Project
 from app.pipeline.storyboard import paragraphs_of
 from app.providers.voice import (
     VoiceProvider,
+    for_speech,
     is_eleven,
     join_wavs,
+    say_names,
     say_numbers,
     spoken_text,
     tighten,
@@ -27,6 +29,8 @@ def take_key(text: str, voice: str, speed: str, model: str = "") -> str:
     extra = f"|{model}" if is_eleven(voice) and model else ""
     if say_numbers(text) != text:  # cifras con punto de miles: grabadas antes se leían mal
         extra += "|cifras"
+    if say_names(text) != text:  # nombres extranjeros: grabados antes se leían mal
+        extra += "|nombres"
     return hashlib.sha1(f"{voice}|{speed}|{text}{extra}".encode()).hexdigest()[:12]
 
 
@@ -72,7 +76,7 @@ def run_voice(
                 f"Grabando párrafo {i} de {len(paragraphs)}",
             )
             # Sin silencios de sobra: el ritmo mejora y la gente se queda más.
-            text = say_numbers(spoken_text(paragraph["text"]))
+            text = for_speech(spoken_text(paragraph["text"]))
             data = tighten(tts.synthesize(text, voice, speed))
             path.write_bytes(data)
         takes.append(

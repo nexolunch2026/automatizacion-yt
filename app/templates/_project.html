@@ -3,11 +3,14 @@
 {% macro header(project) %}
 <div class="page-head">
   <div>
-    <p class="muted small"><a href="/">← Proyectos</a></p>
+    <a class="x-crumb" href="/">← Proyectos · {{ project.channel.name }}</a>
     <h1>{{ project.title }}</h1>
-    <p class="muted">{{ project.channel.name }} · {{ project.video_type }} · {{ project.duration }} · {{ project.language }}</p>
+    <div class="x-head-meta"><span class="x-chip">{{ project.video_type }}</span><span class="x-chip">{{ project.duration }}</span><span class="x-chip">{{ project.language }}</span></div>
   </div>
-  <span class="badge big">{{ project.status }}</span>
+  <div class="x-head-side">
+    <span class="badge big">{{ project.status }}</span>
+    <a class="btn small x-magnet" href="/proyectos/{{ project.id }}/estreno">Preparar el estreno →</a>
+  </div>
 </div>
 {% endmacro %}
 
@@ -16,14 +19,31 @@
   <a href="/proyectos/{{ project.id }}" class="{{ 'active' if current == 'overview' }}">Resumen</a>
   {% for stage, slug in slugs.items() %}
   {% set job = jobs.get(stage) %}
+  {% set old = (project.stale or {}).get(stage) if project.stale is defined else none %}
   <a href="/proyectos/{{ project.id }}/{{ slug }}" class="{{ 'active' if current == stage }}">
     {{ stages[stage] }}
     {% if job and job.active %}<span class="dot running" title="En marcha"></span>
+    {% elif old %}<span class="stale-mark" title="Desactualizado: {{ old }}">⚠</span>
     {% elif job and job.status == 'failed' and stage not in results %}<span class="dot failed" title="Falló"></span>
     {% elif stage in results %}<span class="tick">✓</span>{% endif %}
   </a>
   {% endfor %}
 </nav>
+{{ stale_banner(project, slugs.get(current, '')) }}
+{% endmacro %}
+
+{% macro stale_banner(project, back) %}
+{% set stale = project.stale if project.stale is defined else {} %}
+{% if stale %}
+<div class="x-jarvis stale-banner"><span class="x-orb" aria-hidden="true"></span>
+  <div class="x-jarvis-text"><b>Hay cosas desactualizadas en este vídeo.</b>
+    <ul>{% for stage, reason in stale.items() %}<li>{{ {'edit': 'Vídeo', 'publish': 'Textos', 'thumbnail': 'Miniaturas', 'shorts': 'Shorts'}[stage] }}: {{ reason }}.</li>{% endfor %}</ul></div>
+  <form method="post" action="/proyectos/{{ project.id }}/rehacer-desactualizado">
+    <input type="hidden" name="back" value="{{ back }}">
+    <button class="btn" title="Se hace en orden: vídeo, textos, miniaturas y Shorts. Tarda unos minutos.">Rehacer lo desactualizado</button>
+  </form>
+</div>
+{% endif %}
 {% endmacro %}
 
 {% macro job_status(job) %}

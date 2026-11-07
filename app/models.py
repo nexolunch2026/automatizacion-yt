@@ -34,6 +34,22 @@ STAGES = {
     "shorts": "Shorts",
 }
 
+
+class _Labels(dict):
+    def __missing__(self, key):  # una tarea sin nombre propio se muestra tal cual
+        return key
+
+
+# Nombre de cada tarea en avisos y mensajes (las etapas y alguna tarea extra).
+JOB_LABELS = _Labels(
+    {
+        **STAGES,
+        "consistency": "Revisión del protagonista",
+        "factcheck": "Comprobación de datos",
+        "humanize": "Humanizar el guion",
+    }
+)
+
 DURATIONS = ["Short", "3–5 min", "5–10 min", "10–15 min", "15–30 min"]
 LANGUAGES = ["Español", "Inglés"]
 VIDEO_TYPES = [

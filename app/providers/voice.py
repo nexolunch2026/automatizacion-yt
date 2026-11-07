@@ -78,6 +78,35 @@ def say_numbers(text: str) -> str:
     return THOUSANDS.sub(_plain_number, text)
 
 
+# Nombres extranjeros que la voz en español lee letra a letra («Ga-ret Ba-le»): se escriben
+# como suenan. Solo cambia lo que se graba; los subtítulos siguen con el nombre real.
+PRONUNCIATION = {
+    "Gareth": "Gáret",
+    "Bale": "Béil",
+    "Tottenham": "Tótenam",
+    "Hotspur": "Jótspur",
+    "Southampton": "Sáuzamton",
+    "Millwall": "Mílgual",
+    "Gwyn": "Güin",
+    "Liverpool": "Líverpul",
+    "Spurs": "Spers",
+    "League": "Lig",
+    "Reed Hastings": "Rid Jéistings",
+    "Steve Jobs": "Stiv Yobs",
+}
+_NAMES = re.compile(r"\b(" + "|".join(re.escape(k) for k in PRONUNCIATION) + r")\b")
+
+
+def say_names(text: str) -> str:
+    """Los nombres de la lista, escritos como se pronuncian (solo para la voz)."""
+    return _NAMES.sub(lambda m: PRONUNCIATION[m.group(1)], text)
+
+
+def for_speech(text: str) -> str:
+    """Todo lo que se arregla antes de grabar: cifras y nombres extranjeros."""
+    return say_names(say_numbers(text))
+
+
 class VoiceProvider(Protocol):
     name: str
 

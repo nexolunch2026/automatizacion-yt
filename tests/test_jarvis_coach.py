@@ -112,7 +112,8 @@ def test_monetization_path_with_growth_and_eta(logged_in, ai, monkeypatch):  # n
     make_project(logged_in, "manual")
     with SessionLocal() as db:
         _published_video(db, 1, views=1200)  # sin % visto: se supone un 35 %
-        day = lambda n: (NOW - timedelta(days=n)).strftime("%Y-%m-%d")  # noqa: E731
+        # Fechas de verdad: la respuesta de JARVIS usa el día de hoy, no NOW
+        day = lambda n: (datetime.now() - timedelta(days=n)).strftime("%Y-%m-%d")  # noqa: E731
         set_setting(db, "subs_history", f'[["{day(20)}", 200], ["{day(0)}", 400]]')
         path = coach.monetization_path(db, NOW)
         assert path["subs_pct"] == 40 and path["growth"] == 10

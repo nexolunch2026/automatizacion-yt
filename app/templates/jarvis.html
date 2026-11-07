@@ -5,23 +5,30 @@
     <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="core"></div>
   </div>
   <div>
-    <h1>JARVIS</h1>
-    <p class="muted">Tu asistente de producción. Háblale o escríbele como a una persona:
-      <em>«hazme un vídeo sobre la caída de Kodak»</em>, <em>«dame ideas»</em>, <em>«¿cómo va todo?»</em>.</p>
+    <h1>Claude <span class="muted small">(antes JARVIS)</span></h1>
+    <p class="muted">Tu asistente de producción. Escríbele como a una persona:
+      <em>«¿qué toca publicar esta semana?»</em>, <em>«revisa el guion de Kodak»</em>,
+      <em>«¿está listo Bale para subir?»</em>, <em>«¿cómo van los canales?»</em>.
+      Llama solo a los agentes (verificador, editor de guion, revisor final…). Solo lee y revisa:
+      nunca publica ni borra nada. Para empezar de cero escribe <em>«nueva conversación»</em>.</p>
   </div>
 </div>
+{% if not has_claude %}
+<p class="alert warn">Claude no está instalado en este PC: mientras tanto contesta el JARVIS de
+  siempre (con Gemini). Instala Claude Code y entra con tu cuenta escribiendo <code>claude</code> en una terminal.</p>
+{% endif %}
 
 <div class="jarvis-grid">
   <div class="card chat-card">
     <div class="chat-log" id="chat-log">
-      <div class="bubble bot">🤖 Sistemas en línea. ¿Qué hacemos hoy?</div>
+      <div class="bubble bot">👋 Hola, soy Claude. ¿Qué revisamos hoy? (Puedo tardar un poco si llamo a un agente.)</div>
     </div>
     <form class="chat-form" id="chat-form">
       <button type="button" class="mic" id="mic" title="Hablar (pulsa y habla)">🎙️</button>
-      <input id="chat-input" name="text" autocomplete="off" placeholder="Escribe una orden…">
+      <input id="chat-input" name="text" autocomplete="off" placeholder="Escríbele a Claude…">
       <button class="btn">Enviar</button>
     </form>
-    <label class="radio small muted"><input type="checkbox" id="speak" checked> JARVIS responde en voz alta</label>
+    <label class="radio small muted"><input type="checkbox" id="speak" checked> Responder en voz alta</label>
   </div>
 
   <div class="card">

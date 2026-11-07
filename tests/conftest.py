@@ -98,6 +98,15 @@ def niche_kit_without_ai(monkeypatch, request):
 
 
 @pytest.fixture(autouse=True)
+def no_real_claude(monkeypatch):
+    """Ningún test usa el Claude Code del PC: JARVIS piensa con la IA simulada de cada test.
+    Las pruebas de Claude (test_claude_code.py) lo simulan por su cuenta."""
+    from app import claude_code
+
+    monkeypatch.setattr(claude_code, "find_claude", lambda: None)
+
+
+@pytest.fixture(autouse=True)
 def no_real_internet(monkeypatch):
     """Ningún test llama a Wikipedia ni descarga voces de verdad."""
     from app import jobs

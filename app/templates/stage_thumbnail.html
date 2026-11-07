@@ -99,7 +99,8 @@
 
 <div class="card form-card">
   <h3>Cambiar los textos</h3>
-  <p class="muted small">Escribe 2–4 palabras. En «Destacada» pon la palabra que quieres resaltar con el color del canal. Se rehacen con los mismos fondos.</p>
+  <p class="muted small">Escribe 2–4 palabras. En «Destacada» pon la palabra que quieres resaltar con el color del canal. Se rehacen con los mismos fondos.
+    {% if thumbs.variants|selectattr('layout', 'equalto', 'split')|list %}En la pantalla partida separa las dos mitades con una raya: <strong>SE RIÓ | QUEBRÓ</strong>.{% endif %}</p>
   <form method="post" action="/proyectos/{{ project.id }}/miniatura/textos" class="stack">
     {% for v in thumbs.variants %}
     <div class="row-fields">
