@@ -4,6 +4,13 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (7 de noviembre de 2026: los primeros 30 segundos)
+
+- [Stop Using Story Hooks. Do This in the First 30s.](https://www.youtube.com/watch?v=nXoTR5l4Dks)
+  — un narrador explica por qué el inicio debe contar algo de verdad y no un truco barato.
+- [The 30-Second Hook Formula That Stops Viewers From Leaving](https://www.youtube.com/watch?v=CYIlU_7D-e8)
+  — una fórmula para que la gente no se vaya al principio (útil para el gancho de Bale).
+
 ## Nuevos (6 de noviembre de 2026: stickman y documentales de fútbol)
 
 - [How I Created An Epic Football Documentary (4 specific lessons I learned)](https://www.youtube.com/watch?v=4dxsU7LwiX0)

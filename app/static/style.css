@@ -940,3 +940,9 @@ h1, h2, .brand { font-family: "Bricolage Grotesque", "Montserrat", system-ui, sa
 .fact-corregir { border-left-color: #e63946; background: rgba(230, 57, 70, .08); }
 .fact-sin_confirmar, .fact-solo_wikipedia { border-left-color: #888; }
 .fact-inline { color: #ffb3b4; margin: 4px 0; }
+
+/* Cola de trabajo (portada) */
+.work-queue ol { margin: 8px 0 10px; padding-left: 22px; }
+.work-queue li { margin: 4px 0; }
+.work-queue li.queue-now strong { color: var(--accent); }
+.work-queue li.queue-wait { color: var(--muted); }

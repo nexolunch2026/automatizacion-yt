@@ -147,7 +147,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [x] **Gemini agotado: sigue solo mañana** (0.100.0): si se acaba el uso gratis del día, la
   tarea espera sola hasta que Google lo renueva (en vez de quedarse en «Falló») y JARVIS
   avisa una vez por Telegram de qué vídeos esperan y a qué hora siguen.
-- [ ] **Dos vídeos a la vez, a la vista**: en Proyectos se ve qué tarea va ahora, cuáles
+- [x] **Dos vídeos a la vez, a la vista** (0.101.0): en la portada se ve qué tarea va ahora, cuáles
   esperan detrás y cuánto gasta cada vídeo del Gemini gratis del día.
 - [ ] **«¿Qué me falta en Flow?» por Telegram**: JARVIS dice cuántas escenas de cada vídeo
   siguen sin imagen de Flow y cuál conviene hacer primero.

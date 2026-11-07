@@ -110,6 +110,28 @@
   </div></div>
 </section>
 
+{% if queue %}
+<section aria-label="Cola de trabajo" class="card work-queue" style="margin-top:34px">
+  <h2>Cola de trabajo</h2>
+  <p class="muted small">El programa hace las tareas de una en una, por orden. Con dos vídeos a la
+    vez, se turnan: los dos avanzan.</p>
+  <ol>
+    {% for q in queue %}
+    <li class="queue-{{ q.kind }}">
+      <a href="/proyectos/{{ q.project_id }}"><strong>{{ q.title }}</strong></a> — {{ q.stage }}:
+      {{ q.state }}{% if q.gemini_today %}
+      <span class="muted small">· hoy, {{ q.gemini_today }} llamada{{ '' if q.gemini_today == 1 else 's' }} a Gemini en sus tareas</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% if has_gemini %}
+  <p class="muted small">El Gemini gratis tiene un límite al día (también lo gastan JARVIS y otros
+    botones). Si se acaba, las tareas esperan solas hasta que Google lo renueva (de madrugada) y
+    siguen sin que hagas nada.</p>
+  {% endif %}
+</section>
+{% endif %}
+
 {% if summary %}
 <div class="stats" style="margin-top:34px">
   <div class="stat"><span class="stat-num">{{ summary.working }}</span><span class="stat-label">En marcha</span></div>

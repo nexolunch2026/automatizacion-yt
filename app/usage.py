@@ -9,7 +9,7 @@ import json
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -44,6 +44,28 @@ def _load(db: Session, key: str) -> dict:
     return data if isinstance(data, dict) else {}
 
 
+# El uso gratis de Gemini se renueva a las 08:05 UTC (ver `jobs.next_quota_reset`): el «día»
+# del contador empieza ahí, no a medianoche, para que cuadre con lo que ve Google.
+def quota_day(now: datetime | None = None) -> str:
+    """El «día de Gemini» de un momento (hora local sin zona, como el resto del programa)."""
+    from app.jobs import QUOTA_RESET_UTC
+
+    shift = timedelta(hours=QUOTA_RESET_UTC[0], minutes=QUOTA_RESET_UTC[1])
+    return ((now or datetime.now()).astimezone(UTC) - shift).strftime("%Y-%m-%d")
+
+
+def today_by_project(db: Session, now: datetime | None = None) -> dict[int, int]:
+    """Llamadas a Gemini de cada vídeo en el «día de Gemini» de hoy."""
+    data = _load(db, f"usage_day:{quota_day(now)}")
+    out = {}
+    for key, calls in data.items():
+        try:
+            out[int(key)] = int(calls)
+        except (TypeError, ValueError):
+            continue  # dato raro: se ignora
+    return out
+
+
 def save(db: Session, project_id: int, stage: str, meter: dict, now: datetime | None = None):
     """Suma lo gastado en una tarea al proyecto (por etapa) y al mes."""
     if not any(meter.get(k) for k in KINDS):
@@ -59,6 +81,15 @@ def save(db: Session, project_id: int, stage: str, meter: dict, now: datetime | 
     for kind in KINDS:
         month[kind] = month.get(kind, 0) + meter.get(kind, 0)
     set_setting(db, month_key, json.dumps(month))
+    if meter.get("gemini_calls"):
+        day_key = f"usage_day:{quota_day(now)}"
+        day = _load(db, day_key)
+        try:
+            before = int(day.get(str(project_id), 0))
+        except (TypeError, ValueError):
+            before = 0
+        day[str(project_id)] = before + int(meter["gemini_calls"])
+        set_setting(db, day_key, json.dumps(day))
 
 
 def project_usage(db: Session, project_id: int) -> dict:

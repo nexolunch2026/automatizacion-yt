@@ -2,6 +2,16 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-07 — Versión 0.101: la cola de trabajo, a la vista
+
+- En la **portada** (Inicio) aparece **«Cola de trabajo»** cuando el programa está
+  trabajando: qué tarea hace **ahora**, cuál **va después** y cuáles **esperan**.
+- Con **dos vídeos a la vez** se ve cómo se turnan: los dos avanzan, una tarea cada vez.
+- Al lado de cada vídeo pone **cuántas veces ha usado hoy el Gemini gratis**, para saber
+  cuál gasta más. El «hoy» empieza cuando Google lo renueva (de madrugada).
+- Si algo espera a que vuelva el Gemini gratis, dice hasta qué hora.
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-07 — Versión 0.100.1: juntas otra vez las dos líneas
 
 - La otra conversación siguió mejorando el programa (versiones 0.71–0.76): **diseño nuevo

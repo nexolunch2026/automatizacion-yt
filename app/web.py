@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Form, HTTPException, Request
@@ -24,6 +25,7 @@ from app.settings_store import api_key_hint, get_setting
 from app.stages_web import SLUGS
 from app.templating import render
 
+log = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -55,9 +57,20 @@ def dashboard(request: Request, db: DB, user: CurrentUser, canal: int | None = N
         thumbs={p.id: url for p in projects if (url := _thumb_url(db, p.id))},
         has_gemini=api_key_hint(db, "gemini") is not None,
         summary=_studio_summary(db, projects) if projects else None,
+        queue=_queue_safe(db),
         shelves=_shelves(db, projects, channels),
         **_week_context(db, projects, channels),
     )
+
+
+def _queue_safe(db) -> list[dict]:
+    """La cola de trabajo de la portada. Es solo informativa: si falla, la portada sale igual."""
+    try:
+        return jobs.queue_overview(db)
+    except Exception:  # noqa: BLE001
+        log.exception("No se pudo preparar la cola de trabajo")
+        db.rollback()
+        return []
 
 
 def _week_context(db, projects, channels) -> dict:

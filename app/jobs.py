@@ -50,7 +50,7 @@ log = logging.getLogger(__name__)
 MAX_ATTEMPTS = 4
 RETRY_DELAYS = [timedelta(seconds=30), timedelta(seconds=90), timedelta(minutes=3)]
 # Google renueva el uso gratis de Gemini a medianoche de California (07:00 u 08:00 UTC según
-# el horario de verano). A las 08:05 UTC ya está renovado siempre.
+# el horario de verano). A las 08:05 UTC ya está renovado siempre (lo usa también `usage`).
 QUOTA_RESET_UTC = (8, 5)
 QUOTA_WAIT = "Se agotó el uso gratuito de Gemini de hoy."
 QUOTA_MAX_WAIT = timedelta(days=3)  # una tarea con más días ya no espera: se marca «Falló»
@@ -785,6 +785,57 @@ def redo_stale(db: Session, project_id: int) -> list[str]:
     return [s for s in REDO_ORDER if s in stale]
 
 
+def queue_overview(db: Session, now: datetime | None = None) -> list[dict]:
+    """La cola de trabajo en el orden en que se hará: la tarea de ahora, las que van detrás
+    y, al final, las que esperan algo (a que vuelva el Gemini gratis o a reintentar)."""
+    from app import usage
+    from app.models import JOB_LABELS
+
+    now = now or datetime.now()
+    active = db.scalars(
+        select(Job).where(Job.status.in_(("queued", "running"))).order_by(Job.id)
+    ).all()
+    running = [j for j in active if j.status == "running"]
+    ready = [j for j in active if j.status == "queued" and (not j.run_after or j.run_after <= now)]
+    later = sorted(
+        (j for j in active if j.status == "queued" and j.run_after and j.run_after > now),
+        key=lambda j: j.run_after,
+    )
+    calls = usage.today_by_project(db, now)
+    rows = []
+    for job in [*running, *ready, *later]:
+        project = db.get(Project, job.project_id)
+        if project is None:
+            continue
+        if job.status == "running":
+            state, kind = f"Trabajando ahora ({job.progress} %)", "now"
+        elif job in ready:
+            place = len(running) + ready.index(job) + 1  # puesto en la cola, contando la de ahora
+            if place == 1:
+                state = "Le toca ahora"  # nada en marcha: es la primera que se hará
+            elif place == 2:
+                state = "Va después"
+            else:
+                state = f"En cola (n.º {place})"
+            kind = "next"
+        elif (job.message or "").startswith(QUOTA_WAIT):
+            state, kind = f"Esperando a Gemini hasta el {job.run_after:%d/%m a las %H:%M}", "wait"
+        else:
+            day = "" if job.run_after.date() == now.date() else f"el {job.run_after:%d/%m} "
+            state, kind = f"Reintenta {day}a las {job.run_after:%H:%M}", "wait"
+        rows.append(
+            {
+                "project_id": project.id,
+                "title": project.title,
+                "stage": JOB_LABELS[job.stage],
+                "state": state,
+                "kind": kind,
+                "gemini_today": calls.get(project.id, 0),
+            }
+        )
+    return rows
+
+
 def latest_jobs(db: Session, project_id: int) -> dict[str, Job]:
     jobs = db.scalars(select(Job).where(Job.project_id == project_id).order_by(Job.id)).all()
     return {job.stage: job for job in jobs}  # el último de cada etapa gana
@@ -848,7 +899,11 @@ def process_next_job() -> bool:
                 try:
                     data = RUNNERS[job.stage](db, project, progress, job.params or {})
                 finally:  # lo gastado cuenta aunque la tarea falle
-                    usage.save(db, project.id, job.stage, meter)
+                    try:
+                        usage.save(db, project.id, job.stage, meter)
+                    except Exception:  # noqa: BLE001 — no tapa el error de la tarea
+                        log.exception("No se pudo apuntar el consumo de la tarea %s", job.id)
+                        db.rollback()
         except Exception as exc:  # noqa: BLE001 — cualquier fallo debe quedar registrado
             _handle_failure(db, job, exc)
             return True
