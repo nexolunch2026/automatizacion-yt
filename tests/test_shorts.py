@@ -66,6 +66,76 @@ def test_shorts_start_with_the_spoken_hook(logged_in, monkeypatch):
     assert data["shorts"][0]["seconds"] > before[0]["seconds"]
 
 
+def test_beat_images_change_every_line(tmp_path):
+    from PIL import Image
+
+    table = rows([10] * 12)
+    media = {}
+    for r in table:
+        path = tmp_path / f"{r['id']}.jpg"
+        Image.new("RGB", (32, 18)).save(path)
+        media[r["id"]] = {"path": path, "kind": "image"}
+    beats = [shorts.Beat(text="frase", image=n) for n in (6, 6, 99, 7, 1)]
+    pick = shorts.ShortPick(start=6, end=7, title="t", hook="h", beats=beats)
+    chosen = shorts.beat_images(pick, table, media)
+    assert chosen[0] == "p6" and chosen[3] == "p7"
+    assert all(a != b for a, b in zip(chosen, chosen[1:], strict=False))  # nunca dos iguales
+    assert "p1" not in chosen  # demasiado lejos del fragmento: se busca otra cercana
+    assert all(2 <= int(p[1:]) <= 11 for p in chosen)
+
+
+def test_shorts_tell_their_own_text_with_an_image_per_line(logged_in, monkeypatch):
+    seen = []
+    real = shorts.render_video
+
+    def spy(scenes, media, takes, *args, **kwargs):
+        seen.append((scenes, media, takes))
+        return real(scenes, media, takes, *args, **kwargs)
+
+    monkeypatch.setattr(shorts, "render_video", spy)
+    make_video_project(logged_in, monkeypatch)
+    with SessionLocal() as db:
+        before = jobs.get_result(db, 1, "shorts")["shorts"]
+    lines = [
+        "Esta empresa engañó a todo el mundo durante años",
+        "Prometía algo que no podía cumplir de ninguna manera",
+        "Los inversores pusieron millones sin hacer preguntas",
+        "Los empleados sabían que algo fallaba por dentro",
+        "Pero nadie se atrevía a decirlo en voz alta",
+        "Hasta que un periodista empezó a hacer preguntas",
+        "¿Quién se atrevió a contar la verdad al final?",
+    ]
+    start = before[0]["paragraphs"][0]
+    beats = [{"text": t, "image": start + (k % 2)} for k, t in enumerate(lines)]
+    keep = [{**s, "beats": beats if n == 0 else []} for n, s in enumerate(before)]
+    with SessionLocal() as db:
+        from app.models import Project
+
+        voice = jobs.get_result(db, 1, "voice")
+        seen.clear()
+        data = shorts.run_shorts(
+            db.get(Project, 1),
+            jobs.get_result(db, 1, "script"),
+            jobs.get_result(db, 1, "storyboard"),
+            voice,
+            jobs.media_map(project_dir(1), jobs.get_result(db, 1, "visuals")),
+            project_dir(1),
+            None,
+            lambda p, m: None,
+            keep=keep,
+            speak=jobs._hook_speaker(db, voice),
+        )
+    scenes, media, takes = seen[0]
+    assert [s["narration"] for s in scenes] == lines  # dice el texto propio, no el guion
+    assert scenes[0]["on_screen_text"] == before[0]["hook"].upper()
+    assert scenes[-1]["end_text"] == shorts.END_TEXT
+    assert all(a["source_id"] != b["source_id"] for a, b in zip(scenes, scenes[1:], strict=False))
+    assert all(s["paragraph_id"] in media and takes[s["paragraph_id"]] > 0 for s in scenes)
+    assert data["shorts"][0]["beats"][0]["text"] == lines[0]
+    assert data["shorts"][0]["hook_line"] == lines[0]
+    assert all(not s["beats"] for s in data["shorts"][1:])  # sin texto propio: como antes
+
+
 def test_spoken_hook_is_optional():
     pick = shorts.ShortPick(start=1, end=2, title="t", hook="h", hook_line="Frase gancho")
     assert shorts._hook_audio(pick, None) is None  # sin voz: como antes

@@ -381,7 +381,9 @@ def pan_band(seconds: float, fps: int, w: int, fh: int, factor: int, reverse: bo
     bw, bh = w * factor // 2 * 2, fh * factor // 2 * 2
     return (
         f"scale=-2:{bh},setsar=1,loop=loop={total}:size=1:start=0,setpts=N/{fps}/TB,"
-        f"crop={bw}:{bh}:x='(iw-ow)*(0.08+0.84*{where})':y=0,"
+        # Un paseo corto alrededor del centro (del 30 al 70 %): de borde a borde se cortaban
+        # caras al principio y al final de cada escena (v0.84).
+        f"crop={bw}:{bh}:x='(iw-ow)*(0.3+0.4*{where})':y=0,"
         f"scale={w}:{fh},fps={fps},trim=duration={seconds:.3f}"
     )
 
@@ -707,7 +709,7 @@ def scene_key(scene: dict, visual: dict | None, length: float, size, fps, crf, f
     data = {
         # 2: Shorts con imagen entera y fondo desenfocado; 3: Shorts con la imagen grande que
         # la cámara recorre (v0.83). Los vídeos horizontales siguen en 2: su caché vale.
-        "v": 3 if size[1] > size[0] else 2,
+        "v": 4 if size[1] > size[0] else 2,  # 4: paseo centrado (v0.84)
         "scene": {k: v for k, v in scene.items() if k != "number"},  # el nº solo nombra archivos
         "visual": source,
         "length": round(length, 3),
