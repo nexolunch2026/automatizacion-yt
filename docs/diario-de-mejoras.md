@@ -2,6 +2,22 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-08 — Versión 0.102.1: Radar de historias
+
+Tres historias nuevas en el **banco de ideas** (pídeselas a JARVIS con «banco de ideas»):
+
+- **Ueno Bank** (Paraguay): el Banco Central lo intervino el 3 de noviembre de 2026 con casi
+  3 millones de clientes; hay directivos detenidos y una gran crisis política.
+- **Banco Master** (Brasil): liquidado por el Banco Central en noviembre de 2025, señalado
+  como el mayor fraude bancario del país; esta semana se subastaron sus bienes.
+- **Magnicharters** (México): la aerolínea de paquetes de playa, declarada en quiebra con
+  deudas de unos 800 millones de pesos.
+
+Lo que las fuentes no tienen claro (por ejemplo, si el presidente de Paraguay dimitió) no
+se puso. Fuentes: La Nación (Argentina), Infobae, Excélsior, iProfesional; Wikipedia
+«Banco Master scandal», CNN Brasil, Seu Dinheiro, Diário do Rio; Infobae México,
+La Jornada, El Imparcial, Airline92.
+
 ## 2026-11-08 — Versión 0.102: «¿qué me falta en Flow?»
 
 - Pregúntale a JARVIS por Telegram **«¿qué me falta en Flow?»** (o solo **«flow»**).

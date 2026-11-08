@@ -576,6 +576,24 @@ IDEAS: list[dict] = [
         "region": "Latinoamérica",
         "hook": "En mayo de 2026 se salvó con el apoyo del 81,8 % de sus acreedores.",
     },
+    {
+        "topic": "Ueno Bank: el banco digital que el Banco Central de Paraguay tuvo que intervenir",
+        "format": "investigacion",
+        "region": "Latinoamérica",
+        "hook": "El 3 de noviembre de 2026 lo intervinieron con casi 3 millones de clientes.",
+    },
+    {
+        "topic": "Banco Master: el banco que pagaba demasiado y acabó liquidado en Brasil",
+        "format": "investigacion",
+        "region": "Latinoamérica",
+        "hook": "El Banco Central de Brasil lo liquidó en noviembre de 2025.",
+    },
+    {
+        "topic": "Magnicharters: la aerolínea de paquetes de playa que acabó en quiebra",
+        "format": "auge_caida",
+        "region": "Latinoamérica",
+        "hook": "En 2026 una jueza declaró su quiebra con deudas de unos 800 millones de pesos.",
+    },
 ]
 
 
