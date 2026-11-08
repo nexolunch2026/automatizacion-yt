@@ -18,6 +18,9 @@ se puso. Fuentes: La Nación (Argentina), Infobae, Excélsior, iProfesional; Wik
 «Banco Master scandal», CNN Brasil, Seu Dinheiro, Diário do Rio; Infobae México,
 La Jornada, El Imparcial, Airline92.
 
+Nota: las pruebas de GitHub fallaron dos veces porque sus servidores no respondían al
+descargar Python (error 504), antes de probar nada. En este ordenador pasan las 892.
+
 ## 2026-11-08 — Versión 0.102: «¿qué me falta en Flow?»
 
 - Pregúntale a JARVIS por Telegram **«¿qué me falta en Flow?»** (o solo **«flow»**).
