@@ -7,6 +7,8 @@ import httpx
 os.environ["FACELESS_DATA_DIR"] = tempfile.mkdtemp(prefix="faceless-test-")
 # Los tests ejecutan las tareas a mano, sin trabajador en segundo plano.
 os.environ["FACELESS_WORKER"] = "0"
+# Montajes iguales en todos los PC (sin la gráfica Intel, que no hay en GitHub).
+os.environ["FACELESS_NO_QSV"] = "1"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

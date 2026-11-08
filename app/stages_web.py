@@ -415,6 +415,7 @@ def visuals_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         )
         if board
         else [],
+        reference_message=flow.reference_message(board),
         flow_bookmarklet=flow.bookmarklet(len(rows)),
         flow_direct=flow.direct_bookmarklet(str(request.base_url), project.id, len(rows)),
     )
@@ -463,11 +464,15 @@ def place_flow_pictures(
     """Coloca imágenes de Flow en sus escenas: Gemini mira cada una (de 8 en 8) y elige su
     escena entre las que aún no tienen imagen de Flow; si no puede, por orden. Las que no
     encajan (de otros vídeos del mismo proyecto de Flow) se descartan."""
-    from app import flow
+    from app import consistency, flow
 
     board = jobs.get_result(db, project_id, "storyboard")
     if board is None:
         raise HTTPException(404, "Primero crea las escenas")
+    reference = project_dir(project_id) / consistency.REFERENCE_FILE
+    if reference.is_file():  # la ficha está en el mismo proyecto de Flow: no es una escena
+        ref = reference.read_bytes()
+        pictures = [p for p in pictures if not consistency.is_reference(p, ref)]
     scenes = board["scenes"]
     by_number = {s["number"]: s for s in scenes}
     items = (jobs.get_result(db, project_id, "visuals") or {}).get("items", {})
@@ -494,6 +499,8 @@ def place_flow_pictures(
         new_items[by_number[number]["paragraph_id"]] = _flow_entry(filename)
     if new_items:
         _save_visual_items(db, project_id, new_items)
+        if reference.is_file():  # revisa sola, mientras se hace otra cosa
+            jobs.enqueue(db, project_id, consistency.STAGE)
     _save_upload_report(db, project_id, len(new_items), problems)
     project = _project(db, project_id)
     items = (jobs.get_result(db, project_id, "visuals") or {}).get("items", {})
@@ -527,6 +534,25 @@ def set_hero_reference(db: DB, user: CurrentUser, project_id: int, paragraph_id:
         db, project_id, consistency.STAGE, consistency.set_reference(folder, image, scene["number"])
     )
     return _redirect(f"/proyectos/{project_id}/visuales#protagonista")
+
+
+@router.post("/visuales/ficha")
+async def upload_hero_reference(
+    db: DB, user: CurrentUser, project_id: int, image: Annotated[UploadFile, File()]
+):
+    """Paso 0 de Visuales: la ficha del protagonista hecha en Flow, subida desde el ordenador."""
+    from app import consistency
+
+    _project(db, project_id)
+    data = await image.read(MAX_UPLOAD + 1)
+    if len(data) > MAX_UPLOAD:
+        raise HTTPException(400, "La imagen pesa demasiado (máximo 20 MB).")
+    try:
+        result = consistency.save_uploaded_reference(project_dir(project_id), data)
+    except ValueError as exc:
+        raise HTTPException(400, f"La ficha {exc}.") from exc
+    _save_stage(db, project_id, consistency.STAGE, result)
+    return _redirect(f"/proyectos/{project_id}/visuales#flow")
 
 
 @router.post("/visuales/revisar-protagonista")
@@ -745,6 +771,52 @@ def _store_image(project_id: int, scene: dict, data: bytes) -> str:
     return filename
 
 
+MAX_CLIP = 200 * 1024 * 1024  # un clip de Flow de 8 s pesa unos pocos MB
+
+
+def is_video_upload(name: str, data: bytes) -> bool:
+    """¿Es un vídeo MP4/MOV (los clips animados de Google Flow)? Mira el contenido, no
+    solo el nombre."""
+    return data[4:8] == b"ftyp" or name.lower().endswith((".mp4", ".mov"))
+
+
+def _store_clip(project_id: int, scene: dict, data: bytes) -> dict:
+    """Guarda un clip animado (p. ej. de Google Flow) para una escena y devuelve su ficha.
+    No se repite en bucle al montar: si es más corto que la escena, se queda quieto al final."""
+    import secrets
+
+    from app.pipeline.visuals import _poster
+
+    if len(data) > MAX_CLIP:
+        raise ValueError("es demasiado grande (máximo 200 MB)")
+    if data[4:8] != b"ftyp":
+        raise ValueError("no es un vídeo MP4 válido")
+    folder = project_dir(project_id) / "visuales"
+    folder.mkdir(parents=True, exist_ok=True)
+    filename = f"{scene['number']:03}-flow-{secrets.token_hex(3)}.mp4"
+    (folder / filename).write_bytes(data)
+    poster = _poster(folder / filename)
+    if poster is None:  # ffmpeg no pudo leerlo: no es un vídeo de verdad
+        (folder / filename).unlink(missing_ok=True)
+        raise ValueError("no se pudo leer el vídeo")
+    return {
+        **_uploaded_entry(filename, True),
+        "kind": "video",
+        "animated": True,
+        "poster": poster,
+        "license": "Clip animado con IA (Google Flow), subido por ti",
+    }
+
+
+def _store_upload(project_id: int, scene: dict, name: str, data: bytes, is_ai: bool) -> dict:
+    """Imagen o clip animado: la ficha lista para guardar en Visuales."""
+    if is_video_upload(name, data):
+        return _store_clip(project_id, scene, data)
+    if len(data) > MAX_UPLOAD:
+        raise ValueError("es demasiado grande (máximo 20 MB)")
+    return _uploaded_entry(_store_image(project_id, scene, data), is_ai)
+
+
 def _uploaded_entry(filename: str, is_ai: bool) -> dict:
     return {
         "kind": "image",
@@ -780,7 +852,8 @@ async def upload_visual(
     image: Annotated[UploadFile, File()],
     is_ai: Annotated[str | None, Form()] = None,
 ):
-    """Usa una imagen propia (por ejemplo, hecha en ChatGPT) para una escena."""
+    """Usa una imagen propia (por ejemplo, hecha en ChatGPT) o un clip animado de Google Flow
+    (.mp4) para una escena."""
     _project(db, project_id)
     board = jobs.get_result(db, project_id, "storyboard")
     scene = next(
@@ -789,10 +862,11 @@ async def upload_visual(
     if scene is None:
         raise HTTPException(404, "Escena no encontrada")
     try:
-        filename = _store_image(project_id, scene, await image.read(MAX_UPLOAD + 1))
+        data = await image.read(MAX_CLIP + 1)
+        entry = _store_upload(project_id, scene, image.filename or "", data, bool(is_ai))
     except ValueError as exc:
         raise HTTPException(400, f"El archivo {exc}") from exc
-    _save_visual_items(db, project_id, {paragraph_id: _uploaded_entry(filename, bool(is_ai))})
+    _save_visual_items(db, project_id, {paragraph_id: entry})
     return _redirect(f"/proyectos/{project_id}/visuales#escena-{paragraph_id}")
 
 
@@ -848,11 +922,12 @@ async def upload_many(
             problems.append(f"{upload.filename}: no hay escena para ella")
             continue
         try:
-            filename = _store_image(project_id, scenes[number], await upload.read(MAX_UPLOAD + 1))
+            data = await upload.read(MAX_CLIP + 1)
+            entry = _store_upload(project_id, scenes[number], upload.filename, data, bool(is_ai))
         except ValueError as exc:
             problems.append(f"{upload.filename}: {exc}")
             continue
-        new_items[scenes[number]["paragraph_id"]] = _uploaded_entry(filename, bool(is_ai))
+        new_items[scenes[number]["paragraph_id"]] = entry
     if new_items:
         _save_visual_items(db, project_id, new_items)
     _save_upload_report(db, project_id, len(new_items), problems)
@@ -1207,6 +1282,8 @@ def run_stage(
     subtitles: Annotated[str | None, Form()] = None,
     film_look: Annotated[str | None, Form()] = None,
     callouts: Annotated[str | None, Form()] = None,
+    puppet: Annotated[str | None, Form()] = None,
+    nuevos: Annotated[str | None, Form()] = None,
     music: Annotated[str | None, Form()] = None,
     look: Annotated[str | None, Form()] = None,
     music_volume: Annotated[str | None, Form()] = None,
@@ -1229,12 +1306,16 @@ def run_stage(
             "subtitles": subtitles == "1",
             "film_look": film_look == "1",
             "callouts": callouts == "1",
+            "puppet": puppet == "1",
             "look": look if look in (AUTO_LOOK, *LOOKS) else AUTO_LOOK,
             "music": music if music in ("", AUTO_LOOK, *music_library()) else "",
             "music_volume": music_volume if music_volume in MUSIC_VOLUMES else "media",
         }
     elif stage == "shorts":
-        params = {"quality": quality if quality in ("preview", "final") else "preview"}
+        params = {
+            "quality": quality if quality in ("preview", "final") else "preview",
+            "nuevos": nuevos == "1",  # que la IA elija otros momentos (si no, los mismos)
+        }
     elif stage == "visuals" and mode in ("stock", "ai"):
         params = {"mode": mode}
     elif stage == "voice":

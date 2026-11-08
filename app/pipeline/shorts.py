@@ -1,7 +1,9 @@
 """SHORTS ENGINE: de cada documental, 2–3 Shorts verticales con sus mejores momentos.
 
-1. Gemini elige los fragmentos más llamativos (párrafos seguidos de 20–58 s): un dato
-   sorprendente, un giro, una cifra… y les pone un título y un gancho en pantalla.
+1. Gemini elige los fragmentos más llamativos (párrafos seguidos de 15–38 s): un dato
+   sorprendente, un giro, una cifra… y les pone un título, un gancho en pantalla y una
+   FRASE GANCHO que la voz dice en el primer segundo (desde la v0.83: antes la voz empezaba
+   con contexto y en YouTube Studio el 60-85 % pasaba el Short sin mirarlo).
    Sin Gemini se eligen solos (los que tienen cifras, preguntas o el gancho del vídeo).
 2. Cada fragmento se vuelve a montar en vertical (no se recorta el vídeo horizontal):
    mismas imágenes con movimiento, la misma voz, subtítulos grandes y el gancho arriba.
@@ -11,6 +13,7 @@
    En YouTube Studio además se elige ese vídeo como «Vídeo relacionado» del Short.
 """
 
+import logging
 import re
 from collections.abc import Callable
 from pathlib import Path
@@ -20,12 +23,18 @@ from pydantic import BaseModel, Field
 from app.models import Project
 from app.pipeline.render import PAUSE, render_video
 from app.providers.ai import AIProvider, ProviderError
-from app.providers.voice import join_wavs
+from app.providers.voice import join_wavs, wav_seconds
 
-MIN_SECONDS = 18
-MAX_SECONDS = 58
-TARGET_SECONDS = 40
+log = logging.getLogger(__name__)
+
+MIN_SECONDS = 15
+MAX_SECONDS = 38  # + la frase gancho: Shorts de unos 30-40 s (los de 50 s se abandonaban)
 END_TEXT = "La historia completa, en el canal"
+
+
+class Beat(BaseModel):
+    text: str = Field(description="Una frase corta para la voz (6-14 palabras)")
+    image: int = Field(description="Número del párrafo cuya imagen se ve mientras se dice")
 
 
 class ShortPick(BaseModel):
@@ -33,6 +42,17 @@ class ShortPick(BaseModel):
     end: int = Field(description="Número del último párrafo (incluido)")
     title: str = Field(description="Título del Short, máximo 60 caracteres, con gancho")
     hook: str = Field(description="Texto en pantalla al empezar: 2 a 5 palabras")
+    hook_line: str = Field(
+        default="",
+        description="Frase que la voz dice en el primer segundo, antes del fragmento",
+    )
+    beats: list[Beat] = Field(
+        default_factory=list,
+        description="El texto propio del Short, frase a frase, cada una con su imagen",
+    )
+
+
+BEAT_WORDS = (60, 110)  # el texto propio de un Short: unos 25-40 s de voz
 
 
 class ShortPicks(BaseModel):
@@ -107,7 +127,11 @@ def heuristic_picks(rows: list[dict], count: int) -> list[ShortPick]:
 
 
 def _prompt(project: Project, script: dict, rows: list[dict], count: int) -> str:
-    table = "\n".join(f"[{r['n']}] ({r['seconds']:.0f} s) {r['text']}" for r in rows)
+    table = "\n".join(
+        f"[{r['n']}] ({r['seconds']:.0f} s) {r['text']}"
+        + (f"\n     IMAGEN: {r['visual']}" if r.get("visual") else "")
+        for r in rows
+    )
     return f"""Eres editor de YouTube Shorts para el canal de documentales «{project.title}».
 Del guion numerado elige {count} fragmentos para Shorts verticales:
 - Cada uno son párrafos SEGUIDOS que duren entre {MIN_SECONDS} y {MAX_SECONDS} segundos en total
@@ -116,11 +140,28 @@ Del guion numerado elige {count} fragmentos para Shorts verticales:
   fuerte (un dato sorprendente, una cifra, un giro, una pregunta), nunca con contexto.
 - Que el último párrafo deje la intriga ABIERTA (qué pasó después, por qué cayó…): el
   Short tiene que dar ganas de ver el documental completo, no contar el final.
-- Que no se solapen.
+- Que no se solapen y que cada uno cuente una parte DISTINTA de la historia (p. ej. el
+  ascenso, el engaño, la caída): nunca dos Shorts sobre la misma idea.
 - title: título del Short (máximo 60 caracteres), con curiosidad, honesto y sin
   destripar el final.
 - hook: 2–5 palabras que se verán grandes desde el primer fotograma: una promesa o una
   cifra («PERDIÓ 74.000 MILLONES», «NADIE LO VIO VENIR»), no solo el nombre del tema.
+- hook_line: la frase que la VOZ dice primero, antes del fragmento (8–14 palabras). Dice lo
+  mismo que el hook en pantalla, como una promesa o un dato que choca, y conecta con lo que
+  viene después. Ej.: «Esta mujer engañó a todo Silicon Valley con una máquina que no
+  funcionaba». Nada de «En este vídeo…» ni de fechas para empezar. Solo hechos del guion.
+- beats: el TEXTO PROPIO del Short, que es lo que dirá la voz (no se usa el texto del
+  documental). Entre 7 y 10 frases, {BEAT_WORDS[0]}–{BEAT_WORDS[1]} palabras en total.
+  · Español hablado y sencillo, como se lo contarías a un amigo: frases cortas (6–14
+    palabras), nada de palabras técnicas ni de informe («inviabilidad», «escrutinio»,
+    «compartimentos estancos», «narrativa disruptiva»).
+  · La primera frase es la hook_line. Luego cuenta ESE momento con hechos del guion, sin
+    inventar nada (cifras, nombres y fechas, tal cual).
+  · La última deja una pregunta abierta que lleve al documental («¿Y cómo acabó todo?»,
+    «¿Quién la descubrió?»), nunca un resumen.
+  · «image»: el número del párrafo cuya IMAGEN se ve mientras se dice esa frase. Elige la
+    que mejor encaje entre los párrafos del fragmento y los 4 de antes y de después. No
+    repitas la misma imagen dos veces seguidas: que cambie con cada frase.
 
 Vídeo: «{script.get("title") or project.title}»
 GUION:
@@ -172,6 +213,100 @@ def highlight_word(text: str) -> str:
     return (with_digits or sorted(words, key=len, reverse=True))[0]
 
 
+def best_image(media: dict, paragraph_ids: list[str]) -> str | None:
+    """El párrafo cuya imagen es la más llamativa (la de la portada y el primer segundo)."""
+    from app.pipeline import thumbnail
+
+    scored = []
+    for pid in paragraph_ids:
+        item = media.get(pid) or {}
+        if item.get("kind") == "image" and Path(item.get("path", "")).exists():
+            try:
+                scored.append((thumbnail._score(Path(item["path"])), pid))
+            except OSError:
+                continue
+    return max(scored)[1] if scored else None
+
+
+def _hook_audio(pick: ShortPick, speak: Callable[[str], bytes] | None) -> bytes | None:
+    """La frase gancho grabada; None si no hay frase ni voz, o si la voz falla."""
+    if not (speak and pick.hook_line.strip()):
+        return None
+    try:
+        return speak(pick.hook_line.strip())
+    except Exception:  # noqa: BLE001 — sin la frase el Short se hace igual
+        log.warning("Shorts: no se pudo grabar la frase gancho", exc_info=True)
+        return None
+
+
+def _has_image(media: dict, pid: str) -> bool:
+    item = media.get(pid) or {}
+    return item.get("kind") == "image" and Path(item.get("path", "")).exists()
+
+
+def beat_images(pick: ShortPick, rows: list[dict], media: dict) -> list[str] | None:
+    """El párrafo cuya imagen se ve en cada frase: la que eligió Gemini si está cerca del
+    fragmento y tiene imagen; si no, o si repetiría la anterior, otra cercana sin usar."""
+    first, last = max(1, pick.start - 4), min(len(rows), pick.end + 4)
+    pool = [r["id"] for r in rows[first - 1 : last] if _has_image(media, r["id"])]
+    if not pool:
+        return None
+    chosen: list[str] = []
+    for beat in pick.beats:
+        pid = rows[beat.image - 1]["id"] if first <= beat.image <= last else None
+        if pid is None or not _has_image(media, pid) or (chosen and chosen[-1] == pid):
+            unused = [p for p in pool if p not in chosen]
+            others = [p for p in pool if not chosen or p != chosen[-1]]
+            pid = (unused or others or pool)[0]
+        chosen.append(pid)
+    return chosen
+
+
+def _beat_track(
+    pick: ShortPick,
+    index: int,
+    rows: list[dict],
+    scenes_by_id: dict,
+    media: dict,
+    speak: Callable[[str], bytes] | None,
+):
+    """Escenas, imágenes, segundos y audio del texto propio del Short (una frase, una
+    imagen). None si no hay texto propio, ni voz, o algo falla: entonces se usa el trozo
+    del documental tal cual."""
+    if not (speak and pick.beats):
+        return None
+    words = sum(len(b.text.split()) for b in pick.beats)
+    if not BEAT_WORDS[0] * 0.6 <= words <= BEAT_WORDS[1] * 1.5:
+        return None  # demasiado corto o largo: algo salió mal
+    images = beat_images(pick, rows, media)
+    if not images:
+        return None
+    scenes, shot_media, seconds, audio = [], dict(media), {}, []
+    for k, (beat, pid) in enumerate(zip(pick.beats, images, strict=True), 1):
+        try:
+            wav = speak(beat.text.strip())
+        except Exception:  # noqa: BLE001 — sin voz para el texto nuevo, el trozo del documental
+            log.warning("Shorts: no se pudo grabar el texto del Short", exc_info=True)
+            return None
+        beat_id = f"short{index}-{k}"
+        scene = {
+            **scenes_by_id.get(pid, {}),
+            "paragraph_id": beat_id,
+            "number": k,
+            "narration": beat.text.strip(),
+            "on_screen_text": "",
+            "source_id": pid,
+        }
+        for key in ("chart", "callout", "end_text", "missing"):
+            scene.pop(key, None)
+        scene["visual_type"] = "imagen"
+        scenes.append(scene)
+        shot_media[beat_id] = media[pid]
+        seconds[beat_id] = wav_seconds(wav)
+        audio.append(wav)
+    return scenes, shot_media, seconds, audio
+
+
 def make_cover(media: dict, paragraph_ids: list[str], text: str, out: Path) -> Path:
     """Portada vertical del Short (1080×1920) con la imagen más llamativa de sus escenas."""
     from app.pipeline import thumbnail
@@ -193,6 +328,28 @@ def make_cover(media: dict, paragraph_ids: list[str], text: str, out: Path) -> P
     )
 
 
+def kept_picks(keep: list[dict] | None, total: int) -> list[ShortPick]:
+    """Los Shorts anteriores como elecciones (si siguen encajando en el guion actual)."""
+    picks = []
+    for short in keep or []:
+        try:
+            start, end = (int(n) for n in short["paragraphs"])
+            pick = ShortPick(
+                start=start,
+                end=end,
+                title=short["title"],
+                hook=short["hook"],
+                hook_line=short.get("hook_line", ""),
+                beats=[Beat(**b) for b in short.get("beats") or []],
+            )
+        except (KeyError, TypeError, ValueError):
+            return []
+        if not 1 <= start <= end <= total:
+            return []  # el guion cambió: mejor elegir de nuevo
+        picks.append(pick)
+    return picks
+
+
 def run_shorts(
     project: Project,
     script: dict,
@@ -206,15 +363,26 @@ def run_shorts(
     style: dict | None = None,
     music: Path | None = None,
     hashtags: list[str] | None = None,
+    keep: list[dict] | None = None,
+    speak: Callable[[str], bytes] | None = None,
 ) -> dict:
+    """`keep`: los Shorts que ya había. Al rehacerlos se repiten los mismos momentos, títulos
+    y ganchos (solo cambia el montaje); sin `keep`, la IA elige momentos nuevos.
+    `speak(texto) -> wav`: graba la frase gancho con la misma voz del vídeo (sin ella, el
+    Short empieza directamente con el fragmento, como antes)."""
     takes = {t["paragraph_id"]: t["seconds"] for t in voice["takes"]}
     files = {t["paragraph_id"]: project_folder / t["file"] for t in voice["takes"]}
     rows = paragraph_table(script, takes)
     if not rows:
         raise ProviderError("No hay narración grabada para hacer Shorts.")
-    progress(5, "Buscando los mejores momentos del vídeo")
-    count = how_many(voice.get("seconds") or sum(takes.values()))
-    picks = choose_segments(project, script, rows, ai, count)
+    scenes_by_id = {s["paragraph_id"]: s for s in board["scenes"]}
+    for row in rows:  # Gemini elige la imagen de cada frase por lo que se ve en ella
+        row["visual"] = (scenes_by_id.get(row["id"]) or {}).get("visual", "")
+    picks = kept_picks(keep, len(rows))
+    if not picks:
+        progress(5, "Buscando los mejores momentos del vídeo")
+        count = how_many(voice.get("seconds") or sum(takes.values()))
+        picks = choose_segments(project, script, rows, ai, count)
     if not picks:  # no es un error: simplemente no hay material suficiente
         progress(100, "Vídeo demasiado corto para Shorts")
         return {
@@ -224,7 +392,6 @@ def run_shorts(
             "sacar Shorts (hace falta al menos un fragmento de unos 20 segundos).",
         }
 
-    scenes_by_id = {s["paragraph_id"]: s for s in board["scenes"]}
     out_root = project_folder / "shorts"
     shorts = []
     for i, pick in enumerate(picks, 1):
@@ -232,6 +399,37 @@ def run_shorts(
         scenes = [dict(scenes_by_id[pid]) for pid in ids if pid in scenes_by_id]
         if not scenes:
             continue
+        seconds = {pid: takes[pid] for pid in ids}
+        audio = [files[pid].read_bytes() for pid in ids]
+        shot_media = media
+        hook_audio = None
+        track = _beat_track(pick, i, rows, scenes_by_id, media, speak)
+        if track:  # el texto propio del Short, con una imagen por frase
+            scenes, shot_media, seconds, audio = track
+            hook_audio = audio[0]
+            ids = list(dict.fromkeys(s["source_id"] for s in scenes))  # para la portada
+        else:
+            hook_audio = _hook_audio(pick, speak)
+        if hook_audio and not track:  # la voz dice el gancho en el primer segundo
+            hook_id = f"gancho-{i}"
+            best = best_image(media, ids) or ids[0]
+            scenes[0]["on_screen_text"] = ""  # el gancho en pantalla va en la escena nueva
+            scenes.insert(
+                0,
+                {
+                    **scenes_by_id.get(best, scenes[0]),
+                    "paragraph_id": hook_id,
+                    "number": 0,
+                    "narration": pick.hook_line,
+                    "motion": "zoom_in",
+                },
+            )
+            for key in ("chart", "callout", "end_text"):
+                scenes[0].pop(key, None)
+            if best in media:
+                shot_media = {**media, hook_id: media[best]}
+            seconds = {hook_id: wav_seconds(hook_audio), **seconds}
+            audio.insert(0, hook_audio)
         scenes[0]["on_screen_text"] = pick.hook.upper()  # el gancho, arriba, al empezar
         scenes[0]["text_from_start"] = True
         scenes[0].pop("chart", None)  # el primer plano es el gancho, no un gráfico
@@ -241,15 +439,15 @@ def run_shorts(
         folder = out_root / f"short-{i}"
         folder.mkdir(parents=True, exist_ok=True)
         narration = folder / "narracion.wav"
-        narration.write_bytes(join_wavs([files[pid].read_bytes() for pid in ids], PAUSE))
+        narration.write_bytes(join_wavs(audio, PAUSE))
 
         def step(pct: int, message: str, i=i) -> None:
             progress(10 + round(85 * ((i - 1) + pct / 100) / len(picks)), f"Short {i}: {message}")
 
         result = render_video(
             scenes,
-            media,
-            {pid: takes[pid] for pid in ids},
+            shot_media,
+            seconds,
             narration,
             folder,
             quality,
@@ -268,6 +466,10 @@ def run_shorts(
                 "cover": f"shorts/short-{i}/portada.jpg",
                 "title": pick.title[:100],
                 "hook": pick.hook,
+                "hook_line": (pick.beats[0].text if track else pick.hook_line)
+                if hook_audio
+                else "",
+                "beats": [b.model_dump() for b in pick.beats] if track else [],
                 "seconds": result["seconds"],
                 "paragraphs": [pick.start, pick.end],
                 "paragraph_ids": ids,

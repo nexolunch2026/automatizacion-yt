@@ -14,14 +14,25 @@
     </div>
     {% if 'voice' in results and 'storyboard' in results and not (job and job.active) and project.duration != 'Short' %}
     <div class="row-actions">
-      <form method="post" action="/proyectos/{{ project.id }}/etapas/shorts">
-        <input type="hidden" name="quality" value="preview">
-        <button class="btn {{ 'secondary' if data }}">{% if data %}Hacer otros{% else %}Crear Shorts{% endif %}</button>
-      </form>
       {% if data %}
       <form method="post" action="/proyectos/{{ project.id }}/etapas/shorts">
+        <input type="hidden" name="quality" value="preview">
+        <button class="btn" title="Los mismos momentos, títulos y ganchos; solo se vuelve a montar">Rehacer los mismos</button>
+      </form>
+      <form method="post" action="/proyectos/{{ project.id }}/etapas/shorts">
         <input type="hidden" name="quality" value="final">
-        <button class="btn secondary" title="1080×1920, tarda más">Alta calidad</button>
+        <button class="btn secondary" title="Los mismos Shorts en 1080×1920, tarda más">Alta calidad</button>
+      </form>
+      <form method="post" action="/proyectos/{{ project.id }}/etapas/shorts"
+            onsubmit="return confirm('La IA elegirá OTROS momentos y títulos. ¿Seguir?')">
+        <input type="hidden" name="quality" value="preview">
+        <input type="hidden" name="nuevos" value="1">
+        <button class="btn secondary">Hacer otros</button>
+      </form>
+      {% else %}
+      <form method="post" action="/proyectos/{{ project.id }}/etapas/shorts">
+        <input type="hidden" name="quality" value="preview">
+        <button class="btn">Crear Shorts</button>
       </form>
       {% endif %}
     </div>
@@ -59,11 +70,11 @@
   {% for s in data.shorts %}
   <div class="card short-card" id="short-{{ loop.index }}">
     <div class="short-media">
-      <video class="short-player" src="/proyectos/{{ project.id }}/archivos/{{ s.file }}?v={{ job.id if job else 0 }}" controls preload="metadata"></video>
+      <video class="short-player" src="/proyectos/{{ project.id }}/archivos/{{ s.file }}?v={{ file_version(project.id, s.file) }}" controls preload="metadata"></video>
       {% if s.cover %}
       <div class="short-cover">
-        <img src="/proyectos/{{ project.id }}/archivos/{{ s.cover }}?t={{ s.hook|length }}{{ loop.index }}" alt="Portada del Short {{ loop.index }}">
-        <a class="btn small" href="/proyectos/{{ project.id }}/archivos/{{ s.cover }}" download="portada-short-{{ project.id }}-{{ loop.index }}.jpg">Descargar portada</a>
+        <img src="/proyectos/{{ project.id }}/archivos/{{ s.cover }}?v={{ file_version(project.id, s.cover) }}" alt="Portada del Short {{ loop.index }}">
+        <a class="btn small" href="/proyectos/{{ project.id }}/archivos/{{ s.cover }}?v={{ file_version(project.id, s.cover) }}" download="portada-short-{{ project.id }}-{{ loop.index }}.jpg">Descargar portada</a>
         <form method="post" action="/proyectos/{{ project.id }}/shorts/{{ loop.index }}/portada" class="cover-form">
           <input name="text" value="{{ s.hook }}" maxlength="40" title="Texto de la portada">
           <button class="btn small secondary">Rehacer</button>
@@ -83,7 +94,7 @@
     <pre class="copy-text description" id="short-desc-{{ loop.index }}">{{ s.description }}</pre>
     <div class="row-actions">
       <button class="btn small secondary" data-copy="short-desc-{{ loop.index }}">Copiar descripción</button>
-      <a class="btn small" href="/proyectos/{{ project.id }}/archivos/{{ s.file }}" download="short-{{ project.id }}-{{ loop.index }}.mp4">Descargar</a>
+      <a class="btn small" href="/proyectos/{{ project.id }}/archivos/{{ s.file }}?v={{ file_version(project.id, s.file) }}" download="short-{{ project.id }}-{{ loop.index }}.mp4">Descargar</a>
       <form method="post" action="/proyectos/{{ project.id }}/shorts/{{ loop.index }}/subido" class="inline-form">
         {% if loop.index in (uploaded or []) %}
         <input type="hidden" name="done" value="0">

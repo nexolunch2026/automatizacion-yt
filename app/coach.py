@@ -255,7 +255,7 @@ def review_project(db: Session, project: Project) -> str:
 
 DEFAULT_PUBLISH_DAY = 3  # jueves
 DEFAULT_PUBLISH_HOUR = 18
-SHORTS_DAYS = (0, 2, 5)  # lunes, miércoles y sábado: 3 Shorts por semana
+SHORTS_DAYS = (0, 2, 4, 5)  # lunes, miércoles, viernes y sábado (como estreno.SHORT_DAYS)
 # 30 minutos al día para aprender (ver docs/aprender-de-los-mejores.md).
 LEARNING = {
     0: "una lección del curso gratis de storytelling de Edutin",

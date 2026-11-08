@@ -6,10 +6,12 @@ consiste en añadir otra clase que cumpla la misma interfaz.
 
 import hashlib
 import re
+import threading
 import time
 from dataclasses import dataclass, field
 from typing import Protocol, TypeVar
 
+import httpx
 from pydantic import BaseModel, ValidationError
 
 T = TypeVar("T", bound=BaseModel)
@@ -112,6 +114,8 @@ def insert_citations(text: str, supports) -> str:
 
 # Lista de modelos de cada clave: pedirla en cada mensaje añadía un viaje a Google.
 MODELS_TTL = 6 * 3600
+_REORDER = threading.Lock()
+TIMEOUT_MS = 180_000  # 3 minutos por consulta (un guion largo tarda ~1)
 _models_cache: dict[str, tuple[float, list[str]]] = {}
 
 
@@ -131,8 +135,12 @@ class GeminiProvider:
 
     def __init__(self, api_key: str, model: str | None = None, preferred: str | None = None):
         from google import genai
+        from google.genai import types
 
-        self._client = genai.Client(api_key=api_key)
+        # Con límite de tiempo: sin él, una consulta colgada paraba toda la cola de tareas.
+        self._client = genai.Client(
+            api_key=api_key, http_options=types.HttpOptions(timeout=TIMEOUT_MS)
+        )
         self._key_id = hashlib.sha256(api_key.encode()).hexdigest()[:16]
         self._models = [model] if model else None
         self._preferred = preferred  # el modelo que funcionó la última vez
@@ -172,9 +180,10 @@ class GeminiProvider:
                 if _error_rank(exc.error) >= _error_rank(last_error):
                     last_error = exc.error
                 continue
-            if self._models[0] != model:  # pone delante el que funciona
-                self._models.remove(model)
-                self._models.insert(0, model)
+            with _REORDER:  # varias consultas a la vez (revisión del protagonista)
+                if self._models[0] != model and model in self._models:  # delante el que va
+                    self._models.remove(model)
+                    self._models.insert(0, model)
             self.last_model = model
             _record_usage(response)
             return response
@@ -369,7 +378,7 @@ class GeminiProvider:
             if exc.code in (404, 429, 500, 503):
                 raise ModelUnavailable(error) from exc
             raise error from exc
-        except OSError as exc:  # sin conexión, DNS, timeout…
+        except (OSError, httpx.TransportError) as exc:  # sin conexión, DNS, tardó demasiado…
             raise ProviderError(
                 "No hay conexión con Google. Revisa tu internet.", transient=True, detail=str(exc)
             ) from exc

@@ -21,6 +21,8 @@
         Subtítulos animados en pantalla (la palabra que se dice se resalta con el color del canal)</label>
       <label class="radio"><input type="checkbox" name="callouts" value="1" {% if style.callouts %}checked{% endif %}>
         Cifras animadas (cuando la voz dice un dato como «50 millones» o «1975», aparece grande en pantalla)</label>
+      <label class="radio"><input type="checkbox" name="puppet" value="1" {% if style.puppet %}checked{% endif %}>
+        Balanceo de cámara (toda la imagen se balancea un poco; gratis)</label>
       <label class="radio"><input type="checkbox" name="film_look" value="1" {% if style.film_look %}checked{% endif %}>
         Filtro de color (viñeta y tono de documental)</label>
       <div class="row-fields">
@@ -63,9 +65,9 @@
     <h2>{{ label }}</h2>
     <span class="muted small">{{ (r.seconds / 60)|round(1) }} min · {{ r.width }}×{{ r.height }}</span>
   </div>
-  <video controls class="player" src="/proyectos/{{ project.id }}/archivos/{{ r.file }}?v={{ r.seconds }}"></video>
+  <video controls class="player" src="/proyectos/{{ project.id }}/archivos/{{ r.file }}?v={{ file_version(project.id, r.file) }}"></video>
   <div class="row-actions">
-    <a class="btn small" href="/proyectos/{{ project.id }}/archivos/{{ r.file }}" download>Descargar MP4</a>
+    <a class="btn small" href="/proyectos/{{ project.id }}/archivos/{{ r.file }}?v={{ file_version(project.id, r.file) }}" download>Descargar MP4</a>
     {% if r.srt or has_srt %}<a class="btn small secondary" href="/proyectos/{{ project.id }}/archivos/{{ r.srt or 'video/subtitulos.srt' }}" download>Descargar subtítulos (.srt)</a>{% endif %}
     {% if has_credits %}<a class="btn small secondary" href="/proyectos/{{ project.id }}/archivos/video/creditos.txt" download>Créditos de imágenes</a>{% endif %}
   </div>

@@ -63,7 +63,7 @@ def test_plan_with_a_ready_video_and_shorts(logged_in, ai):  # noqa: F811
         assert plan["shorts"] == [
             ("lunes (hoy)", "El error de Kodak"),
             ("miércoles", "La cámara escondida"),
-            ("sábado", "1975"),
+            ("viernes", "1975"),  # Shorts lun/mié/vie/sáb desde el 7 nov 2026
         ]
         assert "Hoy toca un Short: «El error de Kodak»" in coach.today_text(db, MONDAY)
         assert "Hoy toca publicar" in coach.today_text(db, THURSDAY)

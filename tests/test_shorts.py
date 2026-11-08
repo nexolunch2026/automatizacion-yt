@@ -17,9 +17,148 @@ def rows(seconds):
 
 def test_fit_keeps_shorts_between_limits():
     table = rows([10, 10, 10, 10, 10, 10, 10])
-    assert shorts._fit(table, 1, 1) == (1, 2)  # crece hasta pasar los 18 s
-    assert shorts._fit(table, 1, 7) == (1, 5)  # y no pasa de 58 s
+    assert shorts._fit(table, 1, 1) == (1, 2)  # crece hasta pasar los 15 s
+    assert shorts._fit(table, 1, 7) == (1, 3)  # y no pasa de 38 s (+ la frase gancho)
     assert shorts._fit(rows([70]), 1, 1) is None  # un párrafo larguísimo no sirve
+
+
+def test_shorts_start_with_the_spoken_hook(logged_in, monkeypatch):
+    """La voz dice la frase gancho en el primer segundo, con la mejor imagen y el gancho en
+    pantalla; el fragmento va después, sin repetir el texto del gancho."""
+    seen = []
+    real = shorts.render_video
+
+    def spy(scenes, media, takes, *args, **kwargs):
+        seen.append((scenes, media, takes))
+        return real(scenes, media, takes, *args, **kwargs)
+
+    monkeypatch.setattr(shorts, "render_video", spy)
+    make_video_project(logged_in, monkeypatch)
+    with SessionLocal() as db:
+        before = jobs.get_result(db, 1, "shorts")["shorts"]
+    keep = [{**s, "hook_line": "Esta empresa engañó a todo el mundo durante años"} for s in before]
+    with SessionLocal() as db:
+        from app.models import Project
+
+        project = db.get(Project, 1)
+        voice = jobs.get_result(db, 1, "voice")
+        speak = jobs._hook_speaker(db, voice)
+        seen.clear()
+        data = shorts.run_shorts(
+            project,
+            jobs.get_result(db, 1, "script"),
+            jobs.get_result(db, 1, "storyboard"),
+            voice,
+            jobs.media_map(project_dir(1), jobs.get_result(db, 1, "visuals")),
+            project_dir(1),
+            None,
+            lambda p, m: None,
+            keep=keep,
+            speak=speak,
+        )
+    scenes, media, takes = seen[0]
+    assert scenes[0]["paragraph_id"] == "gancho-1" and scenes[0]["number"] == 0
+    assert scenes[0]["narration"].startswith("Esta empresa engañó")
+    assert scenes[0]["on_screen_text"] == before[0]["hook"].upper()
+    assert scenes[0]["text_from_start"] and not scenes[1]["on_screen_text"]
+    assert "gancho-1" in media and takes["gancho-1"] > 0
+    assert data["shorts"][0]["hook_line"].startswith("Esta empresa")
+    assert data["shorts"][0]["seconds"] > before[0]["seconds"]
+
+
+def test_beat_images_change_every_line(tmp_path):
+    from PIL import Image
+
+    table = rows([10] * 12)
+    media = {}
+    for r in table:
+        path = tmp_path / f"{r['id']}.jpg"
+        Image.new("RGB", (32, 18)).save(path)
+        media[r["id"]] = {"path": path, "kind": "image"}
+    beats = [shorts.Beat(text="frase", image=n) for n in (6, 6, 99, 7, 1)]
+    pick = shorts.ShortPick(start=6, end=7, title="t", hook="h", beats=beats)
+    chosen = shorts.beat_images(pick, table, media)
+    assert chosen[0] == "p6" and chosen[3] == "p7"
+    assert all(a != b for a, b in zip(chosen, chosen[1:], strict=False))  # nunca dos iguales
+    assert "p1" not in chosen  # demasiado lejos del fragmento: se busca otra cercana
+    assert all(2 <= int(p[1:]) <= 11 for p in chosen)
+
+
+def test_shorts_tell_their_own_text_with_an_image_per_line(logged_in, monkeypatch):
+    seen = []
+    real = shorts.render_video
+
+    def spy(scenes, media, takes, *args, **kwargs):
+        seen.append((scenes, media, takes))
+        return real(scenes, media, takes, *args, **kwargs)
+
+    monkeypatch.setattr(shorts, "render_video", spy)
+    make_video_project(logged_in, monkeypatch)
+    with SessionLocal() as db:
+        before = jobs.get_result(db, 1, "shorts")["shorts"]
+    lines = [
+        "Esta empresa engañó a todo el mundo durante años",
+        "Prometía algo que no podía cumplir de ninguna manera",
+        "Los inversores pusieron millones sin hacer preguntas",
+        "Los empleados sabían que algo fallaba por dentro",
+        "Pero nadie se atrevía a decirlo en voz alta",
+        "Hasta que un periodista empezó a hacer preguntas",
+        "¿Quién se atrevió a contar la verdad al final?",
+    ]
+    start = before[0]["paragraphs"][0]
+    beats = [{"text": t, "image": start + (k % 2)} for k, t in enumerate(lines)]
+    keep = [{**s, "beats": beats if n == 0 else []} for n, s in enumerate(before)]
+    with SessionLocal() as db:
+        from app.models import Project
+
+        voice = jobs.get_result(db, 1, "voice")
+        seen.clear()
+        data = shorts.run_shorts(
+            db.get(Project, 1),
+            jobs.get_result(db, 1, "script"),
+            jobs.get_result(db, 1, "storyboard"),
+            voice,
+            jobs.media_map(project_dir(1), jobs.get_result(db, 1, "visuals")),
+            project_dir(1),
+            None,
+            lambda p, m: None,
+            keep=keep,
+            speak=jobs._hook_speaker(db, voice),
+        )
+    scenes, media, takes = seen[0]
+    assert [s["narration"] for s in scenes] == lines  # dice el texto propio, no el guion
+    assert scenes[0]["on_screen_text"] == before[0]["hook"].upper()
+    assert scenes[-1]["end_text"] == shorts.END_TEXT
+    assert all(a["source_id"] != b["source_id"] for a, b in zip(scenes, scenes[1:], strict=False))
+    assert all(s["paragraph_id"] in media and takes[s["paragraph_id"]] > 0 for s in scenes)
+    assert data["shorts"][0]["beats"][0]["text"] == lines[0]
+    assert data["shorts"][0]["hook_line"] == lines[0]
+    assert all(not s["beats"] for s in data["shorts"][1:])  # sin texto propio: como antes
+
+
+def test_spoken_hook_is_optional():
+    pick = shorts.ShortPick(start=1, end=2, title="t", hook="h", hook_line="Frase gancho")
+    assert shorts._hook_audio(pick, None) is None  # sin voz: como antes
+
+    def broken(text):
+        raise OSError("sin conexión")
+
+    assert shorts._hook_audio(pick, broken) is None  # si la voz falla, el Short se hace igual
+    assert shorts._hook_audio(pick.model_copy(update={"hook_line": " "}), lambda t: b"x") is None
+
+
+def test_vertical_band_is_big_and_pans(tmp_path):
+    from PIL import Image
+
+    from app.pipeline import render
+
+    wide = tmp_path / "ancha.png"
+    Image.new("RGB", (1376, 768), (90, 40, 40)).save(wide)
+    band = render.blur_fill_height(wide, 1080, 1920)
+    assert band == int(1920 * render.SHORTS_FILL) // 2 * 2  # antes: 602 px, un tercio
+    assert render.blur_fill_height(wide, 1920, 1080) is None  # vídeo horizontal: nada
+    chain = render.pan_band(10, 30, 1080, band, 1, False)
+    assert "crop=1080:" in chain and "x='(iw-ow)" in chain
 
 
 def test_choose_segments_without_ai_prefers_numbers_and_questions():
@@ -71,7 +210,7 @@ def test_pipeline_makes_vertical_shorts(logged_in, monkeypatch):
 
     logged_in.post("/proyectos/1/etapas/shorts", data={"quality": "final"})
     with SessionLocal() as db:
-        assert jobs.latest_jobs(db, 1)["shorts"].params == {"quality": "final"}
+        assert jobs.latest_jobs(db, 1)["shorts"].params == {"quality": "final", "nuevos": False}
 
 
 def test_shorts_reach_telegram(logged_in, monkeypatch):

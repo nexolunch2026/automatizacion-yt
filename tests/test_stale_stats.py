@@ -30,7 +30,7 @@ def youtube(monkeypatch, client):
     """YouTube simulado: `state["error"]` hace fallar la lectura con ese error."""
     state = {"error": None}
 
-    def fetch(db):
+    def fetch(db, handle=None):
         if state["error"] is not None:
             raise state["error"]
         return CHANNEL

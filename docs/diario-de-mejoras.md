@@ -2,6 +2,16 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-08 — Versión 0.101.1: juntas otra vez (con lo de la otra conversación)
+
+- Se juntaron las versiones 0.77–0.84 de la otra conversación: **clips animados de Flow**,
+  calendario martes/jueves/domingo, montaje más rápido, **mover un vídeo a otro canal**, una
+  cuenta de YouTube por canal en Rendimiento, la ficha del protagonista primero y Shorts
+  más cortos, cada uno con su texto.
+- El aviso de «cifras paradas» funciona igual con varios canales: si se leen bien, se
+  quita el aviso; si falla, JARVIS sigue diciendo el motivo.
+- En Shorts conviven el botón nuevo de «Descargar» (sin vídeo viejo) y el de «Ya lo subí».
+
 ## 2026-11-07 — Versión 0.101: la cola de trabajo, a la vista
 
 - En la **portada** (Inicio) aparece **«Cola de trabajo»** cuando el programa está

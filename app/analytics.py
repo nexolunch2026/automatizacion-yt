@@ -48,9 +48,9 @@ def parse_video_id(text: str) -> str | None:
 # ---------------------------------------------------------------- recoger datos
 
 
-def fetch_videos(db: Session) -> dict:
-    """Suscriptores y vídeos del canal (todos los posibles) con sus cifras de ahora."""
-    handle = info.channel_handle(db)
+def fetch_videos(db: Session, handle: str | None = None) -> dict:
+    """Suscriptores y vídeos de un canal (por defecto, el principal) con sus cifras de ahora."""
+    handle = info.channel_handle(db) if handle is None else handle
     key = get_api_key(db, "youtube")
     if key:
         return info.fetch_youtube_api(handle, key, limit=50)
@@ -113,31 +113,63 @@ def _check_milestones(db: Session, video: Video, views: int, now: datetime) -> N
     video.milestones = json.dumps(sorted(done | set(reached)))
 
 
-def _check_subscribers(db: Session, subs: int | None, now: datetime) -> None:
+def _check_subscribers(
+    db: Session, subs: int | None, now: datetime, suffix: str = "", name: str = "El canal"
+) -> None:
+    """`suffix`: vacío para el canal principal (como siempre); «:@Otro» para los demás."""
     if subs is None:
         return
-    history = json.loads(get_setting(db, "subs_history") or "[]")
+    history = json.loads(get_setting(db, "subs_history" + suffix) or "[]")
     today = now.strftime("%Y-%m-%d")
     if history and history[-1][0] == today:
         history[-1][1] = subs
     else:
         history.append([today, subs])
-    set_setting(db, "subs_history", json.dumps(history[-400:]))
-    done = set(json.loads(get_setting(db, "subs_milestones") or "[]"))
+    set_setting(db, "subs_history" + suffix, json.dumps(history[-400:]))
+    done = set(json.loads(get_setting(db, "subs_milestones" + suffix) or "[]"))
     reached = [m for m in SUB_MILESTONES if subs >= m and m not in done]
     if reached:
         from app.skills import number
 
         top = max(reached)
         extra = " ¡Meta de monetización conseguida!" if top >= 1000 > max(done, default=0) else ""
-        _celebrate(db, f"El canal llegó a {number(top)} suscriptores.{extra}", now)
-        set_setting(db, "subs_milestones", json.dumps(sorted(done | set(reached))))
+        _celebrate(db, f"{name} llegó a {number(top)} suscriptores.{extra}", now)
+        set_setting(db, "subs_milestones" + suffix, json.dumps(sorted(done | set(reached))))
 
 
 def refresh(db: Session, now: datetime | None = None) -> int:
     """Guarda las cifras de ahora de todos los vídeos. Devuelve cuántos vídeos leyó."""
     now = now or datetime.now()
-    data = fetch_videos(db)
+    handles = info.channel_handles(db) or [info.channel_handle(db)]
+    read = 0
+    for n, handle in enumerate(handles):
+        # El principal, como siempre; si falla otro canal, no se pierde lo del principal.
+        if n == 0:
+            data = fetch_videos(db, handle)
+        else:
+            try:
+                data = fetch_videos(db, handle)
+            except Exception:  # noqa: BLE001 — un canal mal escrito no tumba los demás
+                log.warning("No se pudo leer el canal de YouTube %s", handle, exc_info=True)
+                continue
+        _store(db, data, now)
+        _check_subscribers(db, data.get("subscribers"), now, "" if n == 0 else f":{handle}",
+                           "El canal" if n == 0 else f"El canal {handle}")  # fmt: skip
+        read += len(data.get("latest", []))
+    db.commit()
+    set_setting(db, "analytics_last", now.isoformat(timespec="seconds"))
+    for key in ("analytics_error", "analytics_error_since", "analytics_error_count"):
+        set_setting(db, key, "")
+    try:  # enlazar con los proyectos es un extra: las cifras ya están guardadas
+        link_projects(db)
+    except Exception:  # noqa: BLE001
+        log.exception("No se pudieron enlazar los vídeos con sus proyectos")
+        db.rollback()
+    return read
+
+
+def _store(db: Session, data: dict, now: datetime) -> None:
+    """Guarda las cifras de ahora de los vídeos de un canal."""
     for item in data.get("latest", []):
         if not item.get("id"):
             continue
@@ -164,17 +196,6 @@ def refresh(db: Session, now: datetime | None = None) -> int:
             )
         db.flush()
         _check_milestones(db, video, item["views"], now)
-    _check_subscribers(db, data.get("subscribers"), now)
-    db.commit()
-    set_setting(db, "analytics_last", now.isoformat(timespec="seconds"))
-    for key in ("analytics_error", "analytics_error_since", "analytics_error_count"):
-        set_setting(db, key, "")
-    try:  # enlazar con los proyectos es un extra: las cifras ya están guardadas
-        link_projects(db)
-    except Exception:  # noqa: BLE001
-        log.exception("No se pudieron enlazar los vídeos con sus proyectos")
-        db.rollback()
-    return len(data.get("latest", []))
 
 
 def safe_error(exc: Exception) -> str:

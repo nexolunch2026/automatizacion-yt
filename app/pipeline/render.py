@@ -12,6 +12,7 @@ Acabado («paquete de calidad»):
 - Acabado de cine: contraste suave, viñeta y grano de película.
 """
 
+import logging
 import os
 import re
 import shutil
@@ -28,13 +29,16 @@ from PIL import Image, ImageDraw, ImageFont
 from app.pipeline import accent
 from app.providers.voice import spoken_text
 
+log = logging.getLogger(__name__)
+
 PAUSE = 0.35  # la misma pausa que se deja entre párrafos al grabar la voz
 CROSSFADE = 0.4  # fundido entre escenas (segundos)
 
 QUALITIES = {
     # nombre: (ancho, alto, fps, preset de x264, crf, factor de zoom suave) en horizontal
     "preview": (1280, 720, 30, "veryfast", 24, 2),
-    "final": (1920, 1080, 30, "veryfast", 20, 3),
+    # Zoom suave ×2 (antes ×3): casi el doble de rápido y apenas se nota (Simón, 7 nov 2026).
+    "final": (1920, 1080, 30, "veryfast", 20, 2),
     "test": (192, 108, 12, "ultrafast", 35, 1),
 }
 
@@ -55,6 +59,9 @@ DEFAULT_STYLE = {
     "music": "",
     "music_volume": "media",
     "callouts": True,  # cifras clave que aparecen animadas cuando se dicen
+    # Balanceo de toda la imagen. Apagado: Simón quiere que se mueva el PERSONAJE, no la cámara
+    # (ver agentes/informes/2026-11-07_animar_al_personaje.md).
+    "puppet": False,
 }
 AUTO = "auto"
 # Acabados de color. Se turnan entre vídeos («auto») para que el canal no parezca hecho en
@@ -286,6 +293,45 @@ def _motion_filter(motion: str, frames: int) -> tuple[str, str, str]:
     return f"1+0.15*{ease}", center_x, center_y  # zoom_in
 
 
+PUPPET_OVERSCAN = 1.05  # margen para que al balancear nunca se vean bordes negros
+
+
+def puppet_filter(w: int, h: int, seed: int = 0) -> str:
+    """«Movimiento de muñeco» (gratis, sin IA): sobre el zoom de cámara, la imagen se balancea
+    un poco y rebota como si respirara, igual que un dibujo animado sencillo. Cada escena
+    lleva su propio ritmo (`seed`) para que no parezcan todas iguales."""
+    bw, bh = int(w * PUPPET_OVERSCAN) // 2 * 2, int(h * PUPPET_OVERSCAN) // 2 * 2
+    sway = 2.4 + (seed % 5) * 0.3  # segundos por balanceo (2,4-3,6 s)
+    breath = 1.5 + (seed % 3) * 0.25  # segundos por rebote (1,5-2,0 s)
+    phase = (seed % 7) * 0.9
+    angle = f"0.007*sin(2*PI*(t+{phase:.1f})/{sway:.2f})"  # ±0,4 grados
+    bob = f"{h * 0.006:.1f}*sin(2*PI*(t+{phase:.1f})/{breath:.2f})"  # ±0,6 % de alto
+    drift = f"{w * 0.004:.1f}*sin(2*PI*(t+{phase:.1f})/{sway * 2:.2f})"
+    return (
+        f"scale={bw}:{bh},rotate='{angle}':ow=iw:oh=ih:c=black,"
+        f"crop={w}:{h}:x='(iw-{w})/2+{drift}':y='(ih-{h})/2+{bob}'"
+    )
+
+
+_qsv: bool | None = None
+
+
+def has_qsv() -> bool:
+    """¿Puede codificar la gráfica Intel (Quick Sync)? Se prueba una vez con un vídeo mínimo.
+    FACELESS_NO_QSV=1 lo desactiva (las pruebas automáticas lo usan)."""
+    global _qsv
+    if os.environ.get("FACELESS_NO_QSV"):
+        return False
+    if _qsv is None:
+        try:
+            run_ffmpeg(["-f", "lavfi", "-i", "color=black:s=256x144:d=0.2", "-c:v", "h264_qsv",
+                        "-pix_fmt", "nv12", "-f", "null", "-"])  # fmt: skip
+            _qsv = True
+        except (RuntimeError, OSError):
+            _qsv = False
+    return _qsv
+
+
 def _encode(preset: str, crf: int, fps: int) -> list[str]:
     return [
         "-c:v",
@@ -300,6 +346,46 @@ def _encode(preset: str, crf: int, fps: int) -> list[str]:
         str(fps),
         "-an",
     ]
+
+
+SHORTS_FILL = 0.6  # en los Shorts, la imagen ocupa el 60 % del alto de la pantalla
+
+
+def blur_fill_height(image: Path, w: int, h: int) -> int | None:
+    """En un vídeo vertical, el alto de la franja donde va una imagen horizontal (con fondo
+    desenfocado detrás). None si no hace falta: vídeo horizontal, imagen vertical o ilegible.
+    Desde la v0.83 la franja es grande (SHORTS_FILL): mostrada entera la imagen se quedaba en
+    un tercio de la pantalla y en el móvil el Short parecía vacío; ahora la cámara la recorre
+    de un lado a otro para que se vean todos los personajes."""
+    if h <= w:
+        return None
+    try:
+        from PIL import Image
+
+        with Image.open(image) as picture:
+            iw, ih = picture.size
+    except OSError:
+        return None
+    if iw <= ih * 1.1:  # ya es vertical o casi cuadrada: se recorta como siempre
+        return None
+    whole = int(w * ih / iw)
+    return max(max(whole, int(h * SHORTS_FILL)) // 2 * 2, 2)
+
+
+def pan_band(seconds: float, fps: int, w: int, fh: int, factor: int, reverse: bool) -> str:
+    """Filtro que recorre una imagen ancha de lado a lado en una franja de w×fh (Shorts)."""
+    total = int(seconds * fps) + 2
+    p = f"min(t/{max(seconds, 0.1):.3f},1)"
+    ease = f"({p}*{p}*(3-2*{p}))"
+    where = f"(1-{ease})" if reverse else ease
+    bw, bh = w * factor // 2 * 2, fh * factor // 2 * 2
+    return (
+        f"scale=-2:{bh},setsar=1,loop=loop={total}:size=1:start=0,setpts=N/{fps}/TB,"
+        # Un paseo corto alrededor del centro (del 30 al 70 %): de borde a borde se cortaban
+        # caras al principio y al final de cada escena (v0.84).
+        f"crop={bw}:{bh}:x='(iw-ow)*(0.3+0.4*{where})':y=0,"
+        f"scale={w}:{fh},fps={fps},trim=duration={seconds:.3f}"
+    )
 
 
 def _end_start(seconds: float) -> float:
@@ -319,33 +405,68 @@ def scene_clip(
     workdir: Path,
     factor: int = 1,
     first_motion: int = 0,
+    puppet: bool = False,
+    hold_last: bool = False,
 ) -> None:
-    """Clip de una escena. Las fotos se dividen en planos con movimientos distintos."""
+    """Clip de una escena. Las fotos se dividen en planos con movimientos distintos.
+    `hold_last`: los clips animados de Flow no se repiten en bucle (se vería el salto): si son
+    más cortos que la escena, se quedan quietos en su último fotograma."""
     w, h = size
     inputs: list[str] = []
     if kind == "video":
-        inputs += ["-stream_loop", "-1", "-i", str(visual_path)]
+        if hold_last:
+            inputs += ["-i", str(visual_path)]
+            pad = f"tpad=stop_mode=clone:stop_duration={seconds:.3f},"
+        else:
+            inputs += ["-stream_loop", "-1", "-i", str(visual_path)]
+            pad = ""
         chain = (
             f"[0:v]scale={w}:{h}:force_original_aspect_ratio=increase,"
-            f"crop={w}:{h},fps={fps},setsar=1,trim=duration={seconds:.3f}[v0]"
+            f"crop={w}:{h},fps={fps},setsar=1,{pad}trim=duration={seconds:.3f}[v0]"
         )
     else:
         inputs += ["-i", str(visual_path)]
         shots = split_shots(seconds)
-        bw, bh = w * factor // 2 * 2, h * factor // 2 * 2
-        parts = [
-            f"[0:v]scale={bw}:{bh}:force_original_aspect_ratio=increase,crop={bw}:{bh},"
-            f"setsar=1,split={len(shots)}" + "".join(f"[i{k}]" for k in range(len(shots)))
-        ]
-        for k, shot in enumerate(shots):
-            frames = max(int(round(shot * fps)), 1)
-            z, x, y = _motion_filter(MOTIONS[(first_motion + k) % len(MOTIONS)], frames)
+        # Vertical (Shorts) con imagen horizontal: la imagen ENTERA en el centro y, detrás,
+        # la misma ampliada y desenfocada. Recortar el centro dejaba fuera a los personajes.
+        fh = blur_fill_height(visual_path, w, h)
+        ph = fh or h  # alto de la imagen que se mueve
+        bw, bh = w * factor // 2 * 2, ph * factor // 2 * 2
+        src = "[0:v]"
+        parts = []
+        if fh:
+            total = int(seconds * fps) + 2
+            parts.append("[0:v]split=2[fgsrc][bgsrc]")
             parts.append(
-                f"[i{k}]zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={w}x{h}:fps={fps}[s{k}]"
+                f"[bgsrc]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},"
+                # (el radio del desenfoque no puede pasar del tamaño de la imagen)
+                f"boxblur={max(min(24, w // 8), 1)}:2,eq=brightness=-0.18,setsar=1,"
+                f"loop=loop={total}:size=1:start=0,"
+                f"setpts=N/{fps}/TB,trim=duration={seconds:.3f}[bg]"
             )
-        parts.append(
-            "".join(f"[s{k}]" for k in range(len(shots))) + f"concat=n={len(shots)}:v=1:a=0[v0]"
-        )
+            src = "[fgsrc]"
+        if fh:  # la cámara recorre la imagen ancha de un lado a otro
+            joined = f"{src}" + pan_band(seconds, fps, w, fh, factor, first_motion % 2 == 1)
+        else:
+            parts.append(
+                f"{src}scale={bw}:{bh}:force_original_aspect_ratio=increase,crop={bw}:{bh},"
+                f"setsar=1,split={len(shots)}" + "".join(f"[i{k}]" for k in range(len(shots)))
+            )
+            for k, shot in enumerate(shots):
+                frames = max(int(round(shot * fps)), 1)
+                z, x, y = _motion_filter(MOTIONS[(first_motion + k) % len(MOTIONS)], frames)
+                parts.append(
+                    f"[i{k}]zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={w}x{ph}:fps={fps}[s{k}]"
+                )
+            joined = "".join(f"[s{k}]" for k in range(len(shots)))
+            joined += f"concat=n={len(shots)}:v=1:a=0"
+        if puppet:
+            joined += "," + puppet_filter(w, ph, first_motion + int(scene.get("number") or 0))
+        if fh:
+            parts.append(joined + "[fg]")
+            parts.append(f"[bg][fg]overlay=0:{(h - fh) // 2}:shortest=1,setsar=1[v0]")
+        else:
+            parts.append(joined + "[v0]")
         chain = ";".join(parts)
     last = "[v0]"
     if scene.get("on_screen_text"):
@@ -672,7 +793,9 @@ def scene_key(scene: dict, visual: dict | None, length: float, size, fps, crf, f
             stat.st_mtime if stat else 0,
         ]
     data = {
-        "v": 1,
+        # 2: Shorts con imagen entera y fondo desenfocado; 3: Shorts con la imagen grande que
+        # la cámara recorre (v0.83). Los vídeos horizontales siguen en 2: su caché vale.
+        "v": 4 if size[1] > size[0] else 2,  # 4: paseo centrado (v0.84)
         "scene": {k: v for k, v in scene.items() if k != "number"},  # el nº solo nombra archivos
         "visual": source,
         "length": round(length, 3),
@@ -707,15 +830,20 @@ def _link_or_copy(source: Path, target: Path) -> None:
         shutil.copyfile(source, target)
 
 
-def _build_scene(scene, visual, i, length, clip, size, fps, crf, factor, motion, workdir) -> None:
+def _build_scene(
+    scene, visual, i, length, clip, size, fps, crf, factor, motion, workdir, puppet=False
+) -> None:
     w, h = size
+    hold_last = False
     if visual is None or visual["kind"] == "card":
         text = scene.get("on_screen_text") or scene.get("visual") or ""
         path = text_card(text, (w * factor, h * factor), workdir / f"tarjeta-{scene['number']}.png")
         kind = "image"
+        puppet = False  # los carteles de texto, quietos
         scene = {**scene, "on_screen_text": ""}  # el texto ya va en la tarjeta
     else:
         path, kind = Path(visual["path"]), visual["kind"]
+        hold_last = bool(visual.get("animated"))  # clip animado de Flow: sin bucle
     if scene.get("chart"):  # gráfico animado con las cifras de esta escena
         from app.pipeline.charts import chart_clip
 
@@ -723,7 +851,7 @@ def _build_scene(scene, visual, i, length, clip, size, fps, crf, factor, motion,
         path = chart_clip(
             scene["chart"], workdir / f"grafico-{i:03}.mp4", (w, h), fps, length, background
         )
-        kind = "video"
+        kind, hold_last = "video", False
         scene = {**scene, "on_screen_text": ""}  # el gráfico ya lleva su título
     # Clips intermedios casi sin pérdida: se recodifican una vez más al final.
     scene_clip(
@@ -739,6 +867,8 @@ def _build_scene(scene, visual, i, length, clip, size, fps, crf, factor, motion,
         workdir,
         factor,
         motion,
+        puppet=puppet,
+        hold_last=hold_last,
     )
 
 
@@ -781,7 +911,10 @@ def render_video(
                 scene = {**scene, "callout": found}
         motion = first_motion(pid, previous_last)
         clip = workdir / f"escena-{i:03}.mp4"
-        key = scene_key(scene, visual, length, (w, h), fps, crf, factor, motion)
+        puppet = bool(style.get("puppet"))
+        # Con «muñeco» cambia la huella (se rehace); sin él, las escenas guardadas siguen valiendo.
+        print_motion = [motion, "muñeco"] if puppet else motion
+        key = scene_key(scene, visual, length, (w, h), fps, crf, factor, print_motion)
         cached = cache / f"{key}.mp4"
         used.add(cached.name)
         if cached.exists() and cached.stat().st_size > 0:
@@ -792,7 +925,9 @@ def render_video(
             reused += 1
         else:
             progress(round(3 + 70 * i / len(scenes)), f"Montando escena {i + 1} de {len(scenes)}")
-            _build_scene(scene, visual, i, length, clip, (w, h), fps, crf, factor, motion, workdir)
+            _build_scene(
+                scene, visual, i, length, clip, (w, h), fps, crf, factor, motion, workdir, puppet
+            )
             _link_or_copy(clip, cached)
         previous_last = (motion + len(split_shots(length)) - 1) % len(MOTIONS)
         clips.append(clip)
@@ -839,35 +974,26 @@ def render_video(
 
     name = "video" if quality == "final" else f"video-{quality}"
     tmp_out = workdir / f"{name}.mp4"
-    run_ffmpeg(
-        [
-            *inputs,
-            "-filter_complex",
-            graph,
-            "-map",
-            "[vout]",
-            "-map",
-            audio_map,
-            "-c:v",
-            "libx264",
-            "-preset",
-            preset,
-            "-crf",
-            str(crf),
-            "-r",
-            str(fps),
-            "-c:a",
-            "aac",
-            "-b:a",
-            "192k",
-            "-t",
-            f"{t:.3f}",
-            "-movflags",
-            "+faststart",
-            tmp_out.name,
-        ],
-        cwd=workdir,
-    )
+
+    def join(codec: list[str]) -> None:
+        run_ffmpeg(
+            [*inputs, "-filter_complex", graph, "-map", "[vout]", "-map", audio_map, *codec,
+             "-r", str(fps), "-c:a", "aac", "-b:a", "192k", "-t", f"{t:.3f}",
+             "-movflags", "+faststart", tmp_out.name],
+            cwd=workdir,
+        )  # fmt: skip
+
+    software = ["-c:v", "libx264", "-preset", preset, "-crf", str(crf)]
+    if has_qsv():
+        try:  # la gráfica Intel codifica más rápido; si falla, se hace como siempre
+            join(["-c:v", "h264_qsv", "-global_quality", str(crf + 2), "-pix_fmt", "nv12"])
+        except RuntimeError as exc:
+            log.warning(
+                "La gráfica Intel no pudo codificar el vídeo (%s): se usa el procesador", exc
+            )
+            join(software)
+    else:
+        join(software)
     out = replace_file(tmp_out, folder / f"{name}.mp4")
     tmp_srt = workdir / "subtitulos.srt"
     tmp_srt.write_text(build_srt(segments), encoding="utf-8")

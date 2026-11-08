@@ -2,8 +2,9 @@
 
 - Aprobaciones: cada uno de vosotros pulsa «Aprobado» después de ver el vídeo. Si el vídeo
   cambia después (otro montaje), las aprobaciones se borran: hay que volver a verlo.
-- Calendario fijo: vídeos largos martes, jueves y sábado; Shorts lunes, miércoles, viernes y
-  domingo; todo a las 18:00. Se propone la fecha solo y se puede cambiar.
+- Calendario fijo (los dos canales, desde el 7 nov 2026): vídeos largos martes, jueves y
+  domingo; Shorts lunes, miércoles, viernes y sábado (el del sábado, adelanto del domingo);
+  todo a las 18:00. Se propone la fecha solo y se puede cambiar.
 - La claqueta: la lista de lo que lleva el vídeo (vídeo, miniatura, textos, subtítulos,
   Shorts, datos comprobados) y si algo se quedó viejo.
 - Carpeta para subir: lo deja todo en `FacelessStudio/subir/<vídeo>` como las carpetas
@@ -24,8 +25,8 @@ from app.models import Project, StageResult, User
 
 STAGE = "estreno"
 HOUR = "18:00"
-LONG_DAYS = (1, 3, 5)  # martes, jueves, sábado (lunes = 0)
-SHORT_DAYS = (0, 2, 4, 6)
+LONG_DAYS = (1, 3, 6)  # martes, jueves, domingo (lunes = 0)
+SHORT_DAYS = (0, 2, 4, 5)  # el del sábado: adelanto del vídeo del domingo
 DAY_NAMES = ("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
 MONTHS = ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
 

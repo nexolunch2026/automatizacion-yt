@@ -466,7 +466,7 @@ def render_style(db: Session, params: dict | None = None) -> dict:
 
     saved = get_setting(db, "render_style")
     style = {**DEFAULT_STYLE, **(json.loads(saved) if saved else {})}
-    for key in ("subtitles", "film_look", "callouts", "look", "music", "music_volume"):
+    for key in ("subtitles", "film_look", "callouts", "puppet", "look", "music", "music_volume"):
         if params and key in params:
             style[key] = params[key]
     if style["music"] not in ("", AUTO, *music_library()):
@@ -527,8 +527,28 @@ def media_map(folder: Path, visuals: dict) -> dict:
     media = {}
     for pid, entry in visuals["items"].items():
         if entry.get("file") and (folder / "visuales" / entry["file"]).exists():
-            media[pid] = {"path": folder / "visuales" / entry["file"], "kind": entry["kind"]}
+            media[pid] = {
+                "path": folder / "visuales" / entry["file"],
+                "kind": entry["kind"],
+                "animated": bool(entry.get("animated")),  # clip de Flow: sin bucle
+            }
     return media
+
+
+def _hook_speaker(db: Session, voice: dict):
+    """Graba la frase gancho de un Short con la misma voz y velocidad que el vídeo."""
+    from app.providers.voice import for_speech, spoken_text, tighten
+
+    try:
+        tts = get_voice_provider(db, voice["voice"], voice.get("model") or None)
+    except (KeyError, ProviderError):
+        return None
+
+    def speak(text: str) -> bytes:
+        wav = tts.synthesize(for_speech(spoken_text(text)), voice["voice"], voice["speed"])
+        return tighten(wav)
+
+    return speak
 
 
 def _run_shorts(db: Session, project: Project, progress, params: dict) -> dict:
@@ -548,6 +568,7 @@ def _run_shorts(db: Session, project: Project, progress, params: dict) -> dict:
     folder = project_dir(project.id)
     quality = params.get("quality") if params.get("quality") in ("preview", "final") else "preview"
     seo = get_result(db, project.id, "publish") or {}
+    previous_shorts = get_result(db, project.id, "shorts")
     data = run_shorts(
         project,
         script,
@@ -561,6 +582,9 @@ def _run_shorts(db: Session, project: Project, progress, params: dict) -> dict:
         style=style,
         music=music_path(style["music"]),
         hashtags=seo.get("hashtags"),
+        # Rehacer = los mismos momentos y títulos; «nuevos» = que la IA elija otros.
+        keep=None if params.get("nuevos") else (previous_shorts or {}).get("shorts"),
+        speak=_hook_speaker(db, voice),
     )
     if ai is not None:
         remember_working_model(db, ai)

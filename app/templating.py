@@ -19,6 +19,20 @@ templates.env.globals["installer_command"] = (
 )
 
 
+def file_version(project_id: int, relative: str) -> int:
+    """Cambia cada vez que se rehace el archivo: el navegador no enseña la copia vieja
+    (un vídeo rehecho con la misma voz dura igual y antes se veía el anterior)."""
+    from app.media import project_dir
+
+    try:
+        return int((project_dir(project_id) / relative).stat().st_mtime)
+    except (OSError, ValueError):
+        return 0
+
+
+templates.env.globals["file_version"] = file_version
+
+
 def render(request: Request, name: str, status_code: int = 200, **context):
     context.setdefault("user", getattr(request.state, "user", None))
     return templates.TemplateResponse(request, name, context, status_code=status_code)
