@@ -94,8 +94,30 @@ def least_recent(options: list[str], recent: list[str]) -> str:
 
 MUSIC_VOLUMES = {"baja": 0.10, "media": 0.16, "alta": 0.24}
 
-# Movimientos de cámara que se van alternando dentro de una escena.
-MOTIONS = ["zoom_in", "pan_right", "zoom_out", "pan_left"]
+# Movimientos de cámara que se van alternando de una escena a otra. Desde la v0.85, además
+# de los suaves, los «combinados» tipo CapCut: zoom de golpe, rebote, subida y péndulo.
+MOTIONS = [
+    "zoom_in",
+    "pan_right",
+    "punch_in",
+    "zoom_out",
+    "bounce",
+    "pan_left",
+    "drift_up",
+    "pendulum",
+]
+# Transiciones entre escenas: fundido la mitad de las veces y, entre medias, otras distintas
+# para que no todos los cortes sean iguales.
+TRANSITIONS = [
+    "smoothleft",
+    "zoomin",
+    "slideup",
+    "fadeblack",
+    "smoothright",
+    "circleopen",
+    "wipeleft",
+    "slidedown",
+]
 
 
 def ffmpeg_exe() -> str:
@@ -290,7 +312,26 @@ def _motion_filter(motion: str, frames: int) -> tuple[str, str, str]:
         return "1.12", f"(iw-iw/zoom)*{ease}", center_y
     if motion == "pan_left":
         return "1.12", f"(iw-iw/zoom)*(1-{ease})", center_y
+    if motion == "punch_in":  # zoom de golpe al empezar y luego sigue acercándose despacio
+        hit = f"min(on/{max(round(frames * 0.12), 1)},1)"
+        return f"1+0.10*{hit}*(2-{hit})+0.06*{p}", center_x, center_y
+    if motion == "bounce":  # late como un corazón y se va calmando
+        beat = max(frames / 3, 1)
+        return f"1.08+0.035*sin(2*PI*on/{beat:.1f})*(1-{p})", center_x, center_y
+    if motion == "drift_up":  # la cámara sube despacio por la imagen
+        return "1.14", center_x, f"(ih-ih/zoom)*(1-{ease})"
+    if motion == "pendulum":  # zoom suave; el balanceo lo añade pendulum_filter
+        return f"1.10+0.04*{ease}", center_x, center_y
     return f"1+0.15*{ease}", center_x, center_y  # zoom_in
+
+
+def pendulum_filter(w: int, h: int) -> str:
+    """Balanceo de péndulo (±1,2 grados, un vaivén cada 3 s) sin que se vean bordes."""
+    bw, bh = int(w * 1.06) // 2 * 2, int(h * 1.06) // 2 * 2
+    return (
+        f"scale={bw}:{bh},rotate='0.021*sin(2*PI*t/3)':ow=iw:oh=ih:c=black,"
+        f"crop={w}:{h}:x='(iw-{w})/2':y='(ih-{h})/2'"
+    )
 
 
 PUPPET_OVERSCAN = 1.05  # margen para que al balancear nunca se vean bordes negros
@@ -460,6 +501,8 @@ def scene_clip(
                 )
             joined = "".join(f"[s{k}]" for k in range(len(shots)))
             joined += f"concat=n={len(shots)}:v=1:a=0"
+            if MOTIONS[first_motion % len(MOTIONS)] == "pendulum":
+                joined += "," + pendulum_filter(w, ph)
         if puppet:
             joined += "," + puppet_filter(w, ph, first_motion + int(scene.get("number") or 0))
         if fh:
@@ -669,6 +712,13 @@ def _cleanup(path: Path) -> None:
     shutil.rmtree(path, ignore_errors=True)
 
 
+def transition_for(k: int) -> str:
+    """La transición del corte nº k: fundido en los pares; en los impares, una distinta cada
+    vez (deslizar, zoom, círculo…), siempre en el mismo orden para que el montaje se repita
+    igual si se rehace."""
+    return "fade" if k % 2 == 0 else TRANSITIONS[(k // 2) % len(TRANSITIONS)]
+
+
 def _xfade_chain(lengths: list[float], seconds: list[float]) -> tuple[str, str]:
     """Filtro que encadena los clips con fundidos. Cada clip (salvo el último) dura su
     escena + CROSSFADE, y el fundido empieza justo donde empieza la escena siguiente, así
@@ -679,8 +729,9 @@ def _xfade_chain(lengths: list[float], seconds: list[float]) -> tuple[str, str]:
     for k in range(1, len(lengths)):
         offset += seconds[k - 1]
         label = f"[x{k}]"
+        kind = transition_for(k)
         parts.append(
-            f"{previous}[{k}:v]xfade=transition=fade:duration={CROSSFADE}:offset={offset:.3f}{label}"
+            f"{previous}[{k}:v]xfade=transition={kind}:duration={CROSSFADE}:offset={offset:.3f}{label}"
         )
         previous = label
     return ";".join(parts), previous
@@ -709,7 +760,8 @@ def scene_key(scene: dict, visual: dict | None, length: float, size, fps, crf, f
     data = {
         # 2: Shorts con imagen entera y fondo desenfocado; 3: Shorts con la imagen grande que
         # la cámara recorre (v0.83). Los vídeos horizontales siguen en 2: su caché vale.
-        "v": 4 if size[1] > size[0] else 2,  # 4: paseo centrado (v0.84)
+        # 4: paseo centrado (v0.84); horizontales 3: movimientos tipo CapCut (v0.85)
+        "v": 5 if size[1] > size[0] else 3,
         "scene": {k: v for k, v in scene.items() if k != "number"},  # el nº solo nombra archivos
         "visual": source,
         "length": round(length, 3),

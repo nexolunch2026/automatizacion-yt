@@ -77,6 +77,15 @@ cabeza redonda con contorno negro grueso, colores planos). Nada de fotos realist
      personajes secundarios y objetos. Nunca un monigote solo sobre un fondo vacío.
      El protagonista aparece en casi todas las escenas, con la ropa de esa etapa.
      Usa metáforas visuales: balanzas, bolsas de dinero, tormentas, focos.
+   - PLANOS VARIADOS (como una película): alterna el tipo de plano y empieza el
+     image_prompt con él, en inglés. Nunca dos escenas seguidas con el mismo plano:
+     · «Wide shot»: el lugar entero con los personajes pequeños (para situar dónde y cuándo).
+     · «Medium shot»: el personaje de cintura para arriba con algo de fondo (lo que hace).
+     · «Close-up»: solo la cara del protagonista, con una emoción muy clara (miedo, rabia,
+       alegría, sudor, lágrimas) para los momentos de tensión.
+     · «Extreme close-up»: un detalle (un cheque, un reloj, unas manos, un trofeo, un
+       contrato) para destacar un dato.
+     Más o menos: 25 % generales, 35 % medios, 25 % primeros planos y 15 % detalles.
    - stock_query: palabras en inglés, concretas y visuales.
    - image_prompt: en inglés, una escena stickman con el protagonista descrito igual
      siempre (copia sus rasgos), el lugar, la acción y la emoción.
