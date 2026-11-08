@@ -379,3 +379,28 @@ def by_order(count: int, scenes: list[dict]) -> dict[int, int]:
     numbers = [s["number"] for s in scenes]
     order = list(range(count))[::-1]
     return {index: numbers[pos] for pos, index in enumerate(order) if pos < len(numbers)}
+
+
+# Imágenes que ya cuentan como hechas: las de Flow y las que subes tú (de Flow o de otro sitio).
+DONE_PROVIDERS = {"flow", "manual"}
+
+
+def pending_scenes(board: dict, visuals: dict) -> list[int]:
+    """Números de las escenas que aún necesitan su imagen (los gráficos no la necesitan)."""
+    items = (visuals or {}).get("items") or {}
+    if not isinstance(items, dict):
+        items = {}
+    pending = []
+    for position, scene in enumerate((board or {}).get("scenes") or [], 1):
+        if not isinstance(scene, dict) or scene.get("visual_type") == "grafico":
+            continue
+        item = items.get(scene.get("paragraph_id"))
+        if isinstance(item, dict) and (
+            item.get("provider") in DONE_PROVIDERS or item.get("ai") or item.get("uploaded")
+        ):
+            continue  # de Flow, subida por ti o hecha con IA: ya tiene su imagen
+        try:
+            pending.append(int(scene.get("number")))
+        except (TypeError, ValueError):
+            pending.append(position)  # sin número: se nombra por su sitio, pero cuenta
+    return sorted(set(pending))

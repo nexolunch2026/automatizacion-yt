@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (8 de noviembre de 2026: título y miniatura juntos)
+
+- [How I Package Every YouTube Video (Title + Thumbnail)](https://www.youtube.com/watch?v=F0iJZsrxPwE)
+  — cómo pensar el título y la miniatura a la vez, antes de hacer el vídeo.
+- [How to Enable Thumbnail and Title A/B Testing on YouTube in 2026](https://www.youtube.com/watch?v=mXdqz9D67Hc)
+  — dónde activar en YouTube la prueba de miniaturas (las 3 que hace el programa).
+- [YouTube's NEW Thumbnail Algorithm](https://www.youtube.com/watch?v=RsOrehfoOco)
+  — qué mira YouTube ahora en una miniatura.
+
 ## Nuevos (7 de noviembre de 2026: los primeros 30 segundos)
 
 - [Stop Using Story Hooks. Do This in the First 30s.](https://www.youtube.com/watch?v=nXoTR5l4Dks)

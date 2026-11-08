@@ -32,6 +32,7 @@ SKILL_ACTIONS = (
     "performance",
     "analyze",
     "pc",
+    "flow_status",
 )
 
 # Páginas que JARVIS sabe abrir (clave sin tildes y en minúsculas).
@@ -127,6 +128,17 @@ STATS_WORDS = (
     "informe semanal",
     "resumen de la semana",
 )
+FLOW_WORDS = (
+    "que me falta en flow",
+    "que me falta de flow",
+    "que falta en flow",
+    "flow",
+    "imagenes de flow",
+    "que imagenes faltan",
+    "cuantas imagenes faltan",
+    "que imagenes me faltan",
+)
+
 PERFORMANCE_WORDS = (
     "rendimiento",
     "como va mi video",
@@ -177,6 +189,7 @@ def quick(text: str, norm: str):
         (REMINDER_LIST_WORDS, "reminder_list"),
         (PERFORMANCE_WORDS, "performance"),
         (ANALYZE_WORDS, "analyze"),
+        (FLOW_WORDS, "flow_status"),
     ):
         if bare in words:
             return Intent(action=action)
@@ -223,6 +236,7 @@ def act(db: Session, intent) -> list:
         "performance": _performance,
         "analyze": _analyze,
         "pc": _pc,
+        "flow_status": _flow_status,
     }[intent.action]
     return handler(db, intent)
 
@@ -556,6 +570,73 @@ def _performance(db: Session, intent) -> list:
     if warning:
         lines.insert(0, warning)
     return [_r("\n".join(lines), buttons=[[("🧠 Analizar ahora", "analyze")]])]
+
+
+FLOW_SHOW_MAX = 8  # escenas que se nombran por vídeo (el resto, «y N más»)
+FLOW_PROJECTS_MAX = 50  # vídeos sin publicar que se revisan (los más nuevos)
+
+
+def _flow_status(db: Session, intent) -> list:
+    """«¿Qué me falta en Flow?»: cuántas escenas de cada vídeo siguen sin imagen y por cuál
+    conviene empezar (la que tiene el vídeo parado esperando, o la que menos le falta)."""
+    from app import flow, jobs
+    from app.models import Project
+
+    rows, broken = [], []
+    current = (
+        select(Project)
+        .where(Project.status != "Publicado")  # lo ya subido no necesita imágenes nuevas
+        .order_by(Project.id.desc())
+        .limit(FLOW_PROJECTS_MAX)
+    )
+    for project in db.scalars(current):
+        try:
+            board = jobs.get_result(db, project.id, "storyboard")
+            if not isinstance(board, dict) or not board.get("scenes"):
+                continue
+            visuals = jobs.get_result(db, project.id, "visuals")
+            missing = flow.pending_scenes(board, visuals if isinstance(visuals, dict) else {})
+            # Parado de verdad: automático, sin montar y sin ninguna tarea en marcha o en cola.
+            busy = any(job.active for job in jobs.latest_jobs(db, project.id).values())
+            waiting = (
+                project.automation_mode == "automatico"
+                and not busy
+                and not jobs.get_result(db, project.id, "edit")
+            )
+        except Exception:  # noqa: BLE001 — un vídeo con datos raros no tapa los demás
+            log.warning("No se pudo revisar Flow en el proyecto %s", project.id, exc_info=True)
+            broken.append(project)
+            continue
+        rows.append((project, missing, waiting))
+    if broken:
+        names = ", ".join(f"«{escape(p.title)}»" for p in broken[:3])
+        broken_line = f"\n⚠️ No pude revisar {names}: ábrelo en el ordenador (Visuales)."
+    else:
+        broken_line = ""
+    if not rows and broken:
+        return [_r("🎨 No pude revisar las imágenes de Flow." + broken_line)]
+    if not rows:
+        return [_r("🎨 Aún no hay vídeos con escenas. Cuando las tenga, te digo qué imágenes "
+                   "faltan en Flow.")]  # fmt: skip
+    todo = [r for r in rows if r[1]]
+    if not todo:
+        return [_r("✅ Todos tus vídeos en marcha ya tienen sus imágenes." + broken_line)]
+    lines = ["🎨 <b>Lo que falta en Flow</b>"]
+    for project, missing, _ in todo:
+        shown = ", ".join(str(n) for n in missing[:FLOW_SHOW_MAX])
+        more = f" y {len(missing) - FLOW_SHOW_MAX} más" if len(missing) > FLOW_SHOW_MAX else ""
+        lines.append(
+            f"• «{escape(project.title)}»: {len(missing)} escena"
+            f"{'' if len(missing) == 1 else 's'} (n.º {shown}{more})"
+        )
+    first = min(todo, key=lambda r: (not r[2], len(r[1])))
+    why = "está parado esperando las imágenes" if first[2] else "es al que menos le falta"
+    lines.append(f"\n👉 Empieza por «{escape(first[0].title)}»: {why}.")
+    lines.append(
+        "<i>En el ordenador: abre el vídeo → Visuales → copia los mensajes para Flow y, al "
+        "terminar, pulsa el botón «Enviar a Faceless».</i>"
+    )
+    return [_r("\n".join(lines) + broken_line)]
 
 
 def _analyze(db: Session, intent) -> list:

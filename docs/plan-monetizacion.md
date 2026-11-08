@@ -149,7 +149,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   avisa una vez por Telegram de qué vídeos esperan y a qué hora siguen.
 - [x] **Dos vídeos a la vez, a la vista** (0.101.0): en la portada se ve qué tarea va ahora, cuáles
   esperan detrás y cuánto gasta cada vídeo del Gemini gratis del día.
-- [ ] **«¿Qué me falta en Flow?» por Telegram**: JARVIS dice cuántas escenas de cada vídeo
+- [x] **«¿Qué me falta en Flow?» por Telegram** (0.102.0): JARVIS dice cuántas escenas de cada vídeo
   siguen sin imagen de Flow y cuál conviene hacer primero.
 - [x] **Capítulos con nombres que enganchan** (0.94.0): los títulos de las secciones del
   guion se piden pensando en los capítulos de YouTube, y el control de calidad avisa si

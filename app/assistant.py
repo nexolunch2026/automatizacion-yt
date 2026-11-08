@@ -222,6 +222,7 @@ class Intent(BaseModel):
         "review",
         "idea_bank",
         "pc",
+        "flow_status",
         "shopping",
         "calc",
         "week_plan",

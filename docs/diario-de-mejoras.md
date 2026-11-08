@@ -2,6 +2,16 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-08 — Versión 0.102: «¿qué me falta en Flow?»
+
+- Pregúntale a JARVIS por Telegram **«¿qué me falta en Flow?»** (o solo **«flow»**).
+- Te dice, vídeo por vídeo, **cuántas escenas siguen sin imagen** y cuáles son (n.º 3, 5…).
+- Y **por cuál empezar**: el vídeo que está parado esperando las imágenes (modo
+  automático) o, si no, el que menos le falta.
+- Los gráficos no cuentan (no necesitan imagen) y las imágenes que subes tú sí cuentan
+  como hechas.
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-08 — Versión 0.101.1: juntas otra vez (con lo de la otra conversación)
 
 - Se juntaron las versiones 0.77–0.84 de la otra conversación: **clips animados de Flow**,
