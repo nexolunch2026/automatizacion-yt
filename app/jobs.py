@@ -511,6 +511,22 @@ def media_map(folder: Path, visuals: dict) -> dict:
     return media
 
 
+def _hook_speaker(db: Session, voice: dict):
+    """Graba la frase gancho de un Short con la misma voz y velocidad que el vídeo."""
+    from app.providers.voice import for_speech, spoken_text, tighten
+
+    try:
+        tts = get_voice_provider(db, voice["voice"], voice.get("model") or None)
+    except (KeyError, ProviderError):
+        return None
+
+    def speak(text: str) -> bytes:
+        wav = tts.synthesize(for_speech(spoken_text(text)), voice["voice"], voice["speed"])
+        return tighten(wav)
+
+    return speak
+
+
 def _run_shorts(db: Session, project: Project, progress, params: dict) -> dict:
     from app.pipeline.shorts import run_shorts
 
@@ -544,6 +560,7 @@ def _run_shorts(db: Session, project: Project, progress, params: dict) -> dict:
         hashtags=seo.get("hashtags"),
         # Rehacer = los mismos momentos y títulos; «nuevos» = que la IA elija otros.
         keep=None if params.get("nuevos") else (previous_shorts or {}).get("shorts"),
+        speak=_hook_speaker(db, voice),
     )
     if ai is not None:
         remember_working_model(db, ai)

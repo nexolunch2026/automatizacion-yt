@@ -348,9 +348,15 @@ def _encode(preset: str, crf: int, fps: int) -> list[str]:
     ]
 
 
+SHORTS_FILL = 0.6  # en los Shorts, la imagen ocupa el 60 % del alto de la pantalla
+
+
 def blur_fill_height(image: Path, w: int, h: int) -> int | None:
-    """En un vídeo vertical, el alto que ocupa una imagen horizontal mostrada entera (con fondo
-    desenfocado). None si no hace falta: vídeo horizontal, imagen vertical o ilegible."""
+    """En un vídeo vertical, el alto de la franja donde va una imagen horizontal (con fondo
+    desenfocado detrás). None si no hace falta: vídeo horizontal, imagen vertical o ilegible.
+    Desde la v0.83 la franja es grande (SHORTS_FILL): mostrada entera la imagen se quedaba en
+    un tercio de la pantalla y en el móvil el Short parecía vacío; ahora la cámara la recorre
+    de un lado a otro para que se vean todos los personajes."""
     if h <= w:
         return None
     try:
@@ -362,7 +368,22 @@ def blur_fill_height(image: Path, w: int, h: int) -> int | None:
         return None
     if iw <= ih * 1.1:  # ya es vertical o casi cuadrada: se recorta como siempre
         return None
-    return max(int(w * ih / iw) // 2 * 2, 2)
+    whole = int(w * ih / iw)
+    return max(max(whole, int(h * SHORTS_FILL)) // 2 * 2, 2)
+
+
+def pan_band(seconds: float, fps: int, w: int, fh: int, factor: int, reverse: bool) -> str:
+    """Filtro que recorre una imagen ancha de lado a lado en una franja de w×fh (Shorts)."""
+    total = int(seconds * fps) + 2
+    p = f"min(t/{max(seconds, 0.1):.3f},1)"
+    ease = f"({p}*{p}*(3-2*{p}))"
+    where = f"(1-{ease})" if reverse else ease
+    bw, bh = w * factor // 2 * 2, fh * factor // 2 * 2
+    return (
+        f"scale=-2:{bh},setsar=1,loop=loop={total}:size=1:start=0,setpts=N/{fps}/TB,"
+        f"crop={bw}:{bh}:x='(iw-ow)*(0.08+0.84*{where})':y=0,"
+        f"scale={w}:{fh},fps={fps},trim=duration={seconds:.3f}"
+    )
 
 
 def _end_start(seconds: float) -> float:
@@ -422,17 +443,21 @@ def scene_clip(
                 f"setpts=N/{fps}/TB,trim=duration={seconds:.3f}[bg]"
             )
             src = "[fgsrc]"
-        parts.append(
-            f"{src}scale={bw}:{bh}:force_original_aspect_ratio=increase,crop={bw}:{bh},"
-            f"setsar=1,split={len(shots)}" + "".join(f"[i{k}]" for k in range(len(shots)))
-        )
-        for k, shot in enumerate(shots):
-            frames = max(int(round(shot * fps)), 1)
-            z, x, y = _motion_filter(MOTIONS[(first_motion + k) % len(MOTIONS)], frames)
+        if fh:  # la cámara recorre la imagen ancha de un lado a otro
+            joined = f"{src}" + pan_band(seconds, fps, w, fh, factor, first_motion % 2 == 1)
+        else:
             parts.append(
-                f"[i{k}]zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={w}x{ph}:fps={fps}[s{k}]"
+                f"{src}scale={bw}:{bh}:force_original_aspect_ratio=increase,crop={bw}:{bh},"
+                f"setsar=1,split={len(shots)}" + "".join(f"[i{k}]" for k in range(len(shots)))
             )
-        joined = "".join(f"[s{k}]" for k in range(len(shots))) + f"concat=n={len(shots)}:v=1:a=0"
+            for k, shot in enumerate(shots):
+                frames = max(int(round(shot * fps)), 1)
+                z, x, y = _motion_filter(MOTIONS[(first_motion + k) % len(MOTIONS)], frames)
+                parts.append(
+                    f"[i{k}]zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={w}x{ph}:fps={fps}[s{k}]"
+                )
+            joined = "".join(f"[s{k}]" for k in range(len(shots)))
+            joined += f"concat=n={len(shots)}:v=1:a=0"
         if puppet:
             joined += "," + puppet_filter(w, ph, first_motion + int(scene.get("number") or 0))
         if fh:
@@ -680,7 +705,9 @@ def scene_key(scene: dict, visual: dict | None, length: float, size, fps, crf, f
             stat.st_mtime if stat else 0,
         ]
     data = {
-        "v": 2,  # 2: Shorts con imagen entera y fondo desenfocado (no valen las escenas viejas)
+        # 2: Shorts con imagen entera y fondo desenfocado; 3: Shorts con la imagen grande que
+        # la cámara recorre (v0.83). Los vídeos horizontales siguen en 2: su caché vale.
+        "v": 3 if size[1] > size[0] else 2,
         "scene": {k: v for k, v in scene.items() if k != "number"},  # el nº solo nombra archivos
         "visual": source,
         "length": round(length, 3),

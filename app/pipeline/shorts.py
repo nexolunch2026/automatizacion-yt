@@ -1,7 +1,9 @@
 """SHORTS ENGINE: de cada documental, 2–3 Shorts verticales con sus mejores momentos.
 
-1. Gemini elige los fragmentos más llamativos (párrafos seguidos de 20–58 s): un dato
-   sorprendente, un giro, una cifra… y les pone un título y un gancho en pantalla.
+1. Gemini elige los fragmentos más llamativos (párrafos seguidos de 15–38 s): un dato
+   sorprendente, un giro, una cifra… y les pone un título, un gancho en pantalla y una
+   FRASE GANCHO que la voz dice en el primer segundo (desde la v0.83: antes la voz empezaba
+   con contexto y en YouTube Studio el 60-85 % pasaba el Short sin mirarlo).
    Sin Gemini se eligen solos (los que tienen cifras, preguntas o el gancho del vídeo).
 2. Cada fragmento se vuelve a montar en vertical (no se recorta el vídeo horizontal):
    mismas imágenes con movimiento, la misma voz, subtítulos grandes y el gancho arriba.
@@ -11,6 +13,7 @@
    En YouTube Studio además se elige ese vídeo como «Vídeo relacionado» del Short.
 """
 
+import logging
 import re
 from collections.abc import Callable
 from pathlib import Path
@@ -20,11 +23,12 @@ from pydantic import BaseModel, Field
 from app.models import Project
 from app.pipeline.render import PAUSE, render_video
 from app.providers.ai import AIProvider, ProviderError
-from app.providers.voice import join_wavs
+from app.providers.voice import join_wavs, wav_seconds
 
-MIN_SECONDS = 18
-MAX_SECONDS = 58
-TARGET_SECONDS = 40
+log = logging.getLogger(__name__)
+
+MIN_SECONDS = 15
+MAX_SECONDS = 38  # + la frase gancho: Shorts de unos 30-40 s (los de 50 s se abandonaban)
 END_TEXT = "La historia completa, en el canal"
 
 
@@ -33,6 +37,10 @@ class ShortPick(BaseModel):
     end: int = Field(description="Número del último párrafo (incluido)")
     title: str = Field(description="Título del Short, máximo 60 caracteres, con gancho")
     hook: str = Field(description="Texto en pantalla al empezar: 2 a 5 palabras")
+    hook_line: str = Field(
+        default="",
+        description="Frase que la voz dice en el primer segundo, antes del fragmento",
+    )
 
 
 class ShortPicks(BaseModel):
@@ -121,6 +129,10 @@ Del guion numerado elige {count} fragmentos para Shorts verticales:
   destripar el final.
 - hook: 2–5 palabras que se verán grandes desde el primer fotograma: una promesa o una
   cifra («PERDIÓ 74.000 MILLONES», «NADIE LO VIO VENIR»), no solo el nombre del tema.
+- hook_line: la frase que la VOZ dice primero, antes del fragmento (8–14 palabras). Dice lo
+  mismo que el hook en pantalla, como una promesa o un dato que choca, y conecta con lo que
+  viene después. Ej.: «Esta mujer engañó a todo Silicon Valley con una máquina que no
+  funcionaba». Nada de «En este vídeo…» ni de fechas para empezar. Solo hechos del guion.
 
 Vídeo: «{script.get("title") or project.title}»
 GUION:
@@ -172,6 +184,32 @@ def highlight_word(text: str) -> str:
     return (with_digits or sorted(words, key=len, reverse=True))[0]
 
 
+def best_image(media: dict, paragraph_ids: list[str]) -> str | None:
+    """El párrafo cuya imagen es la más llamativa (la de la portada y el primer segundo)."""
+    from app.pipeline import thumbnail
+
+    scored = []
+    for pid in paragraph_ids:
+        item = media.get(pid) or {}
+        if item.get("kind") == "image" and Path(item.get("path", "")).exists():
+            try:
+                scored.append((thumbnail._score(Path(item["path"])), pid))
+            except OSError:
+                continue
+    return max(scored)[1] if scored else None
+
+
+def _hook_audio(pick: ShortPick, speak: Callable[[str], bytes] | None) -> bytes | None:
+    """La frase gancho grabada; None si no hay frase ni voz, o si la voz falla."""
+    if not (speak and pick.hook_line.strip()):
+        return None
+    try:
+        return speak(pick.hook_line.strip())
+    except Exception:  # noqa: BLE001 — sin la frase el Short se hace igual
+        log.warning("Shorts: no se pudo grabar la frase gancho", exc_info=True)
+        return None
+
+
 def make_cover(media: dict, paragraph_ids: list[str], text: str, out: Path) -> Path:
     """Portada vertical del Short (1080×1920) con la imagen más llamativa de sus escenas."""
     from app.pipeline import thumbnail
@@ -199,7 +237,13 @@ def kept_picks(keep: list[dict] | None, total: int) -> list[ShortPick]:
     for short in keep or []:
         try:
             start, end = (int(n) for n in short["paragraphs"])
-            pick = ShortPick(start=start, end=end, title=short["title"], hook=short["hook"])
+            pick = ShortPick(
+                start=start,
+                end=end,
+                title=short["title"],
+                hook=short["hook"],
+                hook_line=short.get("hook_line", ""),
+            )
         except (KeyError, TypeError, ValueError):
             return []
         if not 1 <= start <= end <= total:
@@ -222,9 +266,12 @@ def run_shorts(
     music: Path | None = None,
     hashtags: list[str] | None = None,
     keep: list[dict] | None = None,
+    speak: Callable[[str], bytes] | None = None,
 ) -> dict:
     """`keep`: los Shorts que ya había. Al rehacerlos se repiten los mismos momentos, títulos
-    y ganchos (solo cambia el montaje); sin `keep`, la IA elige momentos nuevos."""
+    y ganchos (solo cambia el montaje); sin `keep`, la IA elige momentos nuevos.
+    `speak(texto) -> wav`: graba la frase gancho con la misma voz del vídeo (sin ella, el
+    Short empieza directamente con el fragmento, como antes)."""
     takes = {t["paragraph_id"]: t["seconds"] for t in voice["takes"]}
     files = {t["paragraph_id"]: project_folder / t["file"] for t in voice["takes"]}
     rows = paragraph_table(script, takes)
@@ -252,6 +299,30 @@ def run_shorts(
         scenes = [dict(scenes_by_id[pid]) for pid in ids if pid in scenes_by_id]
         if not scenes:
             continue
+        seconds = {pid: takes[pid] for pid in ids}
+        audio = [files[pid].read_bytes() for pid in ids]
+        shot_media = media
+        hook_audio = _hook_audio(pick, speak)
+        if hook_audio:  # la voz dice el gancho en el primer segundo, con la mejor imagen
+            hook_id = f"gancho-{i}"
+            best = best_image(media, ids) or ids[0]
+            scenes[0]["on_screen_text"] = ""  # el gancho en pantalla va en la escena nueva
+            scenes.insert(
+                0,
+                {
+                    **scenes_by_id.get(best, scenes[0]),
+                    "paragraph_id": hook_id,
+                    "number": 0,
+                    "narration": pick.hook_line,
+                    "motion": "zoom_in",
+                },
+            )
+            for key in ("chart", "callout", "end_text"):
+                scenes[0].pop(key, None)
+            if best in media:
+                shot_media = {**media, hook_id: media[best]}
+            seconds = {hook_id: wav_seconds(hook_audio), **seconds}
+            audio.insert(0, hook_audio)
         scenes[0]["on_screen_text"] = pick.hook.upper()  # el gancho, arriba, al empezar
         scenes[0]["text_from_start"] = True
         scenes[0].pop("chart", None)  # el primer plano es el gancho, no un gráfico
@@ -261,15 +332,15 @@ def run_shorts(
         folder = out_root / f"short-{i}"
         folder.mkdir(parents=True, exist_ok=True)
         narration = folder / "narracion.wav"
-        narration.write_bytes(join_wavs([files[pid].read_bytes() for pid in ids], PAUSE))
+        narration.write_bytes(join_wavs(audio, PAUSE))
 
         def step(pct: int, message: str, i=i) -> None:
             progress(10 + round(85 * ((i - 1) + pct / 100) / len(picks)), f"Short {i}: {message}")
 
         result = render_video(
             scenes,
-            media,
-            {pid: takes[pid] for pid in ids},
+            shot_media,
+            seconds,
             narration,
             folder,
             quality,
@@ -288,6 +359,7 @@ def run_shorts(
                 "cover": f"shorts/short-{i}/portada.jpg",
                 "title": pick.title[:100],
                 "hook": pick.hook,
+                "hook_line": pick.hook_line if hook_audio else "",
                 "seconds": result["seconds"],
                 "paragraphs": [pick.start, pick.end],
                 "paragraph_ids": ids,

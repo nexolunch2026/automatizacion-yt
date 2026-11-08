@@ -13,7 +13,8 @@ def test_blur_fill_only_for_horizontal_images_in_vertical_video(tmp_path):
     wide, tall = tmp_path / "ancha.jpg", tmp_path / "alta.jpg"
     Image.new("RGB", (1600, 900)).save(wide)
     Image.new("RGB", (900, 1600)).save(tall)
-    assert blur_fill_height(wide, 720, 1280) == 404  # 720 × 900/1600, par
+    # Antes 404 (720 × 900/1600: la imagen entera en un tercio); desde la v0.83, el 60 %.
+    assert blur_fill_height(wide, 720, 1280) == 768
     assert blur_fill_height(tall, 720, 1280) is None  # ya es vertical: se recorta como siempre
     assert blur_fill_height(wide, 1280, 720) is None  # vídeo horizontal: nada cambia
     assert blur_fill_height(tmp_path / "no-existe.jpg", 720, 1280) is None
