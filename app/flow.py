@@ -235,8 +235,8 @@ DIRECT = (
     "transform:translateX(-50%);z-index:999999;background:#111;color:#c6ff3a;padding:12px 18px;"
     "border-radius:10px;font:16px sans-serif;box-shadow:0 4px 20px #000';document.body.append(b);"
     "const say=t=>b.textContent=t;say('Faceless Studio: buscando imágenes…');"
-    "const g=[...document.querySelectorAll('*')].filter(e=>e.scrollHeight>e.clientHeight+50&&"
-    "/(auto|scroll)/.test(getComputedStyle(e).overflowY)).sort((x,y)=>y.scrollHeight-x.scrollHeight)[0];"
+    "const sc=e=>e&&e.scrollHeight>e.clientHeight+50&&/(auto|scroll)/.test(getComputedStyle(e).overflowY);"  # noqa: E501
+    "let g=document.querySelector('flow-grid-tile-container');while(g&&!sc(g))g=g.parentElement;"
     "if(!g||!document.querySelector('flow-grid-tile-container')){say('Abre primero tu proyecto de "
     "Flow (donde se ven las imágenes) y vuelve a pulsar el botón.');setTimeout(()=>b.remove(),6000);"  # noqa: E501
     "return}const u=[];g.scrollTop=0;await s(600);for(let y=0;y<g.scrollHeight+800&&u.length<N;y+=300)"  # noqa: E501
@@ -269,8 +269,8 @@ UNIVERSAL = (
     "catch(e){say('No se pudo conectar con Faceless Studio. ¿Está abierto?');return}"
     "if(info.error){say(info.error);setTimeout(()=>b.remove(),8000);return}const N=info.n;"
     "say('Faceless Studio → '+info.title+': buscando imágenes…');"
-    "const g=[...document.querySelectorAll('*')].filter(e=>e.scrollHeight>e.clientHeight+50&&"
-    "/(auto|scroll)/.test(getComputedStyle(e).overflowY)).sort((x,y)=>y.scrollHeight-x.scrollHeight)[0];"  # noqa: E501
+    "const sc=e=>e&&e.scrollHeight>e.clientHeight+50&&/(auto|scroll)/.test(getComputedStyle(e).overflowY);"  # noqa: E501
+    "let g=document.querySelector('flow-grid-tile-container');while(g&&!sc(g))g=g.parentElement;"  # noqa: E501
     "if(!g||!document.querySelector('flow-grid-tile-container')){say('Abre primero tu proyecto de "
     "Flow (donde se ven las imágenes) y vuelve a pulsar el botón.');setTimeout(()=>b.remove(),6000);"  # noqa: E501
     "return}const u=[];g.scrollTop=0;await s(800);for(let y=0;y<g.scrollHeight+800&&u.length<N;y+=250)"  # noqa: E501
