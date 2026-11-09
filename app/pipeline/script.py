@@ -1,5 +1,6 @@
 """SCRIPT ENGINE: escribe el guion y permite reescribir párrafos sueltos."""
 
+import math
 import re
 import time
 import uuid
@@ -392,26 +393,51 @@ def _paragraphs(draft: SectionDraft, n_sources: int) -> list[dict]:
     ]
 
 
-MAX_PARAGRAPH_WORDS = 36  # unos 14 s de voz: cada párrafo es una escena con su imagen
+# Unos 7 s de voz (la voz dice ~2,6 palabras por segundo): cada párrafo es una escena con
+# su imagen. Antes 36 (~14 s): en YouTube Studio la gente se aburría con la misma imagen.
+MAX_PARAGRAPH_WORDS = 20
 SENTENCE_END = re.compile(r"(?<=[.!?…])\s+")
+CLAUSE_END = re.compile(r"(?<=[,;:])\s+")
+
+
+def _pieces(text: str, max_words: int) -> list[str]:
+    """Frases completas; las muy largas se parten también por sus comas (sin cortar nunca
+    en mitad de una idea sin pausa)."""
+    pieces = []
+    for sentence in SENTENCE_END.split(text.strip()):
+        if len(sentence.split()) <= max_words + 4:
+            pieces.append(sentence)
+            continue
+        part = ""
+        for clause in CLAUSE_END.split(sentence):
+            if part and len((part + " " + clause).split()) > max_words:
+                pieces.append(part)
+                part = clause
+            else:
+                part = f"{part} {clause}".strip()
+        if part:
+            pieces.append(part)
+    return pieces
 
 
 def split_paragraph(paragraph: dict, max_words: int = MAX_PARAGRAPH_WORDS) -> list[dict]:
-    """Parte un párrafo largo en trozos de frases completas de hasta `max_words` palabras
-    (cada trozo será una escena con su propia imagen, una cada 10-15 s). El primer trozo
-    conserva el id, así su imagen y su voz siguen valiendo si no cambia."""
+    """Parte un párrafo largo en trozos de hasta `max_words` palabras (cada trozo será una
+    escena con su propia imagen, una cada ~7 s). El primer trozo conserva el id, así su
+    imagen y su voz siguen valiendo si no cambia."""
     words = paragraph["text"].split()
-    if len(words) <= max_words + 8:
+    if len(words) <= max_words + 3:  # hasta ~8,5 s no compensa partir
         return [paragraph]
+    # Trozos parecidos entre sí (30 palabras → 15 + 15, no 18 + 12).
+    target = len(words) / math.ceil(len(words) / max_words)
     chunks: list[list[str]] = [[]]
-    for sentence in SENTENCE_END.split(paragraph["text"].strip()):
+    for sentence in _pieces(paragraph["text"], max_words):
         current = chunks[-1]
         size = sum(len(s.split()) for s in current)
-        if current and size + len(sentence.split()) > max_words:
+        if current and size + len(sentence.split()) > max(target * 1.15, max_words * 0.6):
             chunks.append([sentence])
         else:
             current.append(sentence)
-    if len(chunks) > 1 and sum(len(s.split()) for s in chunks[-1]) < 10:
+    if len(chunks) > 1 and sum(len(s.split()) for s in chunks[-1]) < max(max_words // 3, 4):
         tail = chunks.pop()  # un final muy corto se une al anterior
         chunks[-1] += tail
     parts = []
@@ -512,7 +538,7 @@ def run_script(
         "based_on": {"concept": selected["concept"], "title": selected.get("title", 0)},
         "target_words": WORDS_BY_DURATION.get(project.duration, 1100),
     }
-    split_long_paragraphs(data)  # una imagen cada 10-15 s, no cada 25
+    split_long_paragraphs(data)  # una imagen cada ~7 s (v0.85; antes 10-15 s)
     return with_stats(data)
 
 

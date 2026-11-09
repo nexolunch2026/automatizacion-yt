@@ -2,6 +2,12 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-09 — Versión 0.102.2: juntas otra vez
+
+- Se juntó la versión 0.85 de la otra conversación: **vídeos más dinámicos** (una imagen
+  cada ~7 segundos, planos y movimientos variados, transiciones distintas).
+- Las 896 pruebas pasan con todo junto.
+
 ## 2026-11-08 — Versión 0.102.1: Radar de historias
 
 Tres historias nuevas en el **banco de ideas** (pídeselas a JARVIS con «banco de ideas»):
