@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-09 — Versión 0.103: datos comprobados en el control de calidad
+
+- El **control de calidad** ahora mira si comprobaste los datos del guion con el botón
+  **«Comprobar datos con fuentes fiables»** (en Guion).
+- Si no lo hiciste, te lo recuerda. Si alguna fuente dice otra cosa, te dice **cuántos datos
+  hay que corregir**.
+- Si **cambias el guion después** de comprobar, avisa de que hay que volver a comprobarlo.
+- Así no se cuela una cifra mal (como 9.000 en vez de 10.000 millones), que quita
+  credibilidad y llena los comentarios de «eso es falso».
+- Lo ves en **Control de calidad** (área «Listo para subir»).
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-09 — Versión 0.102.2: juntas otra vez
 
 - Se juntó la versión 0.85 de la otra conversación: **vídeos más dinámicos** (una imagen

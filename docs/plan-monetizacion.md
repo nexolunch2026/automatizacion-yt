@@ -151,6 +151,13 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   esperan detrás y cuánto gasta cada vídeo del Gemini gratis del día.
 - [x] **«¿Qué me falta en Flow?» por Telegram** (0.102.0): JARVIS dice cuántas escenas de cada vídeo
   siguen sin imagen de Flow y cuál conviene hacer primero.
+- [x] **Datos comprobados en el control de calidad** (0.103.0): avisa si las cifras del guion
+  no se han comprobado con fuentes fiables, si alguna hay que corregirla o si el guion
+  cambió después de comprobarlas.
+- [ ] **Aviso de tema repetido**: al crear un vídeo, avisa si esa marca o ese protagonista
+  ya tiene un vídeo en el mismo canal (y cuál), para no repetir sin querer.
+- [ ] **Banco de ideas para ModoOffside**: historias de fútbol (clubes y jugadores que suben y
+  caen) en el banco de ideas, separadas por canal, y en el radar de los domingos.
 - [x] **Capítulos con nombres que enganchan** (0.94.0): los títulos de las secciones del
   guion se piden pensando en los capítulos de YouTube, y el control de calidad avisa si
   algún capítulo se llama «Desarrollo», «Introducción» o «Parte 2».

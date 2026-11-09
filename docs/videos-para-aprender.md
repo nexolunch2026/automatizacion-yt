@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (9 de noviembre de 2026: comprobar los datos)
+
+- [Fact-Checking for Content Creators: Verify Accuracy](https://www.youtube.com/watch?v=_c5abA2UjhY)
+  — cómo comprobar que lo que cuentas es verdad antes de publicar.
+- [The Facts about Fact Checking: Crash Course Navigating Digital Information #2](https://www.youtube.com/watch?v=EZsaA0w_0z0)
+  — los pasos que siguen los verificadores profesionales, explicado fácil.
+- [How To: Evaluate Sources for Credibility](https://www.youtube.com/watch?v=WKFmngCpAx8)
+  — cómo saber si una fuente es de fiar (lo que hace el botón «Comprobar datos»).
+
 ## Nuevos (8 de noviembre de 2026: título y miniatura juntos)
 
 - [How I Package Every YouTube Video (Title + Thumbnail)](https://www.youtube.com/watch?v=F0iJZsrxPwE)

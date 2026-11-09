@@ -1172,6 +1172,68 @@ def chosen_title(results: dict, project: Project) -> str:
     return (results.get("script") or {}).get("title") or project.title
 
 
+FACTS_STALE = "_factcheck_stale"  # en `results`: el guion cambió después de comprobar
+
+
+def _facts_check(results: dict) -> list[dict]:
+    """Datos comprobados con fuentes fiables (botón del Guion): una cifra mal dicha quita
+    credibilidad y comentarios de «eso es falso». Solo cuando ya hay guion."""
+    if not results.get("script"):
+        return []
+    facts = results.get("factcheck")
+    link = "guion#datos"
+    if not isinstance(facts, dict) or not facts.get("claims"):
+        return [
+            _check(
+                "facts", "publish", WARN, "Datos sin comprobar",
+                "Las cifras, fechas y nombres del guion no se han comprobado con fuentes "
+                "fiables.",
+                "En Guion, pulsa «Comprobar datos con fuentes fiables».", link,
+            )
+        ]  # fmt: skip
+    claims = [c for c in facts["claims"] if isinstance(c, dict)]
+    counts: dict[str, int] = {}
+    for claim in claims:  # se cuenta desde los datos, no desde un resumen que puede faltar
+        status = str(claim.get("status") or "sin_confirmar")
+        counts[status] = counts.get(status, 0) + 1
+    wrong, confirmed = counts.get("corregir", 0), counts.get("confirmado", 0)
+    doubtful = len(claims) - wrong - confirmed  # una fuente, solo Wikipedia o sin confirmar
+    if results.get(FACTS_STALE):  # lo primero: lo comprobado puede ser de otro guion
+        return [
+            _check(
+                "facts", "publish", WARN, "El guion cambió después de comprobar los datos",
+                "Lo comprobado puede no coincidir con el guion de ahora.",
+                "En Guion, vuelve a pulsar «Comprobar datos con fuentes fiables».", link,
+            )
+        ]  # fmt: skip
+    if wrong:
+        return [
+            _check(
+                "facts", "publish", WARN,
+                f"{wrong} dato{'' if wrong == 1 else 's'} para corregir",
+                "Alguna fuente fiable dice otra cosa que el guion.",
+                "En Guion → Comprobar datos, mira la corrección y cambia esa frase.", link,
+            )
+        ]  # fmt: skip
+    if doubtful or not confirmed:
+        return [
+            _check(
+                "facts", "publish", WARN,
+                f"{doubtful} dato{'' if doubtful == 1 else 's'} sin confirmar del todo",
+                f"{confirmed} confirmado{'' if confirmed == 1 else 's'}; el resto solo tiene "
+                "una fuente, solo sale en Wikipedia o no se pudo confirmar.",
+                "En Guion → Comprobar datos, revísalos: si no se pueden confirmar, quítalos o "
+                "dilos con prudencia («según…», «se calcula que…»).", link,
+            )
+        ]  # fmt: skip
+    return [
+        _check(
+            "facts", "publish", OK, "Datos comprobados",
+            f"Los {confirmed} datos del guion están confirmados con fuentes fiables.",
+        )
+    ]  # fmt: skip
+
+
 def review(
     project: Project,
     results: dict,
@@ -1191,6 +1253,7 @@ def review(
         + _audience_checks(results)
         + _promise_check(results, title)
         + _publish_checks(project, results, title)
+        + _facts_check(results)
     )
     score = round(100 * sum(POINTS[c["status"]] for c in checks) / len(checks)) if checks else 0
     fails = sum(1 for c in checks if c["status"] == FAIL)
@@ -1214,10 +1277,12 @@ def review(
 
 def project_review(db: Session, project: Project) -> dict:
     """Revisa un proyecto guardado comparando su guion con los demás vídeos del canal."""
-    results = {
-        r.stage: r.data
-        for r in db.scalars(select(StageResult).where(StageResult.project_id == project.id))
-    }
+    rows = db.scalars(select(StageResult).where(StageResult.project_id == project.id)).all()
+    results = {r.stage: r.data for r in rows}
+    when = {r.stage: r.updated_at for r in rows if r.updated_at}
+    if "script" in when and "factcheck" in when:
+        # El guion cambió después de comprobar los datos: lo comprobado puede ya no valer.
+        results[FACTS_STALE] = when["script"] > when["factcheck"]
     others = db.scalars(
         select(StageResult)
         .join(Project, Project.id == StageResult.project_id)
