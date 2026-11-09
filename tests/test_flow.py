@@ -298,3 +298,13 @@ def test_single_button_sends_to_the_video_open_in_visuals(board, monkeypatch):  
     files = [("images", ("a.img", jpg((200, 0, 0)), "application/octet-stream"))]
     body = board.post(f"/flow-directo?k={k}", files=files).json()
     assert body["placed"] == 1
+
+
+def test_an_image_already_placed_is_never_reused(board, monkeypatch):  # noqa: F811
+    """Si Flow devuelve otra vez una imagen ya colocada, no se pone en una segunda escena."""
+    monkeypatch.setattr(flow, "match_with_ai", lambda *a: {})
+    k = flow.project_token(1)
+    red = ("images", ("a.img", jpg((200, 0, 0)), "application/octet-stream"))
+    first = board.post(f"/proyectos/1/visuales/flow-directo?k={k}", files=[red]).json()
+    again = board.post(f"/proyectos/1/visuales/flow-directo?k={k}", files=[red])
+    assert first["placed"] == 1 and again.status_code == 200 and again.json()["placed"] == 0

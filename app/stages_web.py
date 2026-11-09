@@ -476,6 +476,15 @@ def place_flow_pictures(
     scenes = board["scenes"]
     by_number = {s["number"]: s for s in scenes}
     items = (jobs.get_result(db, project_id, "visuals") or {}).get("items", {})
+    # Una imagen que ya está puesta en otra escena no se vuelve a usar (si no, al rellenar
+    # huecos se repetían imágenes viejas del mismo proyecto de Flow).
+    folder = project_dir(project_id) / "visuales"
+    used = [
+        _fingerprint((folder / it["file"]).read_bytes())
+        for it in items.values()
+        if it.get("provider") == "flow" and it.get("file") and (folder / it["file"]).is_file()
+    ]
+    pictures = [p for p in pictures if not _seen(_fingerprint(p), used)]
     # Los gráficos animados no llevan imagen de Flow: no cuentan como huecos.
     with_picture = [s for s in scenes if s.get("visual_type") != "grafico"] or scenes
     pending = [
@@ -750,6 +759,25 @@ def prompts_file(db: DB, user: CurrentUser, project_id: int):
 
 
 MAX_UPLOAD = 20 * 1024 * 1024
+
+
+def _fingerprint(data: bytes) -> list[int]:
+    """Huella de una imagen (8x8 en grises): igual aunque se haya guardado en otro formato."""
+    import io
+
+    from PIL import Image
+
+    try:
+        return list(Image.open(io.BytesIO(data)).convert("L").resize((8, 8)).getdata())
+    except Exception:  # noqa: BLE001 — si no se puede leer, no cuenta como repetida
+        return []
+
+
+def _seen(print_: list[int], used: list[list[int]]) -> bool:
+    """¿Es casi idéntica a alguna ya colocada? (diferencia media de grises muy pequeña)."""
+    return bool(print_) and any(
+        u and sum(abs(a - b) for a, b in zip(print_, u, strict=False)) / 64 < 6 for u in used
+    )
 
 
 def _store_image(project_id: int, scene: dict, data: bytes) -> str:
