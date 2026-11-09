@@ -429,5 +429,5 @@ def by_order(count: int, scenes: list[dict]) -> dict[int, int]:
     """Sin Gemini: el visor de Flow va de la más nueva a la más vieja, así que se dan la
     vuelta y se colocan en orden de escena."""
     numbers = [s["number"] for s in scenes]
-    order = list(range(count))[::-1]
+    order = list(range(min(count, len(numbers))))[::-1]  # solo las más nuevas
     return {index: numbers[pos] for pos, index in enumerate(order) if pos < len(numbers)}
