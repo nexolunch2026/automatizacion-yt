@@ -916,12 +916,14 @@ def _waiting_choice(db: Session) -> list[Project]:
 
 
 def _defaults(db: Session) -> dict:
-    """Las opciones del último vídeo (canal, duración, idioma, tipo)."""
+    """Las opciones del último vídeo (canal, duración, idioma, tipo). La duración nunca se
+    copia de un Short de prueba: los canales son de vídeos largos y un Short solo se hace si
+    se pide expresamente."""
     last = db.scalar(select(Project).order_by(Project.id.desc()).limit(1))
     if last:
         return {
             "channel_id": last.channel_id,
-            "duration": last.duration,
+            "duration": last.duration if last.duration != "Short" else "10–15 min",
             "language": last.language,
             "video_type": last.video_type,
         }

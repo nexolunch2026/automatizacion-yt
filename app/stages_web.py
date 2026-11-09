@@ -390,6 +390,9 @@ def visuals_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         for scene in board.get("scenes", [])
     ]
     flagged = consistency.flagged(hero, visuals)
+    from app.settings_store import set_setting
+
+    set_setting(db, "flow_proyecto_activo", str(project_id))  # el botón único envía aquí
     redo = [
         r["scene"]["number"]
         for r in rows
@@ -414,6 +417,7 @@ def visuals_page(request: Request, db: DB, user: CurrentUser, project_id: int):
         reference_message=flow.reference_message(board),
         flow_bookmarklet=flow.bookmarklet(len(rows)),
         flow_direct=flow.direct_bookmarklet(str(request.base_url), project.id, len(rows)),
+        flow_universal=flow.universal_bookmarklet(str(request.base_url)),
     )
 
 
@@ -472,9 +476,11 @@ def place_flow_pictures(
     scenes = board["scenes"]
     by_number = {s["number"]: s for s in scenes}
     items = (jobs.get_result(db, project_id, "visuals") or {}).get("items", {})
+    # Los gráficos animados no llevan imagen de Flow: no cuentan como huecos.
+    with_picture = [s for s in scenes if s.get("visual_type") != "grafico"] or scenes
     pending = [
-        s for s in scenes if (items.get(s["paragraph_id"]) or {}).get("provider") != "flow"
-    ] or scenes
+        s for s in with_picture if (items.get(s["paragraph_id"]) or {}).get("provider") != "flow"
+    ] or with_picture
     mapping: dict[int, int] = {}
     if pictures:
         try:
@@ -485,6 +491,8 @@ def place_flow_pictures(
             problems.append("Gemini no pudo mirar las imágenes: se colocaron por orden.")
         if not mapping:
             mapping = flow.by_order(len(pictures), pending)
+        else:
+            mapping = flow.fill_gaps(mapping, len(pictures), pending)
     new_items = {}
     for index, number in mapping.items():
         try:

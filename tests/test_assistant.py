@@ -5,7 +5,7 @@ import pytest
 from app import assistant, jobs, telegram
 from app.assistant import IdeaList, Incoming, Intent, quick_intent
 from app.db import SessionLocal
-from app.models import Job, Project
+from app.models import Channel, Job, Project, User
 from app.providers.ai import ProviderError
 from app.settings_store import get_setting
 from tests.test_projects import create_channel, project_data
@@ -418,3 +418,16 @@ def test_good_morning_once_a_day(studio):
         assert "Buenos días" in replies[0].text and "Todo tranquilo" in replies[0].text
         assert assistant.briefing(db, datetime(2026, 1, 1, 15)) == []
         assert assistant.briefing(db, datetime(2026, 1, 2, 9))
+
+
+def test_new_video_by_chat_never_copies_a_test_short(studio):
+    """Si el último proyecto fue un Short de prueba, el siguiente pedido por chat sigue siendo
+    un vídeo largo (los canales son de vídeos largos; el Short se pide aparte)."""
+    with SessionLocal() as db:
+        channel = db.query(Channel).first()
+        user = db.query(User).first()
+        db.add(Project(channel_id=channel.id, title="Short de prueba", topic="Short de prueba",
+                       duration="Short", language="Español", video_type="Documental",
+                       automation_mode="asistido", created_by=user.id))  # fmt: skip
+        db.commit()
+        assert assistant._defaults(db)["duration"] == "10–15 min"

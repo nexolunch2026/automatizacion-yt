@@ -91,8 +91,10 @@ def test_import_places_images_with_ai(board, monkeypatch):  # noqa: F811
         flow, "match_with_ai", lambda _ai, thumbs, sc: {0: sc[-1]["number"], 1: sc[0]["number"]}
     )
     r = board.post("/proyectos/1/visuales/flow", data={"links": json.dumps(links)})
-    assert "Se colocaron <strong>2</strong>" in r.text
+    # Las 2 que eligió Gemini y, en los huecos, las demás imágenes nuevas: ninguna escena vacía.
+    assert f"Se colocaron <strong>{len(scenes)}</strong>" in r.text
     items = result("visuals")["items"]
+    assert all(items[s["paragraph_id"]]["provider"] == "flow" for s in scenes)
     first, last = scenes[0]["paragraph_id"], scenes[-1]["paragraph_id"]
     assert items[first]["provider"] == "flow" and items[last]["ai"]
     assert (project_dir(1) / "visuales" / items[first]["file"]).exists()
@@ -272,3 +274,27 @@ def test_messages_ask_for_detail_and_story_context():
     assert "1. A stick figure laughing (story moment" in text
     assert "El jefe se rió de la propuesta." in text
     assert "white background" not in text.split("1. ")[1]
+
+
+def test_gemini_doubts_do_not_leave_scenes_empty():
+    """Si Gemini no se atreve con una imagen nueva, rellena la escena que quedó libre."""
+    scenes = [{"number": n} for n in (1, 2, 3)]
+    mapping = flow.fill_gaps({0: 3}, count=5, scenes=scenes)  # imágenes 1 y 2 sin elegir
+    assert sorted(mapping.values()) == [1, 2, 3]
+    assert mapping[2] == 1 and mapping[1] == 2  # las más viejas van a las primeras escenas
+
+
+def test_single_button_sends_to_the_video_open_in_visuals(board, monkeypatch):  # noqa: F811
+    """Un solo botón para todos los vídeos: va al último abierto en Visuales."""
+    k = flow.active_token()
+    assert "abre primero" in board.get(f"/flow-directo?k={k}").json()["error"].lower()
+    page = board.get("/proyectos/1/visuales").text
+    assert "Copiar" in page and f"/flow-directo?k={k}" in page
+    info = board.get(f"/flow-directo?k={k}&info=1").json()
+    assert info["n"] >= 1 and info["title"]
+    assert board.options("/flow-directo").status_code == 204
+    assert board.post("/flow-directo?k=malo").status_code == 403
+    monkeypatch.setattr(flow, "match_with_ai", lambda *a: {})  # por orden
+    files = [("images", ("a.img", jpg((200, 0, 0)), "application/octet-stream"))]
+    body = board.post(f"/flow-directo?k={k}", files=files).json()
+    assert body["placed"] == 1

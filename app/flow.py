@@ -253,6 +253,45 @@ DIRECT = (
 )
 
 
+def active_token() -> str:
+    """Clave del botón único «Enviar a Faceless» (vale para el proyecto abierto en Visuales)."""
+    return project_token(0)
+
+
+# Botón único (sirve para todos los proyectos): primero pregunta a Faceless Studio qué proyecto
+# está abierto en Visuales y cuántas imágenes le faltan, y luego hace lo mismo que DIRECT.
+UNIVERSAL = (
+    "javascript:(async()=>{const API='__API__',s=m=>new Promise(r=>setTimeout(r,m));"
+    "const b=document.createElement('div');b.style.cssText='position:fixed;top:12px;left:50%;"
+    "transform:translateX(-50%);z-index:999999;background:#111;color:#c6ff3a;padding:12px 18px;"
+    "border-radius:10px;font:16px sans-serif;box-shadow:0 4px 20px #000';document.body.append(b);"
+    "const say=t=>b.textContent=t;let info;try{info=await (await fetch(API+'&info=1')).json()}"
+    "catch(e){say('No se pudo conectar con Faceless Studio. ¿Está abierto?');return}"
+    "if(info.error){say(info.error);setTimeout(()=>b.remove(),8000);return}const N=info.n;"
+    "say('Faceless Studio → '+info.title+': buscando imágenes…');"
+    "const g=[...document.querySelectorAll('*')].filter(e=>e.scrollHeight>e.clientHeight+50&&"
+    "/(auto|scroll)/.test(getComputedStyle(e).overflowY)).sort((x,y)=>y.scrollHeight-x.scrollHeight)[0];"  # noqa: E501
+    "if(!g||!document.querySelector('flow-grid-tile-container')){say('Abre primero tu proyecto de "
+    "Flow (donde se ven las imágenes) y vuelve a pulsar el botón.');setTimeout(()=>b.remove(),6000);"  # noqa: E501
+    "return}const u=[];g.scrollTop=0;await s(800);for(let y=0;y<g.scrollHeight+800&&u.length<N;y+=250)"  # noqa: E501
+    "{g.scrollTop=y;await s(450);document.querySelectorAll('flow-grid-tile-container img').forEach(i=>"  # noqa: E501
+    "{const k=i.src;if(k&&k.startsWith('http')&&!u.includes(k)&&u.length<N)u.push(k)})}g.scrollTop=0;"  # noqa: E501
+    "const f=new FormData();for(let k=0;k<u.length;k++){say('Faceless Studio: descargando '+(k+1)+"
+    "' de '+u.length+'…');try{const r=await fetch(u[k]);if(r.ok)f.append('images',await r.blob(),"
+    "'flow-'+k+'.img')}catch(e){}}say('Faceless Studio: colocando las imágenes en sus escenas "
+    "(1-2 minutos)…');try{const r=await fetch(API,{method:'POST',body:f});const j=await r.json();"
+    "say(j.error?('Error: '+j.error):('¡Listo! '+j.placed+' imágenes colocadas en «'+info.title+'».'+"  # noqa: E501
+    "(j.missing.length?' Faltan las escenas: '+j.missing.join(', '):' Todas las escenas tienen imagen.')))}"  # noqa: E501
+    "catch(e){say('No se pudo conectar con Faceless Studio. ¿Está abierto?')}"
+    "setTimeout(()=>b.remove(),15000)})()"
+)
+
+
+def universal_bookmarklet(base_url: str) -> str:
+    """El botón único: se guarda una vez en la barra de marcadores y sirve para siempre."""
+    return UNIVERSAL.replace("__API__", f"{base_url.rstrip('/')}/flow-directo?k={active_token()}")
+
+
 def direct_bookmarklet(base_url: str, project_id: int, count: int) -> str:
     """El botón para arrastrar a la barra de marcadores (uno por proyecto)."""
     api = (
@@ -370,6 +409,19 @@ def _match_batch(ai, thumbs: list[bytes], scenes: list[dict]) -> dict[int, int]:
         if 1 <= image <= len(thumbs) and scene in valid and scene not in used:
             result[image - 1] = scene
             used.add(scene)
+    return result
+
+
+def fill_gaps(mapping: dict[int, int], count: int, scenes: list[dict]) -> dict[int, int]:
+    """Gemini a veces no se atreve con alguna imagen. Las escenas que quedaron libres se
+    rellenan con las imágenes más nuevas que no eligió (en orden de creación), así no queda
+    ninguna escena vacía mientras haya imágenes recién hechas."""
+    free_scenes = [s["number"] for s in scenes if s["number"] not in mapping.values()]
+    newest = range(min(count, len(scenes)))  # el visor va de la más nueva a la más vieja
+    unused = [i for i in newest if i not in mapping][::-1]
+    result = dict(mapping)
+    for index, number in zip(unused, free_scenes, strict=False):
+        result[index] = number
     return result
 
 
