@@ -308,3 +308,18 @@ def test_an_image_already_placed_is_never_reused(board, monkeypatch):  # noqa: F
     first = board.post(f"/proyectos/1/visuales/flow-directo?k={k}", files=[red]).json()
     again = board.post(f"/proyectos/1/visuales/flow-directo?k={k}", files=[red])
     assert first["placed"] == 1 and again.status_code == 200 and again.json()["placed"] == 0
+
+
+def test_full_project_is_never_reshuffled(board, monkeypatch):  # noqa: F811
+    """Si ya no falta ninguna escena, el botón no cambia ninguna imagen."""
+    monkeypatch.setattr(flow, "match_with_ai", lambda *a: {})
+    k = flow.project_token(1)
+    n = len([s for s in result("storyboard")["scenes"] if s.get("visual_type") != "grafico"])
+    files = [
+        ("images", (f"{i}.img", jpg((i * 9, 50, 90)), "application/octet-stream")) for i in range(n)
+    ]
+    board.post(f"/proyectos/1/visuales/flow-directo?k={k}", files=files)
+    before = dict(result("visuals")["items"])
+    again = [("images", ("z.img", jpg((5, 250, 5)), "application/octet-stream"))]
+    body = board.post(f"/proyectos/1/visuales/flow-directo?k={k}", files=again).json()
+    assert body["placed"] == 0 and result("visuals")["items"] == before

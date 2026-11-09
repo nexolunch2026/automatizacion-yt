@@ -489,7 +489,12 @@ def place_flow_pictures(
     with_picture = [s for s in scenes if s.get("visual_type") != "grafico"] or scenes
     pending = [
         s for s in with_picture if (items.get(s["paragraph_id"]) or {}).get("provider") != "flow"
-    ] or with_picture
+    ]
+    if not pending:  # ya están todas: no se toca ninguna escena que esté bien
+        problems.append(
+            "Todas las escenas ya tienen imagen. Para cambiar alguna, márcala para rehacer."
+        )
+        pictures = []
     mapping: dict[int, int] = {}
     if pictures:
         try:
