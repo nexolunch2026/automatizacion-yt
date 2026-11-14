@@ -154,7 +154,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [x] **Datos comprobados en el control de calidad** (0.103.0): avisa si las cifras del guion
   no se han comprobado con fuentes fiables, si alguna hay que corregirla o si el guion
   cambió después de comprobarlas.
-- [ ] **Aviso de tema repetido**: al crear un vídeo, avisa si esa marca o ese protagonista
+- [x] **Aviso de tema repetido** (0.104.0): al crear un vídeo, avisa si esa marca o ese protagonista
   ya tiene un vídeo en el mismo canal (y cuál), para no repetir sin querer.
 - [ ] **Banco de ideas para ModoOffside**: historias de fútbol (clubes y jugadores que suben y
   caen) en el banco de ideas, separadas por canal, y en el radar de los domingos.

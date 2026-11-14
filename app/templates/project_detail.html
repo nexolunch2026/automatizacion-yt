@@ -4,6 +4,13 @@
 {{ ui.header(project) }}
 {{ ui.tabs(project, 'overview', slugs, stages, results, jobs) }}
 
+{% if similar %}
+<p class="alert info">🔁 <strong>Ojo, tema repetido:</strong> en este canal ya hay
+  {{ 'un vídeo' if similar|length == 1 else similar|length ~ ' vídeos' }} sobre lo mismo:
+  {% for s in similar %}<a href="/proyectos/{{ s.id }}">«{{ s.title }}»</a> ({{ s.status }}){{ ', ' if not loop.last }}{% endfor %}.
+  Si es a propósito, busca un enfoque distinto para que no compitan entre ellos.</p>
+{% endif %}
+
 {% if launch %}
 {% set missing = launch.people|rejectattr('ok')|list %}
 <div class="x-launch">

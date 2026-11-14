@@ -4,6 +4,13 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (14 de noviembre de 2026: el nicho y no repetirse)
+
+- [10 Faceless YouTube Niches To Always Avoid (and 5 of the BEST)](https://www.youtube.com/watch?v=B9va61I2wxU)
+  — qué nichos sin rostro conviene evitar y cuáles funcionan (útil para ModoOffside).
+- [Why Finding a Niche Will DESTROY Your Channel](https://www.youtube.com/watch?v=GliL1gcJH3s)
+  — una opinión distinta sobre el nicho: ser «el canal de referencia» de un tema.
+
 ## Nuevos (9 de noviembre de 2026: comprobar los datos)
 
 - [Fact-Checking for Content Creators: Verify Accuracy](https://www.youtube.com/watch?v=_c5abA2UjhY)

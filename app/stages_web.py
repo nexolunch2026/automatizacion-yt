@@ -488,7 +488,11 @@ def place_flow_pictures(
         for it in items.values()
         if it.get("provider") == "flow" and it.get("file") and (folder / it["file"]).is_file()
     ]
-    pictures = [p for p in pictures if not _seen(_fingerprint(p), used)]
+    fresh = [p for p in pictures if not _seen(_fingerprint(p), used)]
+    if len(fresh) < len(pictures):  # se dice, para que no parezca que se perdieron
+        repeated = len(pictures) - len(fresh)
+        problems.append(f"Ya puestas en otra escena (no se repiten): {repeated}.")
+    pictures = fresh
     # Los gráficos animados no llevan imagen de Flow: no cuentan como huecos.
     with_picture = [s for s in scenes if s.get("visual_type") != "grafico"] or scenes
     pending = [
@@ -770,22 +774,32 @@ def prompts_file(db: DB, user: CurrentUser, project_id: int):
 MAX_UPLOAD = 20 * 1024 * 1024
 
 
+FINGERPRINT_SIZE = 32  # 8x8 era muy poco: todos los monigotes sobre blanco «se parecían»
+SAME_STEP = 48  # un punto cambia si su gris se mueve más que esto
+SAME_MAX_CHANGED = 5  # puntos distintos (de 1024) que se aceptan como «la misma imagen»
+
+
 def _fingerprint(data: bytes) -> list[int]:
-    """Huella de una imagen (8x8 en grises): igual aunque se haya guardado en otro formato."""
+    """Huella de una imagen (32x32 en grises): igual aunque se haya guardado en otro formato
+    o tamaño, distinta en cuanto el dibujo cambia de sitio o de forma."""
     import io
 
     from PIL import Image
 
     try:
-        return list(Image.open(io.BytesIO(data)).convert("L").resize((8, 8)).getdata())
+        image = Image.open(io.BytesIO(data)).convert("L")
+        return list(image.resize((FINGERPRINT_SIZE, FINGERPRINT_SIZE)).tobytes())
     except Exception:  # noqa: BLE001 — si no se puede leer, no cuenta como repetida
         return []
 
 
 def _seen(print_: list[int], used: list[list[int]]) -> bool:
-    """¿Es casi idéntica a alguna ya colocada? (diferencia media de grises muy pequeña)."""
+    """¿Es la misma imagen que alguna ya colocada? (casi ningún punto distinto)."""
     return bool(print_) and any(
-        u and sum(abs(a - b) for a, b in zip(print_, u, strict=False)) / 64 < 6 for u in used
+        u
+        and len(u) == len(print_)
+        and sum(abs(a - b) > SAME_STEP for a, b in zip(print_, u, strict=True)) <= SAME_MAX_CHANGED
+        for u in used
     )
 
 

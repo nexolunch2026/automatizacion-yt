@@ -2,6 +2,26 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-14 — Versión 0.104: aviso de tema repetido
+
+- Al abrir un vídeo, si **en el mismo canal ya hay otro sobre el mismo protagonista**, sale
+  arriba un aviso: «Ojo, tema repetido», con el enlace al otro vídeo y en qué estado está.
+- Compara el **protagonista** (los nombres de antes de «:»): un vídeo de Bale no se confunde
+  con uno del Real Madrid aunque lo nombre.
+- No impide nada: si es a propósito, te sugiere buscar un enfoque distinto para que los
+  dos vídeos no compitan entre ellos en YouTube.
+- Lo ves en la página de cada vídeo (Proyectos → el vídeo).
+
+**Revisión de salud** (la del miércoles, hecha hoy):
+- Arreglado: el botón de Flow **tiraba imágenes nuevas** creyendo que estaban repetidas
+  (todos los monigotes sobre fondo blanco «se parecían» en una miniatura de 8×8). Ahora
+  compara mucho más fino y, si descarta alguna, lo dice.
+- Para revisar con Simón (no se tocó): el botón único de Flow manda las imágenes al
+  **último vídeo que se abrió en Visuales**. Si Esteban abre otro vídeo mientras Simón está
+  en Flow, las imágenes pueden ir al vídeo equivocado. Hasta arreglarlo: trabajad un vídeo de
+  Flow cada vez.
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-14 — Versión 0.103.1: juntas otra vez
 
 - Se juntaron las versiones 0.86.0–0.86.4 de la otra conversación: **un solo botón de Flow

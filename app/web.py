@@ -486,10 +486,19 @@ def project_detail(request: Request, db: DB, user: CurrentUser, project_id: int)
         r.stage: r.data
         for r in db.scalars(select(StageResult).where(StageResult.project_id == project_id))
     }
+    from app import coach
+
+    try:  # aviso de tema repetido (es un extra: si falla, la página sale igual)
+        similar = coach.similar_projects(db, project)
+    except Exception:  # noqa: BLE001
+        log.exception("No se pudo buscar vídeos parecidos al proyecto %s", project_id)
+        db.rollback()
+        similar = []
     return render(
         request,
         "project_detail.html",
         project=project,
+        similar=similar,
         stages=STAGES,
         modes=AUTOMATION_MODES,
         jobs=jobs.latest_jobs(db, project_id),

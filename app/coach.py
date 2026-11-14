@@ -10,6 +10,7 @@ Nada de esto gasta IA. Solo `monetization_path` lee el canal (con caché de 15 m
 
 import json
 import logging
+import re
 from datetime import datetime, timedelta
 
 from sqlalchemy import select
@@ -436,3 +437,49 @@ def week_days(db: Session, now: datetime | None = None) -> list[dict]:
             {"name": name, "date": date.strftime("%d/%m"), "today": offset == 0, "items": items}
         )
     return days
+
+
+# Palabras con mayúscula que no son un protagonista (salen en muchos nombres o al principio
+# de una frase): no cuentan para decir que dos vídeos tratan de lo mismo.
+GENERIC_NAMES = {
+    "real", "banco", "grupo", "club", "casa", "compania", "empresa", "imperio", "marca",
+    "quiero", "habla", "video", "historia", "caida", "auge", "como", "por",
+}  # fmt: skip
+
+
+def subject_words(text: str) -> set[str]:
+    """Los nombres propios del protagonista: los de antes de «:» (si hay) o los de todo el
+    texto. «La historia de Gareth Bale: del Southampton al Madrid» → {gareth, bale}.
+    «Coca-Cola» cuenta como un solo nombre y las siglas cortas (LG, HP) también cuentan."""
+    from app.pipeline.monetization import _plain, title_brands
+
+    head = (text or "").split(":", 1)[0]
+    head = re.sub(r"(?<=\w)-(?=[A-ZÁÉÍÓÚÑ])", "", head)  # Coca-Cola → CocaCola
+    words = set(title_brands(head))
+    words |= {_plain(a) for a in re.findall(r"\b[A-Z]{2}\b", head)}  # LG, HP, VW…
+    return words - GENERIC_NAMES
+
+
+def similar_projects(db: Session, project: Project, limit: int = 3) -> list[Project]:
+    """Otros vídeos del mismo canal sobre el mismo protagonista (para no repetir sin
+    querer). Coinciden si los nombres de uno están todos en los del otro."""
+
+    def words(p: Project) -> set[str]:  # el título manda; el tema, solo si no hay nombres
+        return subject_words(p.title) or subject_words(p.topic)
+
+    mine = words(project)
+    if not mine:
+        return []
+    found = []
+    others = select(Project).where(
+        Project.channel_id == project.channel_id, Project.id != project.id
+    )
+    for other in db.scalars(others.order_by(Project.id.desc())):
+        theirs = words(other)
+        # El mismo protagonista: uno dentro del otro y, como mucho, un nombre de diferencia
+        # («Pepsi» y «Coca-Cola contra Pepsi» sí; «Nike» y «Nike, Adidas y Puma» no).
+        if theirs and (theirs <= mine or mine <= theirs) and len(theirs ^ mine) <= 1:
+            found.append(other)
+            if len(found) >= limit:
+                break
+    return found
