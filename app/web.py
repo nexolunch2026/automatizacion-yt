@@ -634,3 +634,73 @@ def quick_start(db: DB, user: CurrentUser, topic: Annotated[str, Form()] = ""):
     except ProviderError:
         return _redirect("/canales?primero=1")
     return _redirect(f"/proyectos/{project.id}")
+
+
+# ---------------------------------------------------------------- botón único de Flow
+
+
+def _active_flow_project(db, k: str):
+    """El proyecto abierto por última vez en Visuales (al que manda el botón único)."""
+    import hmac
+
+    from app import flow
+
+    if not hmac.compare_digest(k, flow.active_token()):
+        return None, "Botón caducado: vuelve a copiarlo desde Faceless Studio."
+    raw = get_setting(db, "flow_proyecto_activo") or ""
+    project = db.get(Project, int(raw)) if raw.isdigit() else None
+    if project is None:
+        return None, "Abre primero en Faceless Studio la página Visuales del vídeo."
+    return project, ""
+
+
+@router.options("/flow-directo")
+def flow_universal_preflight():
+    from fastapi.responses import Response
+
+    from app.stages_web import _flow_cors
+
+    return _flow_cors(Response(status_code=204))
+
+
+@router.get("/flow-directo")
+def flow_universal_info(db: DB, k: str = ""):
+    """El botón pregunta a qué vídeo va y cuántas imágenes recoger."""
+    from fastapi.responses import JSONResponse
+
+    from app import flow
+    from app.stages_web import _flow_cors
+
+    project, error = _active_flow_project(db, k)
+    if project is None:
+        return _flow_cors(JSONResponse({"error": error}))
+    board = jobs.get_result(db, project.id, "storyboard") or {}
+    items = (jobs.get_result(db, project.id, "visuals") or {}).get("items", {})
+    scenes = [s for s in board.get("scenes", []) if s.get("visual_type") != "grafico"]
+    pending = [s for s in scenes if (items.get(s["paragraph_id"]) or {}).get("provider") != "flow"]
+    n = max(1, min(len(pending or scenes) + 10, flow.MAX_IMAGES))
+    return _flow_cors(JSONResponse({"n": n, "title": project.title[:40]}))
+
+
+@router.post("/flow-directo")
+async def flow_universal(request: Request, db: DB, k: str = ""):
+    """Las imágenes del botón único: van al proyecto abierto en Visuales."""
+    from fastapi.responses import JSONResponse
+
+    from app import flow
+    from app.stages_web import _flow_cors, place_flow_pictures
+
+    project, error = _active_flow_project(db, k)
+    if project is None:
+        return _flow_cors(JSONResponse({"error": error}, 403))
+    form = await request.form()
+    pictures, problems = [], []
+    for upload in form.getlist("images")[: flow.MAX_IMAGES]:
+        data = await upload.read(flow.MAX_BYTES + 1)
+        if len(data) > flow.MAX_BYTES:
+            problems.append("Una imagen era demasiado grande.")
+            continue
+        pictures.append(data)
+    if not pictures:
+        return _flow_cors(JSONResponse({"error": "No llegó ninguna imagen."}, 400))
+    return _flow_cors(JSONResponse(place_flow_pictures(db, project.id, pictures, problems)))

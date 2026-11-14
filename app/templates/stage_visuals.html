@@ -47,15 +47,34 @@
         proyecto y abre el <strong>asistente</strong> (el chat «¿Qué quieres crear?» de la derecha).</li>
       <li>Pulsa <strong>Copiar</strong> en el mensaje 1, pégalo en el asistente y envíalo. Cuando termine,
         haz lo mismo con el siguiente. Si pregunta, pulsa <strong>Aprobar</strong> (las imágenes no gastan puntos).</li>
-      <li>Cuando Flow termine, pulsa en tu barra de marcadores el botón <strong>«Enviar a Faceless:
-        {{ project.title|truncate(25) }}»</strong> (estando en tu proyecto de Flow). Él solo descarga las
+      <li>Cuando Flow termine, pulsa en tu barra de marcadores el botón <strong>«Enviar a Faceless»</strong> (estando en tu proyecto de Flow). Él solo descarga las
         imágenes y las coloca aquí en sus escenas. Arriba en Flow verás cómo va. La primera vez,
         Chrome pregunta si Flow puede acceder a tu red local: pulsa <strong>Permitir</strong>.</li>
     </ol>
-    <p class="small"><strong>Solo la primera vez en cada proyecto:</strong> arrastra este botón a la barra de
-      marcadores de tu navegador (si no la ves, pulsa <strong>Ctrl + Mayús + B</strong>):
-      <a class="btn small" href="{{ flow_direct }}" onclick="alert('Arrástralo con el ratón hasta la barra de marcadores. Luego púlsalo dentro de tu proyecto de Flow.'); return false;">Enviar a Faceless: {{ project.title|truncate(25) }}</a>
+    <p class="small"><strong>Solo una vez (sirve para todos los vídeos):</strong> guarda el botón
+      «Enviar a Faceless» en tu barra de marcadores. Siempre manda las imágenes al vídeo que tengas
+      abierto en esta página de Visuales.</p>
+    <p class="small">
+      <a class="btn small" href="{{ flow_universal }}" onclick="alert('Arrástralo con el ratón hasta la barra de marcadores (o usa «Copiar»). Luego púlsalo dentro de tu proyecto de Flow.'); return false;">Enviar a Faceless</a>
+      <button type="button" class="btn small secondary" id="copiar-boton-flow">📋 Copiar</button>
+      <span class="muted" id="copiar-boton-flow-ok"></span>
     </p>
+    <details class="small"><summary>¿No te deja arrastrarlo (Opera)? Hazlo con «Copiar»</summary>
+      <ol>
+        <li>Pulsa <strong>📋 Copiar</strong>.</li>
+        <li>En el navegador pulsa <strong>Ctrl + D</strong> y guarda la página en la <strong>barra de marcadores</strong>.</li>
+        <li>Clic derecho sobre ese marcador → <strong>Editar</strong>. Nombre: «Enviar a Faceless». En la dirección
+          (URL) borra lo que hay y <strong>pega</strong> (Ctrl + V). Guarda.</li>
+      </ol>
+    </details>
+    <script>
+      document.getElementById('copiar-boton-flow').addEventListener('click', async () => {
+        const code = {{ flow_universal|tojson }};
+        const ok = document.getElementById('copiar-boton-flow-ok');
+        try { await navigator.clipboard.writeText(code); ok.textContent = '¡Copiado! Pégalo como dirección del marcador.'; }
+        catch (e) { window.prompt('Copia este texto (Ctrl + C):', code); }
+      });
+    </script>
     {% if redo_numbers %}
     <p class="alert info">Estos mensajes piden solo las escenas que hay que rehacer:
       <strong>{{ redo_numbers|join(', ') }}</strong>. Al recogerlas de Flow ocuparán su sitio.</p>

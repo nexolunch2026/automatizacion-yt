@@ -2,6 +2,15 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-14 — Versión 0.103.1: juntas otra vez
+
+- Se juntaron las versiones 0.86.0–0.86.4 de la otra conversación: **un solo botón de Flow
+  para todos los vídeos**, sin escenas sin imagen y sin repetir una imagen en dos escenas.
+- Las tareas de las noches del 10 al 13 de noviembre llegaron todas juntas hoy (el sistema
+  de tareas se retrasó); se hizo una sola ronda con todo, en vez de repetirla seis veces.
+- Aviso para más adelante: el botón de Flow usa una función de imágenes (Pillow
+  `getdata`) que dejará de existir en octubre de 2027. Hoy funciona bien.
+
 ## 2026-11-09 — Versión 0.103: datos comprobados en el control de calidad
 
 - El **control de calidad** ahora mira si comprobaste los datos del guion con el botón
