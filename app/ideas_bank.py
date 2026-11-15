@@ -594,6 +594,24 @@ IDEAS: list[dict] = [
         "region": "Latinoamérica",
         "hook": "En 2026 una jueza declaró su quiebra con deudas de unos 800 millones de pesos.",
     },
+    {
+        "topic": "AlbaStar: la aerolínea chárter de Mallorca que se quedó en tierra",
+        "format": "auge_caida",
+        "region": "España",
+        "hook": "En noviembre de 2026 suspendió sus vuelos y anunció concurso de acreedores.",
+    },
+    {
+        "topic": "Codelco: el cobre que la mayor minera de Chile contó sin haberlo producido",
+        "format": "investigacion",
+        "region": "Latinoamérica",
+        "hook": "Sus auditorías apuntan a unas 42.000 toneladas de cobre que no existían.",
+    },
+    {
+        "topic": "The Children's Place: la tienda de ropa infantil que acabó en quiebra",
+        "format": "auge_caida",
+        "region": "Mundo",
+        "hook": "El 8 de noviembre de 2026 pidió protección por quiebra en Estados Unidos.",
+    },
 ]
 
 

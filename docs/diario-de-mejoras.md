@@ -2,6 +2,21 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-15 — Versión 0.105.1: Radar de historias
+
+Tres historias nuevas en el **banco de ideas** (pídeselas a JARVIS con «banco de ideas»):
+
+- **AlbaStar** (España): la aerolínea chárter de Palma suspendió sus vuelos en noviembre de
+  2026 y anunció concurso de acreedores, tras recibir un préstamo público de 15 millones.
+- **Codelco** (Chile): la mayor minera estatal reconoció cobre contado sin producir; las
+  auditorías hablan de unas 42.000 toneladas entre 2024 y 2025, y hay ejecutivos despedidos.
+- **The Children's Place** (EE. UU.): la cadena de ropa infantil pidió protección por
+  quiebra el 8 de noviembre de 2026 y liquida tiendas mientras busca comprador.
+
+Lo que no estaba claro en las fuentes (p. ej. la fecha exacta del concurso de AlbaStar) no se
+puso. Fuentes: Hosteltur, Última Hora, Airline92, Capital; La Tercera, CNN Chile, BioBioChile,
+Ex-Ante, REDIMIN; Chapter11Cases, Inside Retail.
+
 ## 2026-11-15 — Versión 0.105: un banco de ideas para cada canal
 
 - Escríbele a JARVIS **«banco de ideas ModoOffside»** (o el nombre de cualquier canal) y te
