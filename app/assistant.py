@@ -346,6 +346,8 @@ IDEA_BANK_WORDS = {  # frase → región ("" = todas)
     "ideas latinoamerica": "Latinoamérica",
     "ideas latinas": "Latinoamérica",
 }
+BANK_FOR_CHANNEL = re.compile(r"^(?:banco de ideas|ideas del banco)(?:\s+(?:de|del|para))?\s+(.+)$")
+BANK_REGIONS = {"espana": "España", "latinoamerica": "Latinoamérica", "latam": "Latinoamérica"}
 NEXT_STEP_WORDS = (
     "que hago",
     "que hago ahora",
@@ -457,7 +459,7 @@ def references_reply(db: Session) -> Reply:
         f"🔥 <b>{escape(v['title'])}</b> — {escape(v['channel'])}, ×{v['ratio']} su media"
         for v in top
     ]
-    _save_json(db, "telegram_ideas", [v["title"] for v in top])
+    _save_ideas(db, [v["title"] for v in top], None)
     buttons = [[(f"🎬 {n}", f"idea:{n - 1}") for n in range(1, len(top) + 1)]]
     return Reply(
         "🔭 <b>Lo que más funciona en tus referencias</b>\n\n"
@@ -508,7 +510,7 @@ def audience_reply(db: Session, ai=None) -> Reply:
     if requests:
         lines.append("\n🎬 <b>Temas que te piden:</b>")
         lines += [f"{n}. {escape(t)}" for n, t in enumerate(requests, 1)]
-        _save_json(db, "telegram_ideas", requests)
+        _save_ideas(db, requests, None)
         lines.append("\nPulsa un número para empezar ese vídeo.")
     buttons = [[(f"🎬 {n}", f"idea:{n - 1}") for n in range(1, len(requests) + 1)]]
     return Reply("\n".join(lines), buttons=buttons if requests else None)
@@ -1185,6 +1187,14 @@ def quick_intent(text: str) -> Intent | None:
         return Intent(action="publish_day", when=match.group(1), task=match.group(2) or "")
     if bare in IDEA_BANK_WORDS:
         return Intent(action="idea_bank", topic=IDEA_BANK_WORDS[bare])
+    match = BANK_FOR_CHANNEL.match(bare)
+    if match:  # «banco de ideas ModoOffside»: el canal se busca al responder
+        wanted = match.group(1).strip()
+        if wanted in ("de", "del", "para"):  # frase a medias: el banco de siempre
+            return Intent(action="idea_bank")
+        if wanted in BANK_REGIONS:  # «banco de ideas de España»: es una región, no un canal
+            return Intent(action="idea_bank", topic=BANK_REGIONS[wanted])
+        return Intent(action="idea_bank", target=wanted)
     if bare in NEXT_STEP_WORDS:
         return Intent(action="next_step")
     if bare in MONETIZE_WORDS:
@@ -1454,9 +1464,20 @@ def _defaults(db: Session) -> dict:
     }
 
 
-def start_video(db: Session, topic: str, duration: str = "", mode: str = "asistido") -> Project:
-    """Crea el proyecto y empieza a investigar. «asistido»: se para a que elijas enfoque."""
+def start_video(
+    db: Session,
+    topic: str,
+    duration: str = "",
+    mode: str = "asistido",
+    channel_id: int | None = None,
+) -> Project:
+    """Crea el proyecto y empieza a investigar. «asistido»: se para a que elijas enfoque.
+    `channel_id`: el canal del banco de ideas de donde salió (si no, el del último vídeo)."""
     defaults = _defaults(db)
+    if channel_id is not None:
+        if db.get(Channel, channel_id) is None:  # no se cuela en otro canal sin decirlo
+            raise ProviderError("El canal de esas ideas ya no existe: pide el banco otra vez.")
+        defaults["channel_id"] = channel_id
     user = db.scalar(select(User).order_by(User.id).limit(1))
     if user is None or defaults["channel_id"] is None:
         raise ProviderError("Primero abre el programa en el ordenador, crea tu cuenta y un canal.")
@@ -1477,11 +1498,17 @@ def start_video(db: Session, topic: str, duration: str = "", mode: str = "asisti
     return project
 
 
-def _new_video(db: Session, topic: str, duration_hint: str) -> list[Reply]:
-    project = start_video(db, topic, parse_duration(duration_hint))
+def _new_video(
+    db: Session, topic: str, duration_hint: str, channel_id: int | None = None
+) -> list[Reply]:
+    try:
+        project = start_video(db, topic, parse_duration(duration_hint), channel_id=channel_id)
+    except ProviderError as exc:
+        return [Reply(f"⚠️ {escape(str(exc))}")]
+    where = f" en <b>{escape(project.channel.name)}</b>" if project.channel else ""
     return [
         Reply(
-            f"🫡 Entendido. Empiezo a investigar <b>{escape(project.title)}</b> "
+            f"🫡 Entendido. Empiezo a investigar <b>{escape(project.title)}</b>{where} "
             f"({escape(project.video_type)}, {escape(project.duration)}).\n"
             "Te escribo cuando tenga los enfoques para que elijas."
         )
@@ -1625,17 +1652,46 @@ def _review(db: Session, topic: str = "") -> list[Reply]:
     return [Reply("🔎 " + escape(coach.review_project(db, project)))]
 
 
-def bank_replies(db: Session, region: str = "") -> list[Reply]:
+IDEAS_CHANNEL_KEY = "telegram_ideas_channel"  # canal del banco de las ideas de los botones
+
+
+def _done_topics(db: Session, channel) -> list[str]:
+    """Temas ya hechos: los del canal del banco (si no hay canal, los de todos)."""
+    query = select(Project)
+    if channel is not None:
+        query = query.where(Project.channel_id == channel.id)
+    return [p.topic for p in db.scalars(query)]
+
+
+def _save_ideas(db: Session, topics: list[str], channel) -> None:
+    _save_json(db, "telegram_ideas", topics)
+    set_setting(db, IDEAS_CHANNEL_KEY, str(channel.id) if channel is not None else "")
+
+
+def channel_by_name(db: Session, text: str):
+    """El canal cuyo nombre coincide (sin mayúsculas, tildes ni espacios), o None."""
+    wanted = re.sub(r"[^a-z0-9]", "", normalize(text))
+    if not wanted:
+        return None
+    for channel in db.scalars(select(Channel).order_by(Channel.id)):
+        if re.sub(r"[^a-z0-9]", "", normalize(channel.name)) == wanted:
+            return channel
+    return None
+
+
+def bank_replies(db: Session, region: str = "", channel=None) -> list[Reply]:
     """Historias reales del banco de ideas que aún no se han hecho, con formatos variados.
     En canales de marcas, el banco fijo de 80; en otros nichos, uno de 30 que crea Gemini
-    una vez (niche_bank.py)."""
-    if not niche.is_brands(niche.main_kit(db).niche):
-        return niche_bank_replies(db)
-    done = [p.topic for p in db.scalars(select(Project))]
+    una vez (niche_bank.py). `channel`: de qué canal (si no, el principal)."""
+    channel = channel if channel is not None else niche.main_channel(db)
+    kit = niche.kit_for(db, channel)
+    if not niche.is_brands(kit.niche):
+        return niche_bank_replies(db, channel)
+    done = _done_topics(db, channel)
     ideas = ideas_bank.fresh_ideas(done, region)
     if not ideas:
         return [Reply("📚 Ya hiciste todas las ideas del banco. Di «ideas» y pienso nuevas.")]
-    _save_json(db, "telegram_ideas", [i["topic"] for i in ideas])
+    _save_ideas(db, [i["topic"] for i in ideas], channel)
     lines = [
         f"{n}. <b>{escape(i['topic'])}</b> <i>({ideas_bank.FORMAT_LABELS[i['format']]}, "
         f"{escape(i['region'])})</i>\n   🪝 {escape(i['hook'])}"
@@ -1644,6 +1700,8 @@ def bank_replies(db: Session, region: str = "") -> list[Reply]:
     buttons = [[(f"🎬 {n}", f"idea:{n - 1}") for n in range(1, len(ideas) + 1)]]
     buttons.append([("🛫 Todas a la cola", "idea:all"), ("💡 Ideas nuevas", "ideas")])
     title = f"📚 <b>Banco de historias{f' — {escape(region)}' if region else ''}</b>"
+    if channel is not None and len(_channels(db)) > 1:
+        title += f" · {escape(channel.name)}"
     made, total = ideas_bank.progress(done)
     footer = f"\n\n✅ Llevas {made} de {total} historias del banco." if made else ""
     return [Reply(title + "\n\n" + "\n\n".join(lines) + footer, buttons=buttons)]
@@ -1658,11 +1716,16 @@ def niche_bank_saved(db: Session) -> bool:
     return bool(ideas and niche_bank.fresh(ideas, done))
 
 
-def niche_bank_replies(db: Session) -> list[Reply]:
+def _channels(db: Session) -> list:
+    return list(db.scalars(select(Channel).order_by(Channel.id)))
+
+
+def niche_bank_replies(db: Session, channel=None) -> list[Reply]:
     """El banco de temas del nicho del canal; la primera vez lo crea Gemini."""
     from app import niche_bank
 
-    channel, kit = niche.main_channel(db), niche.main_kit(db)
+    channel = channel if channel is not None else niche.main_channel(db)
+    kit = niche.kit_for(db, channel)
     if channel is None:
         return [Reply("📚 Crea primero tu canal en la página Canales y te preparo el banco.")]
     ideas = niche_bank.stored(db, channel, kit.niche)
@@ -1675,11 +1738,11 @@ def niche_bank_replies(db: Session) -> list[Reply]:
             return [Reply(f"📚 No pude crear el banco de historias ahora: {escape(str(exc))}")]
         if not ideas:
             return [Reply("📚 Gemini no me dio temas útiles. Prueba otra vez en un rato.")]
-    done = [p.topic for p in db.scalars(select(Project))]
+    done = _done_topics(db, channel)
     fresh = niche_bank.fresh(ideas, done)
     if not fresh:
         return [Reply("📚 Ya hiciste todos los temas del banco. Di «ideas» y pienso nuevas.")]
-    _save_json(db, "telegram_ideas", [i["topic"] for i in fresh])
+    _save_ideas(db, [i["topic"] for i in fresh], channel)
     lines = [
         f"{n}. <b>{escape(i['topic'])}</b>"
         + (f" <i>({escape(i['format'])})</i>" if i["format"] else "")
@@ -1691,6 +1754,8 @@ def niche_bank_replies(db: Session) -> list[Reply]:
     made, total = niche_bank.progress(ideas, done)
     footer = f"\n\n✅ Llevas {made} de {total} temas del banco." if made else ""
     title = f"📚 <b>Banco de historias — {escape(kit.niche)}</b>"
+    if len(_channels(db)) > 1:
+        title += f" · {escape(channel.name)}"
     return [Reply(title + "\n\n" + "\n\n".join(lines) + footer, buttons=buttons)]
 
 
@@ -1801,7 +1866,7 @@ No repitas estos temas ya hechos: {"; ".join(done) or "ninguno"}"""
     found = demand.check_many([i.keyword or i.topic for i in ideas], _lang_code(language))
     ranked = demand.rank([{"idea": i, "demand": d} for i, d in zip(ideas, found, strict=True)])
     ideas = [x["idea"] for x in ranked]  # primero las que más se buscan
-    _save_json(db, "telegram_ideas", [i.topic for i in ideas])
+    _save_ideas(db, [i.topic for i in ideas], None)
     lines = [
         f"{n}. <b>{escape(x['idea'].topic)}</b>"
         + (f" <i>({escape(x['idea'].format)})</i>" if x["idea"].format.strip() else "")
@@ -1846,10 +1911,19 @@ def _autopilot_buttons(state: dict) -> Buttons:
     return rows
 
 
-def _queue_add(db: Session, topics: list[str]) -> list[Reply]:
+QUEUE_CHANNELS_KEY = "autopilot_queue_channels"  # tema de la cola → canal donde va
+
+
+def _queue_add(db: Session, topics: list[str], channel_id: int | None = None) -> list[Reply]:
     state = autopilot_state(db)
-    state["queue"].extend(t[:200] for t in topics if t.strip())
+    added = [t[:200] for t in topics if t.strip()]
+    state["queue"].extend(added)
     save_autopilot(db, state)
+    if channel_id is not None:  # p. ej. ideas del banco de ModoOffside: van a ese canal
+        channels = _json_setting(db, QUEUE_CHANNELS_KEY, {})
+        channels = channels if isinstance(channels, dict) else {}
+        channels.update({t: channel_id for t in added})
+        _save_json(db, QUEUE_CHANNELS_KEY, channels)
     return [Reply(_queue_text(state), buttons=_autopilot_buttons(state))]
 
 
@@ -1870,14 +1944,25 @@ def _start_next_in_queue(db: Session, state: dict, today: str) -> list[Reply]:
     topic = state["queue"].pop(0)
     state["last_day"] = today
     save_autopilot(db, state)
+    channels = _json_setting(db, QUEUE_CHANNELS_KEY, {})
+    channels = channels if isinstance(channels, dict) else {}
+    channel_id = channels.pop(topic, None)
+    _save_json(db, QUEUE_CHANNELS_KEY, channels)
     try:
-        project = start_video(db, topic, mode="automatico")
+        project = start_video(
+            db,
+            topic,
+            mode="automatico",
+            channel_id=channel_id if isinstance(channel_id, int) else None,
+        )
     except ProviderError as exc:
         return [Reply(f"⚠️ Piloto automático: {escape(str(exc))}")]
     left = len(state["queue"])
     return [
         Reply(
-            f"🛫 <b>Piloto automático:</b> empiezo «{escape(project.title)}». Elegiré yo el "
+            f"🛫 <b>Piloto automático:</b> empiezo «{escape(project.title)}»"
+            + (f" en {escape(project.channel.name)}" if project.channel else "")
+            + ". Elegiré yo el "
             f"mejor enfoque y te aviso cuando el vídeo esté listo para revisar. "
             f"Quedan {left} en la cola."
         )
@@ -1977,6 +2062,17 @@ def _act(db: Session, intent: Intent, text: str, chat_id: int = 0) -> list[Reply
         return [Reply(_queue_text(state), buttons=_autopilot_buttons(state))]
     if intent.action == "idea_bank":
         region = intent.topic if intent.topic in ("España", "Latinoamérica") else ""
+        if intent.target:
+            channel = channel_by_name(db, intent.target)
+            if channel is not None and not (channel.niche or "").strip():
+                return [Reply(f"📚 El canal «{escape(channel.name)}» no tiene nicho todavía. "
+                              "Ponlo en la página Canales (p. ej. «historias de fútbol») y "
+                              "te preparo sus ideas.")]  # fmt: skip
+            if channel is None:
+                names = ", ".join(f"«{escape(c.name)}»" for c in _channels(db)) or "ninguno"
+                return [Reply(f"📚 No tengo ningún canal llamado «{escape(intent.target)}». "
+                              f"Tus canales: {names}.")]  # fmt: skip
+            return bank_replies(db, region, channel)
         return bank_replies(db, region)
     if intent.action == "references":
         return [references_reply(db)]
@@ -2222,10 +2318,14 @@ def _button(db: Session, data: str) -> list[Reply]:
         return [Reply("❌ Cancelado.")]
     if kind == "idea":
         ideas = _json_setting(db, "telegram_ideas", [])
+        raw = get_setting(db, IDEAS_CHANNEL_KEY) or ""
+        bank_channel = int(raw) if raw.isdigit() else None
         if rest == "all":
-            return _queue_add(db, ideas) if ideas else [Reply("Esas ideas ya caducaron.")]
+            if not ideas:
+                return [Reply("Esas ideas ya caducaron.")]
+            return _queue_add(db, ideas, bank_channel)
         if rest.isdigit() and int(rest) < len(ideas):
-            return _new_video(db, ideas[int(rest)], "")
+            return _new_video(db, ideas[int(rest)], "", bank_channel)
         return [Reply("Esa idea ya caducó. Escribe «ideas» para ver nuevas.")]
     if kind == "pilot":
         return _pilot_button(db, rest)
@@ -2730,7 +2830,7 @@ def reference_alerts(db: Session, now: datetime | None = None) -> list[Reply]:
     if not fresh:
         return []
     _save_json(db, "ref_alerted", [*seen, *(v.get("id") for v in fresh)][-200:])
-    _save_json(db, "telegram_ideas", [v["title"] for v in fresh])
+    _save_ideas(db, [v["title"] for v in fresh], None)
     lines = [
         f"🔥 <b>{escape(v['title'])}</b> — {escape(v['channel'])}, ×{v['ratio']} su media "
         f"en {round(v['days'])} días"

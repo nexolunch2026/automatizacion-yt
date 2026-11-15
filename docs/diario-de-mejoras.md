@@ -2,6 +2,19 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-15 — Versión 0.105: un banco de ideas para cada canal
+
+- Escríbele a JARVIS **«banco de ideas ModoOffside»** (o el nombre de cualquier canal) y te
+  da las ideas **de ese canal**. «banco de ideas» solo sigue dando las del canal principal.
+- Si el canal no es de marcas (como el de fútbol), la primera vez Gemini prepara 30 temas
+  reales de su nicho y los guarda; después no gasta nada.
+- Al pulsar 🎬 en una idea, el vídeo **se crea en ese canal** (antes iba al canal del último
+  vídeo que hiciste, aunque fuera el otro).
+- «Ya hecho» cuenta por canal: un vídeo de Anatomía no tacha ideas de ModoOffside.
+- Para que salgan ideas de fútbol, en **Canales** el nicho de ModoOffside tiene que decir algo
+  como «historias de fútbol: clubes y jugadores que suben y caen».
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-14 — Versión 0.104: aviso de tema repetido
 
 - Al abrir un vídeo, si **en el mismo canal ya hay otro sobre el mismo protagonista**, sale

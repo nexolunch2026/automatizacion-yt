@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (15 de noviembre de 2026: canal de fútbol sin rostro)
+
+- [How to Make MONETIZABLE Faceless FOOTBALL Documentary With AI](https://www.youtube.com/watch?v=4QMpDNJdwUI)
+  — cómo hacer documentales de fútbol sin rostro que se puedan monetizar (ModoOffside).
+- [How To Start a Faceless Football Channel Even After Worldcup (NO COPYRIGHT)](https://www.youtube.com/watch?v=7-lTvuEqulg)
+  — fútbol sin usar imágenes de partidos con derechos (clave para no perder el canal).
+- [How To Grow A Faceless Youtube Channel In 2026](https://www.youtube.com/watch?v=Bbjv9-00tv0)
+  — consejos de crecimiento: constancia, los primeros 50 vídeos como práctica y el gancho.
+
 ## Nuevos (14 de noviembre de 2026: el nicho y no repetirse)
 
 - [10 Faceless YouTube Niches To Always Avoid (and 5 of the BEST)](https://www.youtube.com/watch?v=B9va61I2wxU)
