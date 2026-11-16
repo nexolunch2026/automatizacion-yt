@@ -2,6 +2,16 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-16 — Versión 0.106: radar de noticias para cada canal
+
+- Escríbele a JARVIS **«radar ModoOffside»** (o el nombre de cualquier canal) y te da las
+  **noticias de esta semana del nicho de ese canal** (fútbol), no las de marcas.
+- Al pulsar 🎬 en una noticia, el vídeo **se crea en ese canal**.
+- «radar» a secas sigue dando el radar del canal principal (marcas), como siempre.
+- La tarea automática de los domingos (la que añade historias al banco) sigue buscando solo
+  marcas. Si quieres que busque también fútbol, dímelo y la cambio.
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-15 — Versión 0.105.1: Radar de historias
 
 Tres historias nuevas en el **banco de ideas** (pídeselas a JARVIS con «banco de ideas»):

@@ -302,12 +302,14 @@ def news(db: Session) -> list[dict]:
     return cached("news:business", 1800, fetch) or []
 
 
-def brand_radar(db: Session, fetch: bool = True) -> list[dict]:
+def brand_radar(db: Session, fetch: bool = True, channel=None) -> list[dict]:
     """Titulares que sirven de ideas de vídeo en el nicho del canal (en marcas: empresas en
-    problemas). El nombre se mantiene por compatibilidad."""
+    problemas). `channel`: de qué canal (si no, el principal). El nombre se mantiene por
+    compatibilidad."""
     from app import niche
 
-    query = niche.main_kit(db).news_query.strip() or BRAND_RADAR
+    kit = niche.kit_for(db, channel) if channel is not None else niche.main_kit(db)
+    query = kit.news_query.strip() or BRAND_RADAR
 
     key = f"news:radar:{query}"
     if not fetch:  # solo lo que ya hay en memoria

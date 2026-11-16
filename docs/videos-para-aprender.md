@@ -4,6 +4,13 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (16 de noviembre de 2026: ejemplos de documentales de fútbol)
+
+- [The UNBELIEVABLE Rise and Fall of Deportivo de La Coruña](https://www.youtube.com/watch?v=3O-EjlhtMHc)
+  — ejemplo de «auge y caída» de un club: mira cómo engancha al principio (para ModoOffside).
+- [The Rise, Fall, Rise and Fall of Karim Benzema](https://www.youtube.com/watch?v=8h3kLLcc6XA)
+  — una carrera con subidas y bajadas contada como historia (parecido al vídeo de Bale).
+
 ## Nuevos (15 de noviembre de 2026: canal de fútbol sin rostro)
 
 - [How to Make MONETIZABLE Faceless FOOTBALL Documentary With AI](https://www.youtube.com/watch?v=4QMpDNJdwUI)

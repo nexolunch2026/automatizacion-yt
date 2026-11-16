@@ -2310,8 +2310,9 @@ def _button(db: Session, data: str) -> list[Reply]:
         return skills.act(db, Intent(action="performance"))
     if kind == "radar":
         headlines = _json_setting(db, "jarvis_radar", [])
+        raw = get_setting(db, skills.RADAR_CHANNEL_KEY) or ""
         if rest.isdigit() and int(rest) < len(headlines):
-            return _new_video(db, headlines[int(rest)], "")
+            return _new_video(db, headlines[int(rest)], "", int(raw) if raw.isdigit() else None)
         return [Reply("Esa noticia ya caducó. Di «radar» para ver las nuevas.")]
     if kind == "unremind" and rest.isdigit():
         agenda.cancel_reminder(db, int(rest))

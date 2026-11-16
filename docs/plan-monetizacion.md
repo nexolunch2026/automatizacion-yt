@@ -156,10 +156,10 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   cambió después de comprobarlas.
 - [x] **Aviso de tema repetido** (0.104.0): al crear un vídeo, avisa si esa marca o ese protagonista
   ya tiene un vídeo en el mismo canal (y cuál), para no repetir sin querer.
-- [ ] **Banco de ideas para ModoOffside**: historias de fútbol (clubes y jugadores que suben y
-  caen) en el banco de ideas, separadas por canal, y en el radar de los domingos.
-  *Primera parte hecha (0.105.0): «banco de ideas ModoOffside» da el banco de ese canal y los
-  vídeos se crean en él. Falta: que el radar de los domingos busque también fútbol.*
+- [x] **Banco de ideas para ModoOffside** (0.105.0 y 0.106.0): «banco de ideas ModoOffside»
+  da el banco de ese canal y «radar ModoOffside» las noticias de su nicho; los vídeos se crean
+  en ese canal. *La tarea automática de los domingos sigue buscando solo marcas: si Simón lo
+  pide, se le añade fútbol.*
 - [x] **Capítulos con nombres que enganchan** (0.94.0): los títulos de las secciones del
   guion se piden pensando en los capítulos de YouTube, y el control de calidad avisa si
   algún capítulo se llama «Desarrollo», «Introducción» o «Parte 2».

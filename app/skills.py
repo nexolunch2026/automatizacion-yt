@@ -74,6 +74,9 @@ NEWS_WORDS = (
     "ultimas noticias",
     "que paso hoy",
 )
+# «radar de noticias», «radar de empresas en crisis»…: no son nombres de canal.
+RADAR_GENERIC = re.compile(r"\b(?:nicho|noticias|marcas?|empresas?|crisis|semana|hoy|tu|mi)\b")
+RADAR_FOR = re.compile(r"^radar(?:\s+(?:de|del|para))?\s+(.+)$")
 RADAR_WORDS = (
     "radar",
     "radar de marcas",
@@ -178,6 +181,9 @@ def quick(text: str, norm: str):
     from app.assistant import Intent
 
     bare = norm.strip(" .!?¡¿")
+    match = RADAR_FOR.match(bare)
+    if match and bare not in RADAR_WORDS:  # «radar ModoOffside»: el canal se busca después
+        return Intent(action="radar", target=match.group(1).strip())
     for words, action in (
         (NEWS_WORDS, "news"),
         (RADAR_WORDS, "radar"),
@@ -333,13 +339,34 @@ def _news(db: Session, intent) -> list:
     return _headlines(info.news(db), "📰 <b>Noticias de negocios</b>", None, db)
 
 
+RADAR_CHANNEL_KEY = "jarvis_radar_channel"  # canal del radar de los botones de noticias
+
+
 def _radar(db: Session, intent) -> list:
-    replies = _headlines(
-        info.brand_radar(db),
-        "📡 <b>Radar de tu nicho</b> (noticias de esta semana que dan ideas)",
-        "jarvis_radar",
-        db,
-    )
+    """Noticias de esta semana del nicho. «radar ModoOffside»: las del nicho de ese canal
+    (y los vídeos que salgan de ellas se crean en él). Si el nombre no es de un canal, el
+    radar de siempre."""
+    from app.assistant import channel_by_name
+    from app.models import Channel
+    from app.settings_store import set_setting
+
+    target = (getattr(intent, "target", "") or "").strip()
+    channel = channel_by_name(db, target) if target else None
+    note = ""
+    if channel is not None and not (channel.niche or "").strip():
+        note = (f"\n<i>«{escape(channel.name)}» no tiene nicho: pon uno en Canales. Te enseño "
+                "el radar de siempre.</i>")  # fmt: skip
+        channel = None
+    elif channel is None and target and not RADAR_GENERIC.search(target):
+        names = ", ".join(f"«{escape(c.name)}»" for c in db.scalars(select(Channel)))
+        note = (f"\n<i>No tengo un canal llamado «{escape(target)}» (tus canales: {names}). "
+                "Te enseño el radar de siempre.</i>")  # fmt: skip
+    title = "📡 <b>Radar de tu nicho</b> (noticias de esta semana que dan ideas)"
+    if channel is not None:
+        title = f"📡 <b>Radar de {escape(channel.name)}</b> (noticias de esta semana que dan ideas)"
+    replies = _headlines(info.brand_radar(db, channel=channel), title + note, "jarvis_radar", db)
+    if replies[0].buttons:  # solo si hay titulares nuevos: si no, los botones viejos siguen igual
+        set_setting(db, RADAR_CHANNEL_KEY, str(channel.id) if channel is not None else "")
     if replies[0].buttons:
         replies[0].text += "\n\nPulsa un número y lo convierto en vídeo."
     return replies
