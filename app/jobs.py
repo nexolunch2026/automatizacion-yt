@@ -374,6 +374,13 @@ def _run_publish(db: Session, project: Project, progress, params: dict) -> dict:
     original = factcheck.description_sources(get_result(db, project.id, factcheck.STAGE))
     if original:  # las fuentes originales comprobadas, en vez de solo Wikipedia
         research = {**research, "sources": original}
+    from app.pipeline.end_screen import related_links
+
+    try:  # enlaces a otros vídeos del canal: un extra, si falla la descripción sale igual
+        related = related_links(db, project)
+    except Exception:  # noqa: BLE001
+        log.exception("No se pudieron preparar los vídeos relacionados del proyecto %s", project.id)
+        related = []
     data = run_seo(
         project,
         script,
@@ -384,6 +391,7 @@ def _run_publish(db: Session, project: Project, progress, params: dict) -> dict:
         ai,
         progress,
         lookup=lambda term: demand.fetch(term, language),
+        related=related,
     )
     remember_working_model(db, ai)
     return data

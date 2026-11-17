@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-17 — Versión 0.107: más historias del canal en la descripción
+
+- La **descripción** que prepara Publicación lleva ahora un apartado **«▶️ Más historias del
+  canal»** con enlaces a hasta 3 de tus vídeos.
+- Primero pone los que tratan un **tema parecido** y luego los **más vistos**. Deja fuera los
+  Shorts, los del otro canal y los que YouTube ya no muestra (privados o borrados).
+- Así quien termina un vídeo tiene a mano el siguiente: más tiempo en el canal, que es lo que
+  YouTube premia.
+- Sale cuando generes (o rehagas) los textos en **Publicación**, si ya tienes vídeos publicados.
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-16 — Versión 0.106: radar de noticias para cada canal
 
 - Escríbele a JARVIS **«radar ModoOffside»** (o el nombre de cualquier canal) y te da las

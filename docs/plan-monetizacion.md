@@ -160,6 +160,13 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   da el banco de ese canal y «radar ModoOffside» las noticias de su nicho; los vídeos se crean
   en ese canal. *La tarea automática de los domingos sigue buscando solo marcas: si Simón lo
   pide, se le añade fútbol.*
+- [x] **Más historias del canal en la descripción** (0.107.0): la descripción enlaza hasta 3
+  vídeos largos del mismo canal (primero los parecidos, luego los más vistos), para que quien
+  acaba un vídeo siga en el canal.
+- [ ] **Resumen de los dos canales**: el «buenos días» de los lunes dice cómo fue la semana de
+  cada canal (visitas, vídeo que más gustó y qué toca esta semana), no solo del principal.
+- [ ] **Shorts que llevan al vídeo largo**: el control de calidad avisa si un vídeo publicado
+  tiene Shorts subidos sin el enlace al vídeo largo (en descripción o «vídeo relacionado»).
 - [x] **Capítulos con nombres que enganchan** (0.94.0): los títulos de las secciones del
   guion se piden pensando en los capítulos de YouTube, y el control de calidad avisa si
   algún capítulo se llama «Desarrollo», «Introducción» o «Parte 2».

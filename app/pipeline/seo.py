@@ -132,6 +132,11 @@ def build_chapters(script: dict, voice: dict | None) -> list[tuple[float, str]]:
     return chapters if len(chapters) >= 3 else []
 
 
+def _safe_line(text: str) -> str:
+    """Una línea para la descripción: YouTube no acepta «<» ni «>»."""
+    return " ".join(str(text).replace("<", "").replace(">", "").split())
+
+
 def build_description(
     intro: str,
     chapters: list[tuple[float, str]],
@@ -140,11 +145,17 @@ def build_description(
     hashtags: list[str],
     has_ai_images: bool,
     voice_credit: str = "",
+    related: list[dict] | None = None,
 ) -> str:
     parts = [intro.strip()]
     if chapters:
         parts.append(
             "⏱️ Capítulos\n" + "\n".join(f"{format_time(t)} {title}" for t, title in chapters)
+        )
+    if related:  # que quien acabe este vídeo siga en el canal
+        parts.append(
+            "▶️ Más historias del canal\n"
+            + "\n".join(f"- {_safe_line(r['title'])}: {r['url']}" for r in related)
         )
     sources = research.get("sources", [])[:10]
     if sources:
@@ -158,6 +169,12 @@ def build_description(
     if hashtags:
         parts.append(" ".join(hashtags))
     text = "\n\n".join(p for p in parts if p)
+    if len(text) >= DESCRIPTION_LIMIT and related:
+        # Demasiado larga: fuera los enlaces a otros vídeos antes que recortar el final (el
+        # aviso de IA, el crédito de la voz y los hashtags tienen que quedar).
+        return build_description(
+            intro, chapters, research, credits, hashtags, has_ai_images, voice_credit
+        )
     return text[: DESCRIPTION_LIMIT - 1] if len(text) >= DESCRIPTION_LIMIT else text
 
 
@@ -284,8 +301,10 @@ def run_seo(
     ai: AIProvider,
     progress: Callable[[int, str], None],
     lookup: Callable[[str], list[str]] | None = None,
+    related: list[dict] | None = None,
 ) -> dict:
-    """`lookup`: lo que sugiere el buscador de YouTube para una búsqueda (o nada)."""
+    """`lookup`: lo que sugiere el buscador de YouTube para una búsqueda (o nada).
+    `related`: otros vídeos del canal para enlazar en la descripción."""
     progress(20, "Preparando título, descripción y etiquetas")
     title = script.get("title") or project.title
     draft = ai.generate_json(_prompt(project, script, research, title), SeoDraft)
@@ -304,6 +323,7 @@ def run_seo(
             hashtags,
             has_ai_images,
             voice_credit(voice),
+            related,
         ),
         "chapters": [{"time": format_time(t), "title": name} for t, name in chapters],
         "chapters_exact": bool(voice),

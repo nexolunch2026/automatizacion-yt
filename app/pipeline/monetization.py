@@ -399,8 +399,10 @@ def _as_text(value) -> str:
 
 
 def _own_description(description: str) -> str:
-    """La descripción sin lo que añade el programa (las fuentes y los enlaces)."""
-    text = description.split("📚 Fuentes")[0]
+    """La descripción sin lo que añade el programa (las fuentes, los enlaces y los títulos
+    de otros vídeos del canal, que no son el texto de este vídeo)."""
+    text = re.sub(r"▶️ Más historias del canal\n(?:- .*(?:\n|$))*", "", description)
+    text = text.split("📚 Fuentes")[0]
     return re.sub(r"https?://\S+|www\.\S+", " ", text)
 
 

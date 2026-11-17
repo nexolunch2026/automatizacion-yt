@@ -39,6 +39,72 @@ def _views(db: Session) -> dict[str, int]:
     return {video_id: views or 0 for video_id, views in db.execute(latest)}
 
 
+RELATED_MAX = 3  # enlaces a otros vídeos del canal en la descripción
+RELATED_FRESH_DAYS = 14  # solo vídeos que YouTube devolvió hace poco (no privados ni borrados)
+
+
+def _short_titles(db: Session) -> set[str]:
+    """Los títulos (normalizados) de todos los Shorts que ha preparado el programa."""
+    from app.models import StageResult
+
+    titles = set()
+    for row in db.scalars(select(StageResult).where(StageResult.stage == "shorts")):
+        for short in (row.data or {}).get("shorts") or []:
+            if isinstance(short, dict) and short.get("title"):
+                titles.add(_plain(str(short["title"])).strip())
+    return titles
+
+
+def _is_short_title(title: str, short_titles: set[str]) -> bool:
+    plain = _plain(title).strip()
+    # YouTube puede recortar el título: basta con que uno empiece por el otro (si es largo).
+    return any(
+        plain == t
+        or (min(len(plain), len(t)) >= 20 and (plain.startswith(t) or t.startswith(plain)))
+        for t in short_titles
+    )
+
+
+def related_links(db: Session, project: Project, limit: int = RELATED_MAX) -> list[dict]:
+    """Otros vídeos largos del mismo canal para la descripción («Más historias del canal»):
+    primero los que tratan un tema parecido y luego los más vistos. Sin Shorts. Los vídeos
+    que aún no están enlazados a un proyecto solo cuentan si hay un único canal."""
+    from datetime import datetime, timedelta
+
+    from app.models import Channel
+
+    single = db.scalar(select(func.count()).select_from(Channel)) == 1
+    projects = list(db.scalars(select(Project)))
+    channel_of = {p.id: p.channel_id for p in projects}
+    short_projects = {p.id for p in projects if p.duration == "Short"}
+    # Un vídeo que YouTube ya no devuelve (privado, borrado) deja de tener fotos nuevas.
+    latest = select(VideoStat.video_id, func.max(VideoStat.taken_at)).group_by(VideoStat.video_id)
+    last_seen = {video_id: taken for video_id, taken in db.execute(latest)}
+    # Los Shorts que hizo el programa no llevan «#shorts» en el título: se reconocen por él.
+    short_titles = _short_titles(db)
+    fresh_from = datetime.now() - timedelta(days=RELATED_FRESH_DAYS)
+    videos = []
+    for v in db.scalars(select(Video)):
+        if not v.title or v.project_id == project.id or "#short" in v.title.lower():
+            continue
+        if v.project_id in short_projects or _is_short_title(v.title, short_titles):
+            continue  # un Short, aunque su título no lo diga
+        seen = last_seen.get(v.video_id)
+        if seen is None or seen < fresh_from:
+            continue
+        # Sin proyecto no se sabe su canal: solo cuenta si hay uno (aproximación).
+        same = channel_of.get(v.project_id) == project.channel_id if v.project_id else single
+        if same:
+            videos.append(v)
+    mine = words(f"{project.topic or ''} {project.title or ''}")
+    views = _views(db)
+    videos.sort(
+        key=lambda v: (len(mine & words(v.title)), views.get(v.video_id, 0), v.published or ""),
+        reverse=True,
+    )
+    return [{"title": v.title, "url": f"https://youtu.be/{v.video_id}"} for v in videos[:limit]]
+
+
 def closing_line(title: str) -> str:
     return f"Y si quieres otra historia, te dejo aquí en pantalla «{title}». Nos vemos allí."
 

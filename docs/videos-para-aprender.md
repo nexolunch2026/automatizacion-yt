@@ -4,6 +4,11 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (17 de noviembre de 2026: que sigan en tu canal)
+
+- [Super Simple Fixes: Watch your views surge with end screens](https://www.youtube.com/watch?v=sY0x-OwxIOw)
+  — arreglos sencillos con la pantalla final que suben las visitas.
+
 ## Nuevos (16 de noviembre de 2026: ejemplos de documentales de fútbol)
 
 - [The UNBELIEVABLE Rise and Fall of Deportivo de La Coruña](https://www.youtube.com/watch?v=3O-EjlhtMHc)
