@@ -2,6 +2,19 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-18 — Versión 0.108.1: revisión de salud (la cola del piloto)
+
+- Arreglado: si vaciabas la **cola del piloto automático** después de mandar a la cola las
+  ideas del banco de ModoOffside, el programa **seguía recordando** que esos temas eran de
+  ModoOffside. Si días después ponías uno a mano («cola: …»), se hacía en el canal equivocado.
+  Ahora, al vaciar o cambiar la cola, se olvida.
+- Arreglado: si borrabas un canal con temas suyos en la cola, el piloto **perdía el tema**.
+  Ahora lo hace en el canal de siempre.
+- Revisión de seguridad de lo nuevo de la semana (Telegram, banco y radar por canal): sin
+  problemas; los chats no vinculados no pueden usar nada de esto.
+- Las alertas de CodeQL siguen sin poder leerse desde aquí (GitHub no da permiso).
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-18 — Versión 0.108: el resumen del domingo, canal por canal
 
 - El **resumen de la semana** que JARVIS manda los domingos por Telegram ahora, si tienes más

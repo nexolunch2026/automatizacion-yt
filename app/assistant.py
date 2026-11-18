@@ -1897,6 +1897,14 @@ def autopilot_state(db: Session) -> dict:
 
 def save_autopilot(db: Session, state: dict) -> None:
     _save_json(db, "autopilot", state)
+    # Olvida el canal de los temas que ya no están en la cola (vaciada, editada en la web
+    # o ya empezados): si no, un «cola: X» a mano días después iría al canal del banco.
+    channels = _json_setting(db, QUEUE_CHANNELS_KEY, {})
+    if isinstance(channels, dict) and channels:
+        queued = set(state.get("queue") or [])
+        kept = {t: c for t, c in channels.items() if t in queued}
+        if kept != channels:
+            _save_json(db, QUEUE_CHANNELS_KEY, kept)
 
 
 def _queue_text(state: dict) -> str:
@@ -1926,11 +1934,14 @@ def _queue_add(db: Session, topics: list[str], channel_id: int | None = None) ->
     added = [t[:200] for t in topics if t.strip()]
     state["queue"].extend(added)
     save_autopilot(db, state)
-    if channel_id is not None:  # p. ej. ideas del banco de ModoOffside: van a ese canal
-        channels = _json_setting(db, QUEUE_CHANNELS_KEY, {})
-        channels = channels if isinstance(channels, dict) else {}
-        channels.update({t: channel_id for t in added})
-        _save_json(db, QUEUE_CHANNELS_KEY, channels)
+    channels = _json_setting(db, QUEUE_CHANNELS_KEY, {})
+    channels = channels if isinstance(channels, dict) else {}
+    for t in added:
+        if channel_id is not None:  # p. ej. ideas del banco de ModoOffside: van a ese canal
+            channels[t] = channel_id
+        else:  # añadido a mano: el canal de siempre, aunque antes viniera de un banco
+            channels.pop(t, None)
+    _save_json(db, QUEUE_CHANNELS_KEY, channels)
     return [Reply(_queue_text(state), buttons=_autopilot_buttons(state))]
 
 
@@ -1948,20 +1959,15 @@ def autopilot_tick(db: Session, now: datetime | None = None) -> list[Reply]:
 
 
 def _start_next_in_queue(db: Session, state: dict, today: str) -> list[Reply]:
+    channels = _json_setting(db, QUEUE_CHANNELS_KEY, {})
+    channel_id = channels.get(state["queue"][0]) if isinstance(channels, dict) else None
     topic = state["queue"].pop(0)
     state["last_day"] = today
-    save_autopilot(db, state)
-    channels = _json_setting(db, QUEUE_CHANNELS_KEY, {})
-    channels = channels if isinstance(channels, dict) else {}
-    channel_id = channels.pop(topic, None)
-    _save_json(db, QUEUE_CHANNELS_KEY, channels)
+    save_autopilot(db, state)  # también olvida su canal si ya no queda en la cola
+    if not isinstance(channel_id, int) or db.get(Channel, channel_id) is None:
+        channel_id = None  # canal borrado: el de siempre, para no perder el tema
     try:
-        project = start_video(
-            db,
-            topic,
-            mode="automatico",
-            channel_id=channel_id if isinstance(channel_id, int) else None,
-        )
+        project = start_video(db, topic, mode="automatico", channel_id=channel_id)
     except ProviderError as exc:
         return [Reply(f"⚠️ Piloto automático: {escape(str(exc))}")]
     left = len(state["queue"])
