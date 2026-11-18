@@ -100,3 +100,53 @@ def test_stale_figures_or_old_subscribers_are_not_reported(logged_in):
         assert weekly_summary.summary(db, SUNDAY)["subs"] is None
         # Si las cifras llevan días sin actualizarse, no hay resumen.
         assert weekly_summary.summary(db, SUNDAY + timedelta(days=3)) is None
+
+
+def test_two_channels_get_one_line_each(logged_in, ai):  # noqa: F811
+    from tests.test_projects import create_channel, project_data
+
+    create_channel(logged_in, "Anatomía De Una Marca")
+    create_channel(logged_in, "ModoOffside")
+    logged_in.post("/proyectos/nuevo", data=project_data(channel_id=1, topic="Kodak"))
+    logged_in.post("/proyectos/nuevo", data=project_data(channel_id=2, topic="Bale"))
+    with SessionLocal() as db:
+        two_weeks(db)
+        db.get(Video, "k").project_id = 1  # Kodak → Anatomía (+100)
+        db.get(Video, "n").project_id = 2  # «Nokia» → ModoOffside (+700)
+        db.commit()
+        data = weekly_summary.summary(db, SUNDAY)
+        assert data["channels"] == [
+            {"name": "Anatomía De Una Marca", "views": 100, "best": "Kodak"},
+            {"name": "ModoOffside", "views": 700, "best": "Nokia"},
+        ]
+        linked(db)
+        text = assistant.sunday_summary(db, SUNDAY)[0].text
+    assert "📺 Anatomía De Una Marca: 100 visitas · ⭐ «Kodak»" in text
+    assert "📺 ModoOffside: 700 visitas" in text
+
+
+def test_one_channel_has_no_breakdown(logged_in):
+    from tests.test_projects import create_channel
+
+    create_channel(logged_in)
+    with SessionLocal() as db:
+        two_weeks(db)
+        assert weekly_summary.summary(db, SUNDAY)["channels"] == []
+
+
+def test_unlinked_views_and_a_broken_breakdown(logged_in, monkeypatch):
+    from tests.test_projects import create_channel
+
+    create_channel(logged_in, "A")
+    create_channel(logged_in, "B")
+    with SessionLocal() as db:
+        two_weeks(db)  # ningún vídeo enlazado a un proyecto
+        rows = weekly_summary.summary(db, SUNDAY)["channels"]
+        assert rows[-1] == {"name": "Sin saber el canal", "views": 800, "best": None}
+
+        def broken(db, gains):
+            raise KeyError("dato raro")
+
+        monkeypatch.setattr(weekly_summary, "by_channel", broken)
+        data = weekly_summary.summary(db, SUNDAY)
+    assert data["views"] == 800 and data["channels"] == []  # el resumen sale igual

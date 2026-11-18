@@ -163,8 +163,9 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [x] **Más historias del canal en la descripción** (0.107.0): la descripción enlaza hasta 3
   vídeos largos del mismo canal (primero los parecidos, luego los más vistos), para que quien
   acaba un vídeo siga en el canal.
-- [ ] **Resumen de los dos canales**: el «buenos días» de los lunes dice cómo fue la semana de
-  cada canal (visitas, vídeo que más gustó y qué toca esta semana), no solo del principal.
+- [x] **Resumen de los dos canales** (0.108.0): el resumen semanal de JARVIS (domingos) dice
+  también las visitas de cada canal y su vídeo que más tiró. *Pendiente si se quiere: «qué
+  toca esta semana» por canal.*
 - [ ] **Shorts que llevan al vídeo largo**: el control de calidad avisa si un vídeo publicado
   tiene Shorts subidos sin el enlace al vídeo largo (en descripción o «vídeo relacionado»).
 - [x] **Capítulos con nombres que enganchan** (0.94.0): los títulos de las secciones del

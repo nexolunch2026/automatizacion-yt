@@ -2,6 +2,16 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-18 — Versión 0.108: el resumen del domingo, canal por canal
+
+- El **resumen de la semana** que JARVIS manda los domingos por Telegram ahora, si tienes más
+  de un canal, añade **una línea por canal**: sus visitas de la semana y su vídeo que más tiró.
+- Así ves de un vistazo cómo va **Anatomía De Una Marca** y cómo va **ModoOffside**.
+- Solo cuentan los vídeos que el programa sabe de qué canal son (los enlazados a su proyecto
+  en Rendimiento).
+- Con un solo canal, el resumen sale igual que siempre.
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-17 — Versión 0.107: más historias del canal en la descripción
 
 - La **descripción** que prepara Publicación lleva ahora un apartado **«▶️ Más historias del

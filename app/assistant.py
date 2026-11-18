@@ -990,6 +990,13 @@ def sunday_summary(db: Session, now: datetime | None = None) -> list[Reply]:
             else ""
         )
         lines.append(f"👥 Suscriptores: {number(data['subs'])}{extra}")
+    if data.get("channels"):
+        lines.append("\n<b>Por canal</b>")
+        for row in data["channels"]:
+            best = f" · ⭐ «{escape(row['best'])}»" if row["best"] else ""
+            if row["name"] == "Sin saber el canal":
+                best = " (enlázalos a su vídeo en Rendimiento)"
+            lines.append(f"📺 {escape(row['name'])}: {number(row['views'])} visitas{best}")
     lines.append(f"\n💡 {escape(weekly_summary.tip(data))}")
     return [Reply("\n".join(lines), buttons=[[("📈 Ver rendimiento", "perf")]])]
 

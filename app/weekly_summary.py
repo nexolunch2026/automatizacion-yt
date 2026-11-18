@@ -6,14 +6,16 @@ anteriores, dice qué vídeo tiró más y da un consejo sencillo para la semana 
 """
 
 import json
+import logging
 from datetime import datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Video, VideoStat
+from app.models import Channel, Project, Video, VideoStat
 from app.settings_store import get_setting
 
+log = logging.getLogger(__name__)
 WEEK = timedelta(days=7)
 
 
@@ -58,6 +60,44 @@ def _subs_at(db: Session, moment: datetime) -> int | None:
     return before[-1] if before else None
 
 
+def by_channel(db: Session, gains: dict[str, int]) -> list[dict]:
+    """Con más de un canal: las visitas de la semana de cada uno y su vídeo que más tiró.
+    Solo cuentan los vídeos enlazados a un proyecto (los demás no se sabe de qué canal son)."""
+    channels = list(db.scalars(select(Channel).order_by(Channel.id)))
+    if len(channels) < 2:
+        return []
+    channel_of = {p.id: p.channel_id for p in db.scalars(select(Project))}
+    videos = {v.video_id: v for v in db.scalars(select(Video))}
+    rows = []
+    for channel in channels:
+        mine = {
+            vid: gain
+            for vid, gain in gains.items()
+            if vid in videos and channel_of.get(videos[vid].project_id) == channel.id
+        }
+        best = max(mine, key=mine.get) if mine else None
+        rows.append(
+            {
+                "name": channel.name,
+                "views": sum(mine.values()),
+                "best": videos[best].title if best and mine[best] > 0 else None,
+            }
+        )
+    unknown = sum(gains.values()) - sum(r["views"] for r in rows)
+    if unknown > 0:  # vídeos sin proyecto: no se sabe su canal, pero sus visitas cuentan
+        rows.append({"name": "Sin saber el canal", "views": unknown, "best": None})
+    return rows
+
+
+def _by_channel_safe(db: Session, gains: dict[str, int]) -> list[dict]:
+    """El reparto por canal es un extra: si falla, el resumen sale igual (sin él)."""
+    try:
+        return by_channel(db, gains)
+    except Exception:  # noqa: BLE001
+        log.exception("No se pudo repartir el resumen de la semana por canal")
+        return []
+
+
 def summary(db: Session, now: datetime) -> dict | None:
     """Las cifras de la semana. None si aún no hay dos semanas de datos para comparar."""
     oldest = db.scalar(select(VideoStat.taken_at).order_by(VideoStat.taken_at).limit(1))
@@ -78,6 +118,7 @@ def summary(db: Session, now: datetime) -> dict | None:
     subs_now = _subs_at(db, now)
     subs_before = _subs_at(db, now - WEEK)
     return {
+        "channels": _by_channel_safe(db, gains),
         "views": this_week,
         "previous": last_week,
         "best": {"title": best.title, "views": gains[best_id]} if best else None,
