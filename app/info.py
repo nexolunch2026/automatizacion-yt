@@ -114,6 +114,16 @@ def _count(text: str) -> int | None:
     return int(re.sub(r"[.,]", "", number))
 
 
+VIDEO_LINK = re.compile(
+    r"(?:youtu\.be/|youtube\.com/(?:watch\?(?:[^\s#]*&)?v=|shorts/|live/|embed/|v/))([\w-]{11})"
+)
+
+
+def video_links(description: str) -> list[str]:
+    """Los vídeos de YouTube enlazados en una descripción (p. ej. el largo desde un Short)."""
+    return list(dict.fromkeys(VIDEO_LINK.findall(description or "")))
+
+
 def fetch_youtube_api(handle: str, key: str, limit: int = 5) -> dict:
     """Con la clave gratuita de YouTube Data API v3 (datos exactos)."""
     base = "https://www.googleapis.com/youtube/v3"
@@ -145,6 +155,9 @@ def fetch_youtube_api(handle: str, key: str, limit: int = 5) -> dict:
                     "comments": int(v["statistics"].get("commentCount", 0)),
                     "published": v["snippet"]["publishedAt"][:16],
                     "url": f"https://www.youtube.com/watch?v={v['id']}",
+                    "links": None
+                    if (d := v["snippet"].get("description")) is None
+                    else video_links(d),
                 }
             )
     hidden = stats.get("hiddenSubscriberCount")
@@ -202,6 +215,7 @@ def parse_channel_feed(xml_text: str, limit: int = 5) -> list[dict]:
         stats = entry.find("media:group/media:community/media:statistics", ATOM)
         rating = entry.find("media:group/media:community/media:starRating", ATOM)
         link = entry.find("a:link", ATOM)
+        description = entry.find("media:group/media:description", ATOM)
         videos.append(
             {
                 "id": entry.findtext("yt:videoId", "", ATOM),
@@ -210,6 +224,8 @@ def parse_channel_feed(xml_text: str, limit: int = 5) -> list[dict]:
                 "likes": int(rating.get("count", 0)) if rating is not None else None,
                 "published": entry.findtext("a:published", "", ATOM)[:16],
                 "url": link.get("href") if link is not None else "",
+                # Sin descripción en el RSS no se sabe qué enlaza: None, no «nada».
+                "links": None if description is None else video_links(description.text or ""),
             }
         )
     return videos

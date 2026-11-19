@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-19 — Versión 0.109: Shorts que llevan al vídeo largo
+
+- El **control de calidad** de cada vídeo mira ahora sus **Shorts ya subidos** a YouTube.
+- Si algún Short **no tiene el enlace al vídeo largo** en la descripción, te avisa y te dice
+  cuál. Así quien ve el Short puede llegar al vídeo que da el dinero.
+- Cómo arreglarlo: en YouTube Studio abre el Short y pega el enlace del vídeo largo, o elígelo
+  en «Vídeo relacionado» (si ya usas eso, puedes ignorar el aviso: YouTube no deja leerlo).
+- Dónde verlo: en el vídeo → **Control de calidad**, en la parte de publicar. Sale cuando el
+  vídeo largo y algún Short ya están en Rendimiento.
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-18 — Versión 0.108.1: revisión de salud (la cola del piloto)
 
 - Arreglado: si vaciabas la **cola del piloto automático** después de mandar a la cola las

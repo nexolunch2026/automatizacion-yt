@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (19 de noviembre de 2026: que los Shorts lleven al vídeo largo)
+
+- [How to Link Shorts to Full YouTube Videos (New Update)](https://www.youtube.com/watch?v=xfa5f4uoO5U)
+  — cómo poner el «vídeo relacionado» en un Short para que lleve al vídeo largo.
+- [How To Use Related Links To Directly Link A Short To Your Long Form Video](https://www.youtube.com/watch?v=slrjAfTNtq4)
+  — lo mismo explicado paso a paso; ojo: la opción sale solo después de subir el Short.
+- [Tim Schmoyer: How to Increase Video Retention Rates with Storytelling](https://www.youtube.com/watch?v=drm5bziXSUM)
+  — contar la historia para que la gente se quede hasta el final del documental.
+
 ## Nuevos (18 de noviembre de 2026: repasar la semana)
 
 - [A Very BASIC YouTube Analytics Tutorial FOR BEGINNERS: How to read your YouTube analytics](https://www.youtube.com/watch?v=vTm-WK3NHjg)

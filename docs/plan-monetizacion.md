@@ -166,8 +166,10 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [x] **Resumen de los dos canales** (0.108.0): el resumen semanal de JARVIS (domingos) dice
   también las visitas de cada canal y su vídeo que más tiró. *Pendiente si se quiere: «qué
   toca esta semana» por canal.*
-- [ ] **Shorts que llevan al vídeo largo**: el control de calidad avisa si un vídeo publicado
-  tiene Shorts subidos sin el enlace al vídeo largo (en descripción o «vídeo relacionado»).
+- [x] **Shorts que llevan al vídeo largo** (0.109.0): el control de calidad avisa si un vídeo
+  publicado tiene Shorts subidos sin el enlace al vídeo largo en la descripción. *El «vídeo
+  relacionado» no se puede leer desde fuera de YouTube: si se usa ese, se puede ignorar el
+  aviso. Con la clave de YouTube se lee siempre; sin ella, solo si el RSS trae la descripción.*
 - [x] **Capítulos con nombres que enganchan** (0.94.0): los títulos de las secciones del
   guion se piden pensando en los capítulos de YouTube, y el control de calidad avisa si
   algún capítulo se llama «Desarrollo», «Introducción» o «Parte 2».

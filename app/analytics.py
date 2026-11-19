@@ -178,6 +178,11 @@ def _store(db: Session, data: dict, now: datetime) -> None:
             video = Video(video_id=item["id"], title=item["title"], published=item["published"])
             db.add(video)
         video.title, video.published = item["title"], item["published"] or video.published
+        links = item.get("links")
+        # Sin descripción: se queda lo que había. Y el RSS (menos fiable que la API) no borra
+        # los enlaces que ya se conocían.
+        if isinstance(links, list) and (links or data.get("exact") or not video.links):
+            video.links = json.dumps(links[:200])
         last = db.scalar(
             select(VideoStat)
             .where(VideoStat.video_id == item["id"])

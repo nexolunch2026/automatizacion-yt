@@ -12,6 +12,7 @@ Socios de YouTube:
 - Contenido alterado o sintético: marcarlo en YouTube Studio si hay imágenes realistas de IA.
 """
 
+import logging
 import re
 import unicodedata
 
@@ -22,6 +23,8 @@ from app.models import Project, StageResult
 from app.pipeline.humanize import SHARE_WARN, script_issues, sentences
 from app.pipeline.seo import PREVIEW_CHARS, description_start, generic_chapters
 from app.pipeline.thumbnail import title_repeat
+
+log = logging.getLogger(__name__)
 
 OK, WARN, FAIL, PENDING = "ok", "warn", "fail", "pending"
 POINTS = {OK: 1.0, WARN: 0.5, FAIL: 0.0, PENDING: 0.0}
@@ -1236,6 +1239,99 @@ def _facts_check(results: dict) -> list[dict]:
     ]  # fmt: skip
 
 
+SHORTS_UPLOADED = "_shorts_uploaded"  # en `results`: los Shorts de este vídeo ya en YouTube
+
+
+def _without_hashtags(title: str) -> str:
+    return re.sub(r"\s*#\w+", "", title).strip()
+
+
+def uploaded_shorts(db: Session, project: Project, results: dict) -> dict | None:
+    """El vídeo largo ya publicado y los Shorts de este proyecto que ya están en YouTube
+    (por su título), con si enlazan al largo en la descripción (None: no se sabe)."""
+    import json
+
+    from app.models import Video
+    from app.pipeline.end_screen import _is_short_title, _plain
+
+    titles = {
+        _plain(_without_hashtags(str(short["title"])))
+        for short in (results.get("shorts") or {}).get("shorts") or []
+        if isinstance(short, dict) and short.get("title")
+    }
+    titles.discard("")
+
+    def is_short(video: Video) -> bool:  # YouTube suele añadir «#shorts» al título
+        return _is_short_title(_without_hashtags(video.title), titles)
+
+    own = db.scalars(select(Video).where(Video.project_id == project.id)).all()
+    longs = [v for v in own if not is_short(v)]
+    if not titles or not longs:
+        return None
+    long_ids = {v.video_id for v in longs}
+    shorts = []
+    candidates = select(Video).where(
+        (Video.project_id.is_(None)) | (Video.project_id == project.id)  # no los de otro
+    )
+    for video in db.scalars(candidates):
+        if video.video_id in long_ids or not is_short(video):
+            continue
+        try:
+            links = json.loads(video.links) if video.links else None
+        except ValueError:
+            links = None
+        ids = {x for x in links if isinstance(x, str)} if isinstance(links, list) else None
+        shorts.append(
+            {"title": video.title, "linked": None if ids is None else bool(long_ids & ids)}
+        )
+    return {"shorts": shorts}
+
+
+def _shorts_link_check(results: dict) -> list[dict]:
+    """Los Shorts ya subidos de este vídeo deben llevar al largo: si no, quien ve el Short
+    no tiene cómo llegar al vídeo que da el dinero."""
+    found = results.get(SHORTS_UPLOADED) or {}
+    if found.get("error"):
+        return [
+            _check(
+                "shorts_link", "publish", WARN, "No se pudieron revisar los Shorts subidos",
+                "Algo falló al mirar si los Shorts de este vídeo llevan al vídeo largo.",
+                "Vuelve a abrir el control de calidad más tarde; si sigue, avisa a Claude.",
+            )
+        ]  # fmt: skip
+    every = found.get("shorts") or []
+    shorts = [s for s in every if s.get("linked") is not None]
+    if not shorts:  # aún no hay Shorts subidos, o no se puede saber qué enlazan
+        return []
+    unknown = len(every) - len(shorts)
+    missing = [s["title"] for s in shorts if not s["linked"]]
+    if missing:
+        names = ", ".join(f"«{t}»" for t in missing[:3])
+        n = len(missing)
+        return [
+            _check(
+                "shorts_link", "publish", WARN,
+                f"{n} Short{'' if n == 1 else 's'} sin enlace al vídeo largo",
+                f"{names}: en su descripción no está el enlace al vídeo largo, así que quien "
+                "ve el Short no tiene cómo llegar a él.",
+                "En YouTube Studio abre ese Short y pega el enlace del vídeo largo en la "
+                "descripción, o elígelo en «Vídeo relacionado». Si ya lo pusiste como "
+                "vídeo relacionado, puedes ignorar este aviso.", "shorts",
+            )
+        ]  # fmt: skip
+    n = len(shorts)
+    detail = (
+        f"{'El Short subido enlaza' if n == 1 else f'Los {n} Shorts subidos enlazan'} "
+        "al vídeo largo en su descripción."
+    )
+    if unknown:
+        detail += f" De {unknown} más no se pudo leer la descripción."
+    return [_check("shorts_link", "publish", OK, "Los Shorts llevan al vídeo largo", detail)]
+
+
+SHORTS_LINK_ERROR = {"error": True}
+
+
 def review(
     project: Project,
     results: dict,
@@ -1256,6 +1352,7 @@ def review(
         + _promise_check(results, title)
         + _publish_checks(project, results, title)
         + _facts_check(results)
+        + _shorts_link_check(results)
     )
     score = round(100 * sum(POINTS[c["status"]] for c in checks) / len(checks)) if checks else 0
     fails = sum(1 for c in checks if c["status"] == FAIL)
@@ -1285,6 +1382,12 @@ def project_review(db: Session, project: Project) -> dict:
     if "script" in when and "factcheck" in when:
         # El guion cambió después de comprobar los datos: lo comprobado puede ya no valer.
         results[FACTS_STALE] = when["script"] > when["factcheck"]
+    try:  # un extra: si falla, el resto del control de calidad sigue saliendo
+        results[SHORTS_UPLOADED] = uploaded_shorts(db, project, results)
+    except Exception:  # noqa: BLE001 — se dice en el control de calidad, no se esconde
+        log.exception("No se pudieron revisar los Shorts subidos del proyecto %s", project.id)
+        db.rollback()
+        results[SHORTS_UPLOADED] = SHORTS_LINK_ERROR
     others = db.scalars(
         select(StageResult)
         .join(Project, Project.id == StageResult.project_id)

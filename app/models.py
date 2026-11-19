@@ -207,6 +207,7 @@ class Video(Base):
     retention_30s: Mapped[float | None]  # % que sigue viendo a los 30 s (gráfica de retención)
     retention_mid: Mapped[float | None]  # % que sigue a la mitad del vídeo
     milestones: Mapped[str | None] = mapped_column(String(200))  # hitos ya avisados
+    links: Mapped[str | None] = mapped_column(Text)  # vídeos enlazados en su descripción (JSON)
 
 
 class VideoStat(Base):
