@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-20 — Versión 0.110: vídeos viejos que vuelven a despertar
+
+- Cuando un vídeo tuyo de **más de un mes** tiene de repente esta semana **el triple de visitas**
+  que antes (y al menos 50), **JARVIS te avisa** por Telegram y en su pantalla.
+- Eso significa que YouTube lo está **recomendando otra vez**: es el mejor momento para sacarle
+  un **Short** o hacer una **segunda parte**, y que esa gente llegue a lo nuevo.
+- Como mucho te avisa **una vez al mes** por vídeo.
+- Hace falta que Rendimiento tenga cifras de las últimas **5 semanas** (con el programa abierto
+  al menos una vez al día).
+- La lista de mejoras estaba terminada: añadí 3 nuevas (esta y dos más para los próximos días).
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-19 — Versión 0.109: Shorts que llevan al vídeo largo
 
 - El **control de calidad** de cada vídeo mira ahora sus **Shorts ya subidos** a YouTube.

@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (20 de noviembre de 2026: vídeos viejos que vuelven a moverse)
+
+- [YouTube Video Stopped Getting Views? DO THIS To Revive It](https://www.youtube.com/watch?v=czyxjgLJbTo)
+  — qué hacer cuando un vídeo viejo se para (o vuelve a moverse) para sacarle más visitas.
+- [How to Fix Your Old Videos So They Feed New Ones](https://www.youtube.com/watch?v=rRVQFlUnEA4)
+  — usar los vídeos viejos para mandar gente a los nuevos (enlaces, pantallas finales, listas).
+- [Script Writing for YouTube (Full Guide)](https://www.youtube.com/watch?v=ZDnasmKm0Z0)
+  — guía completa de guion, con un gancho que engancha en los primeros 30 segundos.
+
 ## Nuevos (19 de noviembre de 2026: que los Shorts lleven al vídeo largo)
 
 - [How to Link Shorts to Full YouTube Videos (New Update)](https://www.youtube.com/watch?v=xfa5f4uoO5U)

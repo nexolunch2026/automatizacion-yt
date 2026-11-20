@@ -165,7 +165,132 @@ def refresh(db: Session, now: datetime | None = None) -> int:
     except Exception:  # noqa: BLE001
         log.exception("No se pudieron enlazar los vídeos con sus proyectos")
         db.rollback()
+    try:  # otro extra: el aviso de vídeos viejos que vuelven a moverse
+        check_revivals(db, now)
+    except Exception:  # noqa: BLE001
+        log.exception("No se pudieron revisar los vídeos que vuelven a despertar")
+        db.rollback()
     return read
+
+
+# ------------------------------------------------- vídeos viejos que vuelven a despertar
+
+REVIVAL_MIN_AGE = timedelta(days=30)  # solo vídeos de más de un mes
+REVIVAL_RATIO = 3.0  # esta semana, al menos el triple de lo que hacía por semana antes
+REVIVAL_MIN_VIEWS = 50  # y un mínimo, para no avisar por 3 visitas contra 1
+REVIVAL_REPEAT = timedelta(days=30)  # el mismo vídeo, como mucho un aviso al mes
+REVIVAL_KEY = "revival_alerted"  # vídeo → cuándo se avisó
+
+
+REVIVAL_SLACK = timedelta(days=3)  # el PC puede estar apagado algún día
+
+
+def _stat_near(stats: list[VideoStat], moment: datetime) -> VideoStat | None:
+    """La foto más cercana antes de `moment`, si no es de más de 3 días antes."""
+    before = [s for s in stats if s.taken_at <= moment]
+    if not before or moment - before[-1].taken_at > REVIVAL_SLACK:
+        return None
+    return before[-1]
+
+
+def _published(video: Video) -> datetime | None:
+    """La fecha de publicación en hora local (YouTube la da en UTC si trae la hora)."""
+    if not video.published:
+        return None
+    try:
+        published = datetime.fromisoformat(video.published[:16])
+    except ValueError:
+        log.warning("Fecha de publicación que no se entiende: %r", video.published)
+        return None
+    if "T" in video.published:
+        published = published.replace(tzinfo=UTC).astimezone().replace(tzinfo=None)
+    return published
+
+
+def _per_week(newer: VideoStat, older: VideoStat) -> float:
+    days = (newer.taken_at - older.taken_at).total_seconds() / 86400
+    return max(newer.views - older.views, 0) * 7 / max(days, 1)
+
+
+def revivals(db: Session, now: datetime | None = None) -> list[dict]:
+    """Vídeos de más de un mes que esta semana tienen muchas más visitas que antes: YouTube
+    los está recomendando otra vez. Hacen falta cifras de las últimas 4–5 semanas."""
+    now = now or datetime.now()
+    old = [
+        v
+        for v in db.scalars(select(Video))
+        if (published := _published(v)) is not None and now - published >= REVIVAL_MIN_AGE
+    ]
+    if not old:
+        return []
+    stats_by_video: dict[str, list[VideoStat]] = {}
+    for stat in db.scalars(  # solo las fotos de las últimas semanas, de una vez
+        select(VideoStat)
+        .where(
+            VideoStat.video_id.in_([v.video_id for v in old]),
+            VideoStat.taken_at >= now - timedelta(days=40),
+        )
+        .order_by(VideoStat.taken_at)
+    ):
+        stats_by_video.setdefault(stat.video_id, []).append(stat)
+    found = []
+    for video in old:
+        stats = stats_by_video.get(video.video_id, [])
+        if not stats or now - stats[-1].taken_at > timedelta(days=1):
+            continue  # sin cifras de hoy no se sabe cómo va esta semana
+        last = stats[-1]
+        week_ago = _stat_near(stats, last.taken_at - timedelta(days=7))
+        month_ago = _stat_near(stats, last.taken_at - timedelta(days=35))
+        if week_ago is None or month_ago is None:
+            continue
+        if week_ago.taken_at - month_ago.taken_at < timedelta(days=21):
+            continue  # muy poco «antes» para saber su ritmo normal
+        recent = round(_per_week(last, week_ago))
+        before = _per_week(week_ago, month_ago)
+        if recent >= REVIVAL_MIN_VIEWS and recent >= REVIVAL_RATIO * max(before, 1):
+            found.append({"video": video, "recent": recent, "before": round(before)})
+    return sorted(found, key=lambda r: -r["recent"])
+
+
+def check_revivals(db: Session, now: datetime | None = None) -> int:
+    """Avisa (por Telegram y en la pantalla de JARVIS) de los vídeos que vuelven a despertar,
+    como mucho una vez al mes por vídeo. Devuelve cuántos avisos dejó."""
+    from app.skills import number
+
+    now = now or datetime.now()
+    try:
+        alerted = json.loads(get_setting(db, REVIVAL_KEY) or "{}")
+    except ValueError:
+        log.warning("Lista de vídeos ya avisados que no se entiende: se empieza de cero")
+        alerted = {}
+    alerted = alerted if isinstance(alerted, dict) else {}
+    alerted = {  # los avisos de hace más de un mes ya no hacen falta
+        vid: when
+        for vid, when in alerted.items()
+        if isinstance(when, str) and (last := _when(when)) and now - last < REVIVAL_REPEAT
+    }
+    made = 0
+    for found in revivals(db, now):
+        video = found["video"]
+        if video.video_id in alerted:
+            continue
+        before = f"antes unas {number(found['before'])}" if found["before"] else "antes casi 0"
+        tail = (
+            f" vuelve a despertar: {number(found['recent'])} visitas esta semana ({before} "
+            "por semana). Buen momento para sacarle un Short o una segunda parte"
+        )
+        title = (
+            video.title
+            if len(video.title) <= 195 - len(tail)
+            else video.title[: 190 - len(tail)] + "…"
+        )
+        # Primero se apunta como avisado: si algo falla después, se pierde un aviso en vez
+        # de repetirlo en cada actualización.
+        alerted[video.video_id] = now.isoformat(timespec="seconds")
+        set_setting(db, REVIVAL_KEY, json.dumps(alerted))
+        _celebrate(db, f"«{title}»{tail}", now)
+        made += 1
+    return made
 
 
 def _store(db: Session, data: dict, now: datetime) -> None:
