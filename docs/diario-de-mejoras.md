@@ -11,6 +11,8 @@ Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba
 - Si un canal no tiene nada en marcha, te lo dice para que empieces uno («banco de ideas
   ModoOffside», por ejemplo).
 - Con un solo canal, el plan sale igual que siempre.
+- Arreglado de paso: una actualización de Windows rompe la forma de descomprimir que usaba el
+  **instalador**. Ahora, si falla, descomprime de otra manera y sigue.
 - Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
 
 ## 2026-11-20 — Versión 0.110: vídeos viejos que vuelven a despertar

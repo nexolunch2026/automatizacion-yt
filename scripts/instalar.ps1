@@ -134,8 +134,17 @@ function Install-FsProgram([string]$ZipSource, [string]$Target) {
             [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
             Invoke-WebRequest -Uri $ZipSource -OutFile $zip -UseBasicParsing
         }
-        Expand-Archive -LiteralPath $zip -DestinationPath (Join-Path $temp "x") -Force
-        $root = Get-ChildItem -LiteralPath (Join-Path $temp "x") -Recurse -Filter "Iniciar.bat" -File |
+        $unzipped = Join-Path $temp "x"
+        try {
+            Expand-Archive -LiteralPath $zip -DestinationPath $unzipped -Force -ErrorAction Stop
+        } catch {
+            # Algunas actualizaciones de Windows rompen Expand-Archive ("Cannot find an
+            # overload for ExtractToDirectory"): se descomprime con .NET directamente.
+            Remove-Item -LiteralPath $unzipped -Recurse -Force -ErrorAction SilentlyContinue
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            [IO.Compression.ZipFile]::ExtractToDirectory($zip, $unzipped)
+        }
+        $root = Get-ChildItem -LiteralPath $unzipped -Recurse -Filter "Iniciar.bat" -File |
             Select-Object -First 1
         if (-not $root) { throw "El archivo descargado no contiene el programa." }
         Sync-FsFolder $root.DirectoryName $Target
