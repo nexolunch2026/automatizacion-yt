@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (21 de noviembre de 2026: dos canales y miniaturas sin cara)
+
+- [You probably upload way too often to YouTube!](https://www.youtube.com/watch?v=7CDNHMfY-sU)
+  — prueba de subir más o menos a menudo en 2 canales: cuánto conviene publicar en cada uno.
+- [A Guide to Creating Clickable Thumbnails for a Faceless Channel](https://www.youtube.com/watch?v=OAeU2l2w5TU)
+  — miniaturas que se pulsan sin enseñar cara, como las de tus canales.
+- [How to Make a unique YouTube Documentary Thumbnail](https://www.youtube.com/watch?v=xtQgspzFmwk)
+  — una miniatura propia de documental, para que no se parezca a las de la competencia.
+
 ## Nuevos (20 de noviembre de 2026: vídeos viejos que vuelven a moverse)
 
 - [YouTube Video Stopped Getting Views? DO THIS To Revive It](https://www.youtube.com/watch?v=czyxjgLJbTo)

@@ -1584,6 +1584,30 @@ def learn_video_replies(db: Session, url: str) -> list[Reply]:
     ]
 
 
+def _channel_plan_lines(db: Session) -> list[str]:
+    """«Por canal»: con dos canales, qué toca en cada uno (si falla, el plan sale igual)."""
+    try:
+        plans = coach.channel_plans(db)
+    except Exception:  # noqa: BLE001 — es un extra del plan de la semana
+        log.exception("No se pudo hacer el plan por canal")
+        db.rollback()
+        return ["📺 <i>No pude preparar el plan de cada canal ahora mismo.</i>"]
+    if not plans:
+        return []
+    lines = ["", "📺 <b>Por canal</b>"]
+    for plan in plans:
+        if plan["shorts"]:
+            n = plan["shorts"]
+            shorts = (
+                f"📱 {n} Short{'' if n == 1 else 's'} por subir "
+                f"(el próximo: «{escape(plan['next_short'])}»)"
+            )
+        else:
+            shorts = "📱 sin Shorts preparados"
+        lines.append(f"• <b>{escape(plan['channel'])}</b>: 🎬 {escape(plan['long'])}. {shorts}.")
+    return lines
+
+
 def week_plan_reply(db: Session) -> Reply:
     plan = coach.weekly_plan(db)
     lines = ["🗓️ <b>Plan de la semana</b>", f"🎬 {escape(plan['long'])}"]
@@ -1593,6 +1617,7 @@ def week_plan_reply(db: Session) -> Reply:
     else:
         lines.append("📱 No hay Shorts preparados: sácalos de tu último vídeo (pestaña Shorts).")
     lines.append(f"📚 Hoy, 30 minutos para aprender: {escape(plan['learning'])}.")
+    lines += _channel_plan_lines(db)
     day = agenda.WEEKDAYS[plan["publish_day"]]
     lines.append(
         f"<i>Publicas los {day} a las {plan['publish_hour']}:00. Para cambiarlo di, por "

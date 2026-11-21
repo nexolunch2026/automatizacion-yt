@@ -173,8 +173,8 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
 - [x] **Vídeos viejos que despiertan** (0.110.0): JARVIS avisa (Telegram y pantalla) cuando un
   vídeo de más de un mes tiene esta semana el triple de visitas que antes: YouTube lo vuelve a
   recomendar y es buen momento para sacarle un Short o una segunda parte.
-- [ ] **Plan de la semana por canal**: con dos canales, el plan dice qué vídeo largo y qué
-  Shorts tocan en cada uno (ahora mezcla los dos).
+- [x] **Plan de la semana por canal** (0.111.0): con dos canales, el «plan de la semana» de
+  JARVIS añade «Por canal»: qué vídeo largo toca en cada uno y cuántos Shorts suyos quedan.
 - [ ] **Shorts preparados sin subir**: si un vídeo largo lleva una semana publicado y sus
   Shorts preparados no aparecen en YouTube, JARVIS lo recuerda (son visitas gratis al largo).
 - [x] **Capítulos con nombres que enganchan** (0.94.0): los títulos de las secciones del

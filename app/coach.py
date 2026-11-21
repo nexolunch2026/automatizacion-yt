@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import jobs
-from app.models import JOB_LABELS, Project, Video
+from app.models import JOB_LABELS, Channel, Project, Video
 from app.pipeline.monetization import project_review, summary_text, video_seconds
 from app.settings_store import get_setting, set_setting
 
@@ -338,17 +338,27 @@ def mark_short_uploaded(
     set_setting(db, UPLOADED_DAY_KEY, day)
 
 
-def _shorts_queue(db: Session) -> list[dict]:
-    """Shorts preparados que aún no has subido, empezando por los del vídeo más reciente."""
+def _shorts_queue(db: Session, channel_id: int | None = None) -> list[dict]:
+    """Shorts preparados que aún no has subido, empezando por los del vídeo más reciente
+    (de todos los canales, o solo de `channel_id`)."""
     done = uploaded_shorts(db)
     queue = []
-    for project in db.scalars(select(Project).order_by(Project.id.desc()).limit(10)):
+    query = select(Project).order_by(Project.id.desc())
+    if channel_id is not None:
+        query = query.where(Project.channel_id == channel_id)
+    for project in db.scalars(query.limit(10)):
         for n, short in enumerate(
             (jobs.get_result(db, project.id, "shorts") or {}).get("shorts", []), 1
         ):
             key = f"{project.id}:{n}"
             if key not in done:
-                queue.append({"key": key, "title": short.get("title") or project.title})
+                queue.append(
+                    {
+                        "key": key,
+                        "title": short.get("title") or project.title,
+                        "channel_id": project.channel_id,
+                    }
+                )
     return queue
 
 
@@ -391,6 +401,49 @@ def weekly_plan(db: Session, now: datetime | None = None) -> dict:
         "today_short_key": next((k for d, _, k in schedule if d == now.weekday()), None),
         "ready": ready[0].title if ready else None,
     }
+
+
+def channel_plans(db: Session) -> list[dict]:
+    """Con dos canales o más: qué vídeo largo toca en cada uno y cuántos Shorts suyos
+    quedan por subir. Con uno solo, nada (el plan de siempre ya lo dice)."""
+    channels = db.scalars(select(Channel).order_by(Channel.id)).all()
+    if len(channels) < 2:
+        return []
+    ready = ready_to_upload(db)
+    published = _published_ids(db)
+    plans = []
+    for channel in channels:
+        mine = [p for p in ready if p.channel_id == channel.id]
+        if mine:
+            long_text = f"Sube «{mine[0].title}»"
+        else:
+            long_text = "No hay ningún vídeo en marcha: empieza uno"
+            for project in db.scalars(
+                select(Project)
+                .where(Project.channel_id == channel.id)
+                .order_by(Project.id.desc())
+                .limit(200)  # todos los de este canal: uno viejo a medias también cuenta
+            ):
+                if project.id in published or project.status == "Publicado":
+                    continue
+                step = project_step(db, project)
+                if step["stage"] == "upload":
+                    long_text = f"Sube «{project.title}»"
+                elif step["stage"]:
+                    long_text = f"Termina «{project.title}»: {step['text']}"
+                else:  # trabajando solo: no hace falta nada ahora
+                    long_text = f"«{project.title}» se está haciendo solo"
+                break
+        own_shorts = _shorts_queue(db, channel.id)
+        plans.append(
+            {
+                "channel": channel.name,
+                "long": long_text,
+                "shorts": len(own_shorts),
+                "next_short": own_shorts[0]["title"] if own_shorts else None,
+            }
+        )
+    return plans
 
 
 def today_text(db: Session, now: datetime | None = None) -> str:

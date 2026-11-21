@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-21 — Versión 0.111: el plan de la semana, canal por canal
+
+- Cuando le pides a JARVIS el **«plan de la semana»**, ahora, si tienes dos canales, añade
+  un apartado **«Por canal»**.
+- En cada canal te dice **qué vídeo largo toca** (subir el que está listo, o terminar el que
+  va a medias y qué le falta) y **cuántos Shorts suyos quedan por subir**.
+- Si un canal no tiene nada en marcha, te lo dice para que empieces uno («banco de ideas
+  ModoOffside», por ejemplo).
+- Con un solo canal, el plan sale igual que siempre.
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-20 — Versión 0.110: vídeos viejos que vuelven a despertar
 
 - Cuando un vídeo tuyo de **más de un mes** tiene de repente esta semana **el triple de visitas**
