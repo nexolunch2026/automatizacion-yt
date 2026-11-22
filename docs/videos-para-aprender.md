@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (22 de noviembre de 2026: Shorts que alimentan al vídeo largo)
+
+- [Shorts Strategy That Feeds Your Long-Form Content (2026)](https://www.youtube.com/watch?v=7pgZtutYlZA)
+  — cómo usar los Shorts para que la gente acabe viendo tus vídeos largos.
+- [How to Grow Long-form with YouTube Shorts](https://www.youtube.com/watch?v=ywYL5uuFBNc)
+  — convertir las visitas de los Shorts en gente que ve el documental completo.
+- [Documentary Style Motion Graphics Animation in DaVinci Resolve (FREE)](https://www.youtube.com/watch?v=ZApcAg4Izgw)
+  — gráficos animados de documental con un programa gratis, para retocar algún vídeo a mano.
+
 ## Nuevos (21 de noviembre de 2026: dos canales y miniaturas sin cara)
 
 - [You probably upload way too often to YouTube!](https://www.youtube.com/watch?v=7CDNHMfY-sU)

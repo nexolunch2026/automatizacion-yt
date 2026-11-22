@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-22 — Versión 0.112: recordatorio de Shorts sin subir
+
+- Si un vídeo largo lleva **más de una semana publicado** y alguno de los **Shorts que preparó
+  el programa** todavía no está en YouTube, **JARVIS te lo recuerda** por Telegram y en su
+  pantalla.
+- Te dice cuántos Shorts faltan. Súbelos con el enlace al vídeo largo: son visitas gratis.
+- Como mucho te lo recuerda **una vez por semana** por vídeo, y deja de insistir cuando el
+  vídeo tiene más de mes y medio.
+- Si ya los subiste, pulsa «✅ Ya lo subí» en la pestaña Shorts del vídeo y no vuelve a decir
+  nada (si ya salen en Rendimiento, tampoco).
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-21 — Versión 0.111: el plan de la semana, canal por canal
 
 - Cuando le pides a JARVIS el **«plan de la semana»**, ahora, si tienes dos canales, añade

@@ -170,6 +170,15 @@ def refresh(db: Session, now: datetime | None = None) -> int:
     except Exception:  # noqa: BLE001
         log.exception("No se pudieron revisar los vídeos que vuelven a despertar")
         db.rollback()
+    # Y el recordatorio de Shorts preparados que no se subieron. Va aquí (tras leer YouTube)
+    # a propósito: sin cifras nuevas no se sabe si ya están subidos.
+    try:
+        from app import coach
+
+        coach.check_forgotten_shorts(db, now)
+    except Exception:  # noqa: BLE001
+        log.exception("No se pudieron revisar los Shorts sin subir")
+        db.rollback()
     return read
 
 

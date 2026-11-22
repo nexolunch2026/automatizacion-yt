@@ -338,6 +338,126 @@ def mark_short_uploaded(
     set_setting(db, UPLOADED_DAY_KEY, day)
 
 
+FORGOTTEN_AFTER = timedelta(days=7)  # el vídeo largo lleva una semana publicado
+FORGOTTEN_UNTIL = timedelta(days=45)  # después ya no se insiste (el vídeo es viejo)
+FORGOTTEN_REPEAT = timedelta(days=7)  # como mucho un recordatorio por semana y vídeo
+FORGOTTEN_KEY = "forgotten_shorts_alerted"  # proyecto → cuándo se recordó
+
+
+def forgotten_shorts(db: Session, now: datetime | None = None) -> list[dict]:
+    """Vídeos largos publicados hace más de una semana cuyos Shorts preparados no están
+    en YouTube (ni apuntados como subidos): son visitas gratis que se quedan sin usar."""
+    from app.analytics import _published
+    from app.pipeline.end_screen import _is_short_title, _plain
+    from app.pipeline.monetization import _without_hashtags
+
+    now = now or datetime.now()
+    done = uploaded_shorts(db)
+    videos = db.scalars(select(Video)).all()
+    by_project: dict[int, list[Video]] = {}
+    for video in videos:
+        if video.project_id:
+            by_project.setdefault(video.project_id, []).append(video)
+    found = []
+    for project_id, own in by_project.items():
+        project = db.get(Project, project_id)
+        result = jobs.get_result(db, project_id, "shorts")
+        prepared = result.get("shorts") if isinstance(result, dict) else None
+        prepared = prepared if isinstance(prepared, list) else []
+        titles = {
+            n: _plain(_without_hashtags(str(short["title"])))
+            for n, short in enumerate(prepared, 1)
+            if isinstance(short, dict) and short.get("title")
+        }
+        if project is None or not titles:
+            continue
+        # El largo: el primero publicado de los suyos que no se llama como un Short.
+        dated = sorted(
+            (d, v)
+            for v in own
+            if not _is_short_title(_without_hashtags(v.title), set(titles.values()))
+            and (d := _published(v)) is not None
+        )
+        if not dated or not FORGOTTEN_AFTER <= now - dated[0][0] <= FORGOTTEN_UNTIL:
+            continue
+        long_video = dated[0][1]
+        on_youtube = [  # solo los sueltos o los de este vídeo (no los de otro proyecto)
+            _without_hashtags(v.title)
+            for v in videos
+            if v.video_id != long_video.video_id and v.project_id in (None, project_id)
+        ]
+        pending = [
+            n
+            for n, title in titles.items()
+            if f"{project_id}:{n}" not in done
+            and not any(_is_short_title(t, {title}) for t in on_youtube)
+        ]
+        # Otros vídeos ya enlazados a este proyecto que no se llaman como ningún Short son
+        # Shorts subidos con otro título: cuentan como subidos (no se sabe cuál es cuál).
+        renamed = sum(
+            1
+            for v in own
+            if v.video_id != long_video.video_id
+            and not _is_short_title(_without_hashtags(v.title), set(titles.values()))
+        )
+        pending = pending[renamed:]
+        if pending:
+            days = (now - dated[0][0]).days
+            found.append({"project": project, "pending": pending, "days": days})
+    return found
+
+
+def check_forgotten_shorts(db: Session, now: datetime | None = None) -> int:
+    """Recuerda (Telegram y pantalla de JARVIS) los Shorts preparados que no se subieron,
+    como mucho una vez por semana y vídeo. Devuelve cuántos recordatorios dejó."""
+    from app import agenda
+
+    now = now or datetime.now()
+    try:
+        alerted = json.loads(get_setting(db, FORGOTTEN_KEY) or "{}")
+    except ValueError:
+        log.warning("Lista de Shorts ya recordados dañada: se empieza de cero")
+        alerted = {}
+    if not isinstance(alerted, dict):
+        log.warning("Lista de Shorts ya recordados con otro formato: se empieza de cero")
+        alerted = {}
+    alerted = {
+        key: when
+        for key, when in alerted.items()
+        if isinstance(when, str) and _recent(when, now, FORGOTTEN_REPEAT)
+    }
+    made = 0
+    for item in forgotten_shorts(db, now):
+        project, n = item["project"], len(item["pending"])
+        key = str(project.id)
+        if key in alerted:
+            continue
+        tail = (
+            f" lleva {item['days']} días publicado y tiene {n} Short{'' if n == 1 else 's'} "
+            "sin subir (visitas gratis). Si ya lo subiste, márcalo en la pestaña Shorts"
+        )
+        title = (
+            project.title
+            if len(project.title) <= 190 - len(tail)
+            else project.title[: 185 - len(tail)] + "…"
+        )
+        # Primero se apunta: si algo falla después, se pierde un aviso en vez de repetirlo.
+        alerted[key] = now.isoformat(timespec="seconds")
+        set_setting(db, FORGOTTEN_KEY, json.dumps(alerted))
+        agenda.add_reminder(db, f"«{title}»{tail}", now)
+        made += 1
+    return made
+
+
+def _recent(raw: str, now: datetime, span: timedelta) -> bool:
+    """¿`raw` (fecha guardada) es de hace menos de `span`? Una fecha del futuro (reloj
+    cambiado) o rara no cuenta, para no callar el aviso para siempre."""
+    try:
+        return timedelta(0) <= now - datetime.fromisoformat(raw) < span
+    except (ValueError, TypeError):
+        return False
+
+
 def _shorts_queue(db: Session, channel_id: int | None = None) -> list[dict]:
     """Shorts preparados que aún no has subido, empezando por los del vídeo más reciente
     (de todos los canales, o solo de `channel_id`)."""

@@ -175,7 +175,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   recomendar y es buen momento para sacarle un Short o una segunda parte.
 - [x] **Plan de la semana por canal** (0.111.0): con dos canales, el «plan de la semana» de
   JARVIS añade «Por canal»: qué vídeo largo toca en cada uno y cuántos Shorts suyos quedan.
-- [ ] **Shorts preparados sin subir**: si un vídeo largo lleva una semana publicado y sus
+- [x] **Shorts preparados sin subir** (0.112.0): si un vídeo largo lleva una semana publicado y sus
   Shorts preparados no aparecen en YouTube, JARVIS lo recuerda (son visitas gratis al largo).
 - [x] **Capítulos con nombres que enganchan** (0.94.0): los títulos de las secciones del
   guion se piden pensando en los capítulos de YouTube, y el control de calidad avisa si
