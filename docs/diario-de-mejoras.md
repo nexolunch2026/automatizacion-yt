@@ -2,6 +2,30 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-22 — Versión 0.112.1: Radar de historias
+
+Tres historias nuevas en el **banco de ideas** (pídeselas a JARVIS con «banco de ideas»):
+
+- **Ikks** (España): la marca francesa cerró su filial española (9 tiendas y 17 corners) y
+  entró en liquidación en noviembre de 2026, justo cuando se relanzaba en Francia.
+- **Metalfor** (Latinoamérica): el fabricante argentino de pulverizadoras de Marcos Juárez
+  pidió concurso preventivo en noviembre de 2026 tras meses de ventas a la baja.
+- **Tasty Chick'n** (Mundo): el franquiciado de KFC dejó de pagar a la marca y el 16 de
+  noviembre de 2026 pidió la quiebra con 84 restaurantes en venta.
+- Esta semana hubo pocas noticias con datos confirmados en dos fuentes; preferí 3 seguras
+  antes que 5 dudosas.
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
+Fuentes:
+- Ikks: [Modaes](https://www.modaes.com/empresas/ikks-echa-el-cierre-a-su-filial-espanola-en-pleno-relanzamiento-en-francia),
+  [FashionUnited](https://fashionunited.es/noticias/retail/la-marca-ikks-anuncia-el-cierre-de-su-filial-en-espana/2026111851291)
+- Metalfor: [La Capital](https://www.lacapital.com.ar/economia/metalfor-pidio-el-concurso-preventivo-acreedores-n10290279.html),
+  [Bichos de Campo](https://bichosdecampo.com/acorralado-por-las-deudas-metalfor-pidio-el-concurso-preventivo-y-se-completa-el-panorama-negativo-para-la-industria-nacional-de-maquinaria-agricola/),
+  [Agrofy News](https://news.agrofy.com.ar/noticia/216930/metalfor-pidio-concurso-preventivo-acumula-deudas-mas-52000-millones)
+- Tasty Chick'n: [Nation's Restaurant News](https://www.nrn.com/quick-service/kfc-franchisee-tasty-chick-n-files-for-chapter-11-bankruptcy),
+  [QSR Magazine](https://www.qsrmagazine.com/story/kfc-and-taco-bell-franchisee-tasty-chickn-files-for-bankruptcy/),
+  [Fox Business](https://www.foxbusiness.com/economy/major-kfc-franchisee-files-bankruptcy-84-restaurants-sale)
+
 ## 2026-11-22 — Versión 0.112: recordatorio de Shorts sin subir
 
 - Si un vídeo largo lleva **más de una semana publicado** y alguno de los **Shorts que preparó

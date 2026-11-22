@@ -612,6 +612,24 @@ IDEAS: list[dict] = [
         "region": "Mundo",
         "hook": "El 8 de noviembre de 2026 pidió protección por quiebra en Estados Unidos.",
     },
+    {
+        "topic": "Ikks: la marca francesa que cerró su filial en España en plena reconquista",
+        "format": "errores",
+        "region": "España",
+        "hook": "En noviembre de 2026 su filial española, con 9 tiendas, entró en liquidación.",
+    },
+    {
+        "topic": "Metalfor: el gigante de las pulverizadoras de Marcos Juárez en concurso",
+        "format": "auge_caida",
+        "region": "Latinoamérica",
+        "hook": "En noviembre de 2026 pidió concurso preventivo tras meses de ventas en caída.",
+    },
+    {
+        "topic": "Tasty Chick'n: el franquiciado de KFC que dejó de pagar a la marca y quebró",
+        "format": "rivalidad",
+        "region": "Mundo",
+        "hook": "El 16 de noviembre de 2026 pidió la quiebra con 84 restaurantes de KFC en venta.",
+    },
 ]
 
 
