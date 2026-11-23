@@ -523,6 +523,83 @@ def weekly_plan(db: Session, now: datetime | None = None) -> dict:
     }
 
 
+def _week(day: datetime) -> tuple[int, int]:
+    year, week, _ = day.isocalendar()
+    return year, week
+
+
+def publishing_streak(db: Session, now: datetime | None = None) -> dict | None:
+    """Cuántas semanas seguidas (lunes a domingo) se ha publicado al menos un vídeo largo.
+    Si esta semana aún no hay, la racha sigue viva hasta el domingo. None si no hay
+    ningún vídeo largo publicado todavía. {"weeks", "this_week", "weeks_without"}."""
+    from app.analytics import _published
+    from app.pipeline.end_screen import _is_short_title, _short_titles
+
+    now = now or datetime.now()
+    short_titles = _short_titles(db)
+    short_projects = {p.id for p in db.scalars(select(Project).where(Project.duration == "Short"))}
+    weeks = set()
+    for video in db.scalars(select(Video)):
+        if "#short" in (video.title or "").lower() or video.project_id in short_projects:
+            continue
+        if _is_short_title(video.title or "", short_titles):
+            continue
+        published = _published(video)
+        if published is not None and published <= now:
+            weeks.add(_week(published))
+    if not weeks:
+        return None
+    this_week = _week(now) in weeks
+    day = now if this_week else now - timedelta(days=7)
+    streak = 0
+    while _week(day) in weeks:
+        streak += 1
+        day -= timedelta(days=7)
+    last = max(weeks)
+    weeks_without = 0  # semanas enteras sin vídeo (la de ahora aún no ha acabado)
+    day = now - timedelta(days=7)
+    while _week(day) > last:
+        weeks_without += 1
+        day -= timedelta(days=7)
+    return {"weeks": streak, "this_week": this_week, "weeks_without": weeks_without}
+
+
+def streak_text(streak: dict | None, fresh: bool = True) -> str:
+    """Una línea para JARVIS sobre la constancia (lo que más premia YouTube al empezar).
+    Con `fresh` falso (las cifras de YouTube llevan días sin actualizarse) no se dice que
+    falte un vídeo: puede estar subido y el programa aún no saberlo."""
+    if not streak:
+        return ""
+    n = streak["weeks"]
+    if not fresh:
+        if not n:
+            return ""
+        plural = "" if n == 1 else "s"
+        return f"🔥 Racha: al menos {n} semana{plural} seguida{plural} con vídeo largo."
+    if n:
+        plural = "" if n == 1 else "s"
+        text = f"🔥 Racha: {n} semana{plural} seguida{plural} con vídeo largo."
+        if not streak["this_week"]:
+            text += " Esta semana aún no has publicado: ¡que no se corte!"
+        return text
+    gap = streak["weeks_without"]
+    return (
+        f"⚠️ Llevas {gap} semana{'' if gap == 1 else 's'} sin publicar vídeo largo. Publicar "
+        "cada semana es lo que más ayuda a crecer al principio."
+    )
+
+
+STREAK_FRESH = timedelta(days=2)  # cifras de YouTube de hace menos de esto: al día
+
+
+def stats_are_fresh(db: Session, now: datetime | None = None) -> bool:
+    """¿Las cifras de YouTube se leyeron hace poco? (Si no, falta información reciente.)"""
+    from app.analytics import _when
+
+    last = _when(get_setting(db, "analytics_last"))
+    return last is not None and (now or datetime.now()) - last < STREAK_FRESH
+
+
 def channel_plans(db: Session) -> list[dict]:
     """Con dos canales o más: qué vídeo largo toca en cada uno y cuántos Shorts suyos
     quedan por subir. Con uno solo, nada (el plan de siempre ya lo dice)."""

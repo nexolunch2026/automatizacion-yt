@@ -2,6 +2,19 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-23 — Versión 0.113: racha de publicación
+
+- JARVIS ahora te dice **cuántas semanas seguidas** llevas publicando un vídeo largo (los
+  Shorts no cuentan): «🔥 Racha: 3 semanas seguidas con vídeo largo».
+- Si esta semana aún no has publicado, te avisa para que **no se corte** (tienes hasta el
+  domingo).
+- Si ya se cortó, te dice cuántas semanas llevas sin publicar: publicar cada semana es lo que
+  más ayuda a crecer al principio.
+- Dónde verlo: escribe a JARVIS **«plan de la semana»**, y también sale en el **resumen del
+  domingo**.
+- La lista de mejoras estaba terminada: añadí 3 nuevas (esta y dos más para los próximos días).
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-22 — Versión 0.112.1: Radar de historias
 
 Tres historias nuevas en el **banco de ideas** (pídeselas a JARVIS con «banco de ideas»):

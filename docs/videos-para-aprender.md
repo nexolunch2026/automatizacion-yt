@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (23 de noviembre de 2026: constancia al publicar)
+
+- [How often should you UPLOAD as a small YouTube channel](https://www.youtube.com/watch?v=w1E00pvnYrY)
+  — cada cuánto publicar cuando el canal es pequeño (lo importante es no parar).
+- [Does Uploading Every Day Grow A YouTube Channel?](https://www.youtube.com/watch?v=V0gpgRxb7Qg)
+  — por qué subir todos los días no siempre ayuda: mejor un ritmo que puedas mantener.
+- [How Often To Upload Videos - Daily or Weekly?](https://www.youtube.com/watch?v=1BgblMdfTkI)
+  — diario o semanal: cómo elegir según el tipo de vídeo (los documentales, mejor semanal).
+
 ## Nuevos (22 de noviembre de 2026: Shorts que alimentan al vídeo largo)
 
 - [Shorts Strategy That Feeds Your Long-Form Content (2026)](https://www.youtube.com/watch?v=7pgZtutYlZA)

@@ -177,6 +177,12 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   JARVIS añade «Por canal»: qué vídeo largo toca en cada uno y cuántos Shorts suyos quedan.
 - [x] **Shorts preparados sin subir** (0.112.0): si un vídeo largo lleva una semana publicado y sus
   Shorts preparados no aparecen en YouTube, JARVIS lo recuerda (son visitas gratis al largo).
+- [x] **Racha de publicación** (0.113.0): JARVIS dice cuántas semanas seguidas llevas publicando
+  vídeo largo (en el plan de la semana y el resumen del domingo) y avisa si se corta.
+- [ ] **Título repetido en el canal**: el control de calidad avisa si el título se parece
+  mucho al de otro vídeo ya publicado en el mismo canal (compiten entre ellos en la búsqueda).
+- [ ] **Aviso si no se publicó el día previsto**: si el vídeo listo no aparece en YouTube unas
+  horas después de la hora de publicar, JARVIS lo recuerda (una vez).
 - [x] **Capítulos con nombres que enganchan** (0.94.0): los títulos de las secciones del
   guion se piden pensando en los capítulos de YouTube, y el control de calidad avisa si
   algún capítulo se llama «Desarrollo», «Introducción» o «Parte 2».

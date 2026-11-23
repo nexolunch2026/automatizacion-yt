@@ -997,6 +997,9 @@ def sunday_summary(db: Session, now: datetime | None = None) -> list[Reply]:
             if row["name"] == "Sin saber el canal":
                 best = " (enlázalos a su vídeo en Rendimiento)"
             lines.append(f"📺 {escape(row['name'])}: {number(row['views'])} visitas{best}")
+    streak = _streak_line(db, now)
+    if streak:
+        lines += ["", *streak]
     lines.append(f"\n💡 {escape(weekly_summary.tip(data))}")
     return [Reply("\n".join(lines), buttons=[[("📈 Ver rendimiento", "perf")]])]
 
@@ -1584,6 +1587,18 @@ def learn_video_replies(db: Session, url: str) -> list[Reply]:
     ]
 
 
+def _streak_line(db: Session, now: datetime | None = None) -> list[str]:
+    """La racha de semanas publicando (si falla, el mensaje sale igual, sin ella)."""
+    try:
+        streak = coach.publishing_streak(db, now)
+        text = coach.streak_text(streak, coach.stats_are_fresh(db, now))
+    except Exception:  # noqa: BLE001 — es un extra del mensaje
+        log.exception("No se pudo calcular la racha de publicación")
+        db.rollback()
+        return []
+    return [escape(text)] if text else []
+
+
 def _channel_plan_lines(db: Session) -> list[str]:
     """«Por canal»: con dos canales, qué toca en cada uno (si falla, el plan sale igual)."""
     try:
@@ -1617,6 +1632,7 @@ def week_plan_reply(db: Session) -> Reply:
     else:
         lines.append("📱 No hay Shorts preparados: sácalos de tu último vídeo (pestaña Shorts).")
     lines.append(f"📚 Hoy, 30 minutos para aprender: {escape(plan['learning'])}.")
+    lines += _streak_line(db)
     lines += _channel_plan_lines(db)
     day = agenda.WEEKDAYS[plan["publish_day"]]
     lines.append(
