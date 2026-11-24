@@ -5,7 +5,7 @@ import pytest
 from app import agenda, analytics, assistant, info, jobs
 from app.assistant import Incoming
 from app.db import SessionLocal
-from app.models import Video, VideoStat
+from app.models import Project, Video, VideoStat
 from tests.test_assistant import JarvisAI
 from tests.test_projects import create_channel, project_data
 
@@ -43,6 +43,7 @@ def test_refresh_saves_snapshots_links_projects_and_celebrates(logged_in, channe
         assert analytics.refresh(db, NOW + timedelta(minutes=10)) == 2  # sin foto repetida
         assert db.query(VideoStat).count() == 2
         assert db.get(Video, "aaaaaaaaaaa").project_id == 1  # enlazado por el título
+        assert db.get(Project, 1).status == "Publicado"
         assert db.get(Video, "bbbbbbbbbbb").project_id is None
 
         channel["latest"][0]["views"] = 640
@@ -61,6 +62,38 @@ def test_refresh_saves_snapshots_links_projects_and_celebrates(logged_in, channe
     assert first["views_48h"] == 80  # foto tomada justo a las 48 h
     assert first["like_rate"] is not None and first["history"]
     assert first["vs_average"] > 100
+
+
+def test_link_by_brand_marks_published_and_skips_shorts(logged_in):
+    """Caso Barbie: en YouTube se puso otro título y antes salió un Short del mismo vídeo."""
+
+    create_channel(logged_in)
+    logged_in.post("/proyectos/nuevo", data=project_data(
+        title="BARBIE: cómo Mattel casi la pierde todo", topic="Barbie y Mattel"))  # fmt: skip
+    logged_in.post("/proyectos/nuevo", data=project_data(
+        title="GUCCI: la familia que lo destruyó", topic="Gucci"))  # fmt: skip
+    with SessionLocal() as db:
+        barbie = db.get(Project, 1)
+        jobs._save_result(db, barbie, "shorts", {"shorts": [
+            {"title": "El arriesgado experimento de cine que salvó a Mattel"}]})  # fmt: skip
+        short = "El arriesgado experimento de cine que salvó a Mattel"
+        long = "Barbie estaba ACABADA… hasta que ganó $1.400 millones"
+        db.add_all([
+            Video(video_id="sssssssssss", title=short),
+            Video(video_id="lllllllllll", title=long),
+            Video(video_id="nnnnnnnnnnn", title="Cinco marcas que nadie recuerda"),
+        ])  # fmt: skip
+        db.commit()
+        analytics.link_projects(db)
+        assert db.get(Video, "sssssssssss").project_id is None  # el Short no se enlaza
+        assert db.get(Video, "lllllllllll").project_id == 1  # por la marca «Barbie»
+        assert db.get(Video, "nnnnnnnnnnn").project_id is None
+        assert db.get(Project, 1).status == "Publicado"
+        assert db.get(Project, 2).status != "Publicado"
+        db.add(Video(video_id="ggggggggggg", title="Otro título", project_id=2))  # ya enlazado
+        db.commit()
+        analytics.link_projects(db)
+        assert db.get(Project, 2).status == "Publicado"
 
 
 def test_maybe_refresh_waits_and_retries(logged_in, monkeypatch):

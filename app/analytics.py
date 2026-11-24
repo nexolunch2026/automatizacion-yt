@@ -70,22 +70,59 @@ def _project_titles(db: Session, project: Project) -> list[str]:
     return [t for t in titles if t]
 
 
+def _similar(a: str, b: str) -> float:
+    return difflib.SequenceMatcher(None, _norm(a), _norm(b)).ratio()
+
+
+def _short_titles(db: Session) -> list[str]:
+    """Títulos de los Shorts de todos los proyectos: esos vídeos no son el vídeo largo."""
+    from app import jobs
+
+    titles = []
+    for project in db.scalars(select(Project)):
+        shorts = (jobs.get_result(db, project.id, "shorts") or {}).get("shorts", [])
+        titles += [s["title"] for s in shorts if s.get("title")]
+    return titles
+
+
+def _brand(project: Project) -> str:
+    """La marca del título («BARBIE: cómo Mattel…» → «barbie»), si el título la separa."""
+    head, sep, _ = project.title.partition(":")
+    brand = _norm(head) if sep else ""
+    return brand if len(brand) >= 3 else ""
+
+
 def link_projects(db: Session) -> None:
-    """Enlaza por el título los vídeos que aún no tienen proyecto."""
+    """Enlaza por el título los vídeos que aún no tienen proyecto y marca el proyecto como
+    publicado. Si el título que se puso en YouTube no se parece a los de Faceless, vale con
+    que lleve la marca del proyecto (y solo encaje uno). Los Shorts no se enlazan."""
+    for video in db.scalars(select(Video).where(Video.project_id.is_not(None))):
+        project = db.get(Project, video.project_id)  # enlazados antes de la v0.86.5
+        if project and project.status != "Publicado":
+            project.status = "Publicado"
     unlinked = db.scalars(select(Video).where(Video.project_id.is_(None))).all()
     if not unlinked:
+        db.commit()
         return
     taken = {v.project_id for v in db.scalars(select(Video)) if v.project_id}
     projects = [p for p in db.scalars(select(Project)) if p.id not in taken]
+    shorts = _short_titles(db)
     for video in unlinked:
+        if any(_similar(video.title, s) >= 0.8 for s in shorts):
+            continue
         best, score = None, 0.0
         for project in projects:
             for title in _project_titles(db, project):
-                ratio = difflib.SequenceMatcher(None, _norm(video.title), _norm(title)).ratio()
+                ratio = _similar(video.title, title)
                 if ratio > score:
                     best, score = project, ratio
-        if best and score >= 0.8:
+        if not best or score < 0.8:
+            words = f" {_norm(video.title)} "
+            by_brand = [p for p in projects if _brand(p) and f" {_brand(p)} " in words]
+            best = by_brand[0] if len(by_brand) == 1 else None
+        if best:
             video.project_id = best.id
+            best.status = "Publicado"
             projects.remove(best)
     db.commit()
 
