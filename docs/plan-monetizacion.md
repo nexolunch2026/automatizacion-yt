@@ -179,7 +179,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   Shorts preparados no aparecen en YouTube, JARVIS lo recuerda (son visitas gratis al largo).
 - [x] **Racha de publicación** (0.113.0): JARVIS dice cuántas semanas seguidas llevas publicando
   vídeo largo (en el plan de la semana y el resumen del domingo) y avisa si se corta.
-- [ ] **Título repetido en el canal**: el control de calidad avisa si el título se parece
+- [x] **Título repetido en el canal** (0.114.0): el control de calidad avisa si el título se parece
   mucho al de otro vídeo ya publicado en el mismo canal (compiten entre ellos en la búsqueda).
 - [ ] **Aviso si no se publicó el día previsto**: si el vídeo listo no aparece en YouTube unas
   horas después de la hora de publicar, JARVIS lo recuerda (una vez).

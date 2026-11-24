@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-24 — Versión 0.114: aviso de título repetido
+
+- El **control de calidad** avisa ahora si el título del vídeo es **casi igual** al de otro
+  vídeo tuyo ya publicado en el mismo canal.
+- Dos vídeos con el mismo título **compiten entre ellos** en la búsqueda de YouTube y ninguno
+  sale tan bien.
+- Te dice con cuál se parece y qué hacer: elegir otro de los títulos en Publicación o cambiar
+  las primeras palabras.
+- Solo compara con vídeos largos del mismo canal (no con Shorts ni con el otro canal).
+- Dónde verlo: en el vídeo → **Control de calidad**, en la parte de publicar.
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-23 — Versión 0.113: racha de publicación
 
 - JARVIS ahora te dice **cuántas semanas seguidas** llevas publicando un vídeo largo (los

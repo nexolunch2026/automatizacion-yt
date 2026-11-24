@@ -1332,6 +1332,72 @@ def _shorts_link_check(results: dict) -> list[dict]:
 SHORTS_LINK_ERROR = {"error": True}
 
 
+CHANNEL_TITLES = "_channel_titles"  # en `results`: títulos de los vídeos largos del canal
+TITLE_SIMILAR = 0.8  # parecido (0–1) a partir del cual dos títulos compiten entre sí
+TITLE_FUZZY_MIN = 15  # con títulos más cortos solo cuenta si son iguales
+CHANNEL_TITLES_ERROR: list[str] = []  # marca de «no se pudieron leer» (se compara con «is»)
+
+
+def _title_key(title: str) -> str:
+    from app.pipeline.end_screen import _plain
+
+    return " ".join(re.findall(r"[a-z0-9ñ]+", _plain(title)))
+
+
+def _own_titles(results: dict, project: Project) -> list[str]:
+    seo = results.get("publish") or {}
+    titles = [project.title, project.topic, (results.get("script") or {}).get("title")]
+    titles += seo.get("titles") or []
+    return [str(t) for t in titles if t]
+
+
+def _repeated_title_check(results: dict, title: str) -> list[dict]:
+    """El título no debe ser casi igual al de otro vídeo ya publicado del canal: los dos
+    competirían en la búsqueda y YouTube no sabría cuál enseñar."""
+    import difflib
+
+    published = results.get(CHANNEL_TITLES)
+    if published is CHANNEL_TITLES_ERROR:
+        return [
+            _check(
+                "title_repeat", "publish", WARN, "No se pudo comparar el título",
+                "Algo falló al leer los títulos de tus vídeos publicados.",
+                "Vuelve a abrir el control de calidad más tarde; si sigue, avisa a Claude.",
+            )
+        ]  # fmt: skip
+    mine = _title_key(title or "")
+    if not published or not mine:
+        return []  # aún no hay vídeos publicados con los que comparar (o no hay título)
+
+    def digits(key: str) -> set[str]:
+        return set(re.findall(r"\d+", key))
+
+    def similar(key: str) -> bool:
+        if key == mine:
+            return True
+        if min(len(key), len(mine)) < TITLE_FUZZY_MIN or digits(key) != digits(mine):
+            return False  # «Kodak» y «Kodak 2», o «Parte 1» y «Parte 2»: no son el mismo
+        return difflib.SequenceMatcher(None, mine, key).ratio() >= TITLE_SIMILAR
+
+    close = [other for other in published if (key := _title_key(other)) and similar(key)]
+    if close:
+        return [
+            _check(
+                "title_repeat", "publish", WARN, "Título casi igual a otro vídeo tuyo",
+                f"Se parece mucho a «{close[0]}», ya publicado en el canal: competirían "
+                "entre ellos en la búsqueda.",
+                "En Publicación, elige otro de los títulos o cambia las palabras del "
+                "principio (lo que más se ve).", "publicacion",
+            )
+        ]  # fmt: skip
+    return [
+        _check(
+            "title_repeat", "publish", OK, "Título distinto a los del canal",
+            "No se parece a ninguno de tus vídeos publicados que salen en Rendimiento.",
+        )
+    ]  # fmt: skip
+
+
 def review(
     project: Project,
     results: dict,
@@ -1353,6 +1419,7 @@ def review(
         + _publish_checks(project, results, title)
         + _facts_check(results)
         + _shorts_link_check(results)
+        + _repeated_title_check(results, title)
     )
     score = round(100 * sum(POINTS[c["status"]] for c in checks) / len(checks)) if checks else 0
     fails = sum(1 for c in checks if c["status"] == FAIL)
@@ -1382,6 +1449,22 @@ def project_review(db: Session, project: Project) -> dict:
     if "script" in when and "factcheck" in when:
         # El guion cambió después de comprobar los datos: lo comprobado puede ya no valer.
         results[FACTS_STALE] = when["script"] > when["factcheck"]
+    try:  # otro extra: los títulos del canal, para no repetir uno (cuando ya hay título)
+        if results.get("publish") or results.get("script"):
+            from app.pipeline.end_screen import channel_long_videos
+
+            # Un vídeo sin enlazar que se llama igual que este proyecto es casi seguro
+            # este mismo vídeo ya subido: no cuenta como repetido.
+            own = {_title_key(t) for t in _own_titles(results, project)}
+            results[CHANNEL_TITLES] = [
+                v.title
+                for v in channel_long_videos(db, project)
+                if v.project_id is not None or _title_key(v.title) not in own
+            ]
+    except Exception:  # noqa: BLE001 — se dice en el control de calidad, no se esconde
+        log.exception("No se pudieron leer los títulos del canal (proyecto %s)", project.id)
+        db.rollback()
+        results[CHANNEL_TITLES] = CHANNEL_TITLES_ERROR
     try:  # un extra: si falla, el resto del control de calidad sigue saliendo
         results[SHORTS_UPLOADED] = uploaded_shorts(db, project, results)
     except Exception:  # noqa: BLE001 — se dice en el control de calidad, no se esconde

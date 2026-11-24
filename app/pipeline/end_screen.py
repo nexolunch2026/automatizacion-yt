@@ -65,10 +65,10 @@ def _is_short_title(title: str, short_titles: set[str]) -> bool:
     )
 
 
-def related_links(db: Session, project: Project, limit: int = RELATED_MAX) -> list[dict]:
-    """Otros vídeos largos del mismo canal para la descripción («Más historias del canal»):
-    primero los que tratan un tema parecido y luego los más vistos. Sin Shorts. Los vídeos
-    que aún no están enlazados a un proyecto solo cuentan si hay un único canal."""
+def channel_long_videos(db: Session, project: Project) -> list[Video]:
+    """Los vídeos largos publicados del mismo canal (sin este proyecto, sin Shorts y sin
+    los que YouTube ya no muestra). Los que aún no están enlazados a un proyecto solo
+    cuentan si hay un único canal."""
     from datetime import datetime, timedelta
 
     from app.models import Channel
@@ -96,6 +96,14 @@ def related_links(db: Session, project: Project, limit: int = RELATED_MAX) -> li
         same = channel_of.get(v.project_id) == project.channel_id if v.project_id else single
         if same:
             videos.append(v)
+    return videos
+
+
+def related_links(db: Session, project: Project, limit: int = RELATED_MAX) -> list[dict]:
+    """Otros vídeos largos del mismo canal para la descripción («Más historias del canal»):
+    primero los que tratan un tema parecido y luego los más vistos. Sin Shorts. Los vídeos
+    que aún no están enlazados a un proyecto solo cuentan si hay un único canal."""
+    videos = channel_long_videos(db, project)
     mine = words(f"{project.topic or ''} {project.title or ''}")
     views = _views(db)
     videos.sort(

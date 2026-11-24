@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (24 de noviembre de 2026: títulos que se pulsan)
+
+- [My 2026 YouTube Title Playbook: Write Clickable Videos FAST](https://www.youtube.com/watch?v=3g1TP5wYgPI)
+  — un método rápido para escribir títulos que la gente pulsa.
+- [How to Craft YouTube Titles That Get Clicks](https://www.youtube.com/watch?v=FAMPIMAtc2s)
+  — paso a paso para que el título llame la atención sin engañar.
+- [How to TITLE Your YouTube Videos to Get More Views (7 BEST Strategies!)](https://www.youtube.com/watch?v=5mlv3X2dVMQ)
+  — 7 maneras de titular, para no repetir siempre la misma fórmula.
+
 ## Nuevos (23 de noviembre de 2026: constancia al publicar)
 
 - [How often should you UPLOAD as a small YouTube channel](https://www.youtube.com/watch?v=w1E00pvnYrY)
