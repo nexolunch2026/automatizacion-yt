@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-25 — Versión 0.115: aviso si no se publicó el vídeo
+
+- El **día que toca publicar**, unas **3 horas después** de tu hora (por ejemplo, el jueves a
+  las 21:00 si publicas a las 18:00), si tienes un vídeo **listo** y aún no está en YouTube,
+  **JARVIS te lo recuerda** por Telegram y en su pantalla.
+- Solo avisa **una vez ese día**.
+- Si ya lo subiste y aun así te avisa, ve a **Rendimiento** y enlaza el vídeo con su proyecto:
+  así sabe que está publicado.
+- Además, llega lo último de la otra sesión (v0.86.5): al enlazar un vídeo en Rendimiento, su
+  proyecto pasa a «Publicado» y se reconoce mejor por la marca.
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-24 — Versión 0.114: aviso de título repetido
 
 - El **control de calidad** avisa ahora si el título del vídeo es **casi igual** al de otro

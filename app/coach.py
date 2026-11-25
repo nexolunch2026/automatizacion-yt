@@ -449,6 +449,47 @@ def check_forgotten_shorts(db: Session, now: datetime | None = None) -> int:
     return made
 
 
+MISSED_AFTER_HOURS = 3  # horas después de la hora de publicar para dar el aviso
+MISSED_KEY = "missed_publish_day"  # el día en que ya se avisó
+
+
+def check_missed_publish(db: Session, now: datetime | None = None) -> bool:
+    """El día de publicar, unas horas después de la hora elegida, si hay un vídeo listo y
+    YouTube aún no lo tiene (no está enlazado a ningún vídeo), JARVIS lo recuerda una vez.
+    Se llama justo después de leer las cifras de YouTube: así se sabe que están al día."""
+    from app import agenda
+    from app.agenda import WEEKDAYS
+
+    now = now or datetime.now()
+    day, hour = publish_slot(db)
+    today = now.strftime("%Y-%m-%d")
+    # Con una hora tardía (21:00 o más) el aviso llega a las 23, no al día siguiente.
+    if now.weekday() != day or now.hour < min(hour + MISSED_AFTER_HOURS, 23):
+        return False
+    if get_setting(db, MISSED_KEY) == today:
+        return False
+    ready = ready_to_upload(db)
+    if not ready:
+        return False
+    from app.analytics import _published
+
+    # Un vídeo subido hoy pero aún sin enlazar (otro título en YouTube): no se molesta.
+    if any((d := _published(v)) and d.date() == now.date() for v in db.scalars(select(Video))):
+        return False
+    # Primero se apunta: si algo falla después, se pierde un aviso en vez de repetirlo.
+    set_setting(db, MISSED_KEY, today)
+    latest = ready[-1]  # el último terminado: el que suele tocar hoy
+    title = latest.title if len(latest.title) <= 60 else latest.title[:59] + "…"
+    more = f" (y {len(ready) - 1} más listos)" if len(ready) > 1 else ""
+    agenda.add_reminder(
+        db,
+        f"Hoy {WEEKDAYS[day]} tocaba publicar «{title}»{more} a las {hour:02d}:00 y aún no "
+        "lo veo en YouTube. Si ya lo subiste, enlázalo en Rendimiento",
+        now,
+    )
+    return True
+
+
 def _recent(raw: str, now: datetime, span: timedelta) -> bool:
     """¿`raw` (fecha guardada) es de hace menos de `span`? Una fecha del futuro (reloj
     cambiado) o rara no cuenta, para no callar el aviso para siempre."""

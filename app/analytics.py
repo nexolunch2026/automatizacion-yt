@@ -216,6 +216,13 @@ def refresh(db: Session, now: datetime | None = None) -> int:
     except Exception:  # noqa: BLE001
         log.exception("No se pudieron revisar los Shorts sin subir")
         db.rollback()
+    try:  # y si hoy tocaba publicar y el vídeo listo aún no está en YouTube
+        from app import coach
+
+        coach.check_missed_publish(db, now)
+    except Exception:  # noqa: BLE001
+        log.exception("No se pudo revisar si se publicó el vídeo de hoy")
+        db.rollback()
     return read
 
 

@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (25 de noviembre de 2026: publicar a tu hora)
+
+- [Best Time to Upload on YouTube in 2026 (Most Creators Get This WRONG!)](https://www.youtube.com/watch?v=1670PGNEE6o)
+  — cómo encontrar la hora en que tu público está conectado (en Estadísticas de YouTube).
+- [Best Time To Upload (and Publish) YouTube Videos Is.....](https://www.youtube.com/watch?v=D-XIsng1sRk)
+  — la diferencia entre subir el vídeo y publicarlo, y por qué conviene programarlo.
+- [The Ultimate Guide to The Best Time to Post on YouTube](https://www.youtube.com/watch?v=DY-m-KsS9_s)
+  — guía completa de horarios, para no publicar cuando nadie mira.
+
 ## Nuevos (24 de noviembre de 2026: títulos que se pulsan)
 
 - [My 2026 YouTube Title Playbook: Write Clickable Videos FAST](https://www.youtube.com/watch?v=3g1TP5wYgPI)

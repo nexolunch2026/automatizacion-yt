@@ -181,7 +181,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   vídeo largo (en el plan de la semana y el resumen del domingo) y avisa si se corta.
 - [x] **Título repetido en el canal** (0.114.0): el control de calidad avisa si el título se parece
   mucho al de otro vídeo ya publicado en el mismo canal (compiten entre ellos en la búsqueda).
-- [ ] **Aviso si no se publicó el día previsto**: si el vídeo listo no aparece en YouTube unas
+- [x] **Aviso si no se publicó el día previsto** (0.115.0): si el vídeo listo no aparece en YouTube unas
   horas después de la hora de publicar, JARVIS lo recuerda (una vez).
 - [x] **Capítulos con nombres que enganchan** (0.94.0): los títulos de las secciones del
   guion se piden pensando en los capítulos de YouTube, y el control de calidad avisa si
