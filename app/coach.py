@@ -472,10 +472,24 @@ def check_missed_publish(db: Session, now: datetime | None = None) -> bool:
     if not ready:
         return False
     from app.analytics import _published
+    from app.pipeline.end_screen import _is_short_title, _short_titles
 
-    # Un vídeo subido hoy pero aún sin enlazar (otro título en YouTube): no se molesta.
-    if any((d := _published(v)) and d.date() == now.date() for v in db.scalars(select(Video))):
-        return False
+    # Si hoy ya se subió un vídeo largo de este canal (o uno aún sin enlazar porque en
+    # YouTube lleva otro título), no se molesta. Los Shorts y el otro canal no cuentan.
+    short_titles = _short_titles(db)
+    channel_of = {p.id: p.channel_id for p in db.scalars(select(Project))}
+    short_projects = {p.id for p in db.scalars(select(Project).where(Project.duration == "Short"))}
+    for video in db.scalars(select(Video)):
+        if video.project_id is not None and (
+            video.project_id in short_projects
+            or channel_of.get(video.project_id) != ready[-1].channel_id
+        ):
+            continue  # un Short, o un vídeo del otro canal
+        title = video.title or ""
+        if "#short" in title.lower() or _is_short_title(title, short_titles):
+            continue
+        if (d := _published(video)) and d.date() == now.date():
+            return False
     # Primero se apunta: si algo falla después, se pierde un aviso en vez de repetirlo.
     set_setting(db, MISSED_KEY, today)
     latest = ready[-1]  # el último terminado: el que suele tocar hoy

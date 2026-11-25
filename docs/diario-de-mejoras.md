@@ -2,6 +2,20 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-25 — Versión 0.115.1: revisión de salud
+
+- Arreglado: al enlazar vídeos «por la marca», un **vídeo viejo** del canal (por ejemplo
+  «Nike vs Adidas», de hace meses) podía quedar unido a un **proyecto nuevo** de esa marca y
+  marcarlo como «Publicado» aunque no lo estuviera. Ahora solo se enlazan vídeos subidos
+  después de crear el proyecto.
+- Arreglado: un **Short** con «#shorts» en el título podía enlazarse como si fuera el vídeo
+  largo del proyecto. Ya no.
+- Arreglado: el aviso de «hoy no se publicó» se callaba si ese día subías un Short o un vídeo
+  del otro canal. Ahora solo lo calla un vídeo largo del mismo canal.
+- Revisión de seguridad (instalador, Telegram, textos del control de calidad): sin problemas.
+- Las alertas de CodeQL siguen sin poder leerse desde aquí (GitHub no da permiso).
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-25 — Versión 0.115: aviso si no se publicó el vídeo
 
 - El **día que toca publicar**, unas **3 horas después** de tu hora (por ejemplo, el jueves a

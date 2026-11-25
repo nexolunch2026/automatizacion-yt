@@ -113,6 +113,8 @@ def link_projects(db: Session) -> None:
     projects = [p for p in db.scalars(select(Project)) if p.id not in taken]
     shorts = _short_titles(db)
     for video in unlinked:
+        if "#short" in (video.title or "").lower():
+            continue  # un Short nunca es el vídeo largo de un proyecto
         if any(_similar(video.title, s) >= 0.8 for s in shorts):
             continue
         best, score = None, 0.0
@@ -123,13 +125,29 @@ def link_projects(db: Session) -> None:
                     best, score = project, ratio
         if not best or score < 0.8:
             words = f" {_norm(video.title)} "
-            by_brand = [p for p in projects if _brand(p) and f" {_brand(p)} " in words]
+            published = _published(video)
+            by_brand = [
+                p
+                for p in projects
+                if _brand(p)
+                and f" {_brand(p)} " in words
+                # Un vídeo viejo del canal sobre la misma marca no es el de este proyecto.
+                and not _before_project(published, p)
+            ]
             best = by_brand[0] if len(by_brand) == 1 else None
         if best:
             video.project_id = best.id
             best.status = "Publicado"
             projects.remove(best)
     db.commit()
+
+
+def _before_project(published: datetime | None, project: Project) -> bool:
+    """¿El vídeo se publicó antes de crear el proyecto? (Con un día de margen: las fechas
+    de YouTube y la del proyecto pueden ir en husos distintos.)"""
+    if published is None or project.created_at is None:
+        return False
+    return published.date() < (project.created_at - timedelta(days=1)).date()
 
 
 def _celebrate(db: Session, text: str, now: datetime) -> None:
