@@ -142,6 +142,51 @@ def link_projects(db: Session) -> None:
     db.commit()
 
 
+EXTRAS_FAILED_KEY = "analytics_extras_failed"  # qué extras fallaron en la última lectura
+
+
+def run_extras(db: Session, now: datetime) -> list[str]:
+    """Lo que se hace después de leer las cifras (enlazar vídeos y los avisos de JARVIS).
+    Cada uno por separado: si uno falla, los demás siguen. Los que fallan se apuntan para
+    decirlo en Rendimiento (y no solo en la ventana negra). Devuelve sus nombres."""
+    from app import coach
+
+    extras = [
+        ("enlazar los vídeos con sus proyectos", link_projects),
+        ("el aviso de vídeos que vuelven a despertar", lambda db: check_revivals(db, now)),
+        # Los Shorts sin subir y el «hoy no se publicó» van aquí (tras leer YouTube) a
+        # propósito: sin cifras nuevas no se sabe qué está subido.
+        ("el recordatorio de Shorts sin subir", lambda db: coach.check_forgotten_shorts(db, now)),
+        ("el aviso de vídeo sin publicar", lambda db: coach.check_missed_publish(db, now)),
+    ]
+    failed = []
+    for name, extra in extras:
+        try:
+            extra(db)
+        except Exception:  # noqa: BLE001 — las cifras ya están guardadas; se apunta abajo
+            log.exception("Falló un extra de Rendimiento: %s", name)
+            db.rollback()
+            failed.append(name)
+    try:
+        set_setting(db, EXTRAS_FAILED_KEY, json.dumps(failed) if failed else "")
+    except Exception:  # noqa: BLE001
+        log.exception("No se pudo apuntar qué extras de Rendimiento fallaron")
+        db.rollback()
+    return failed
+
+
+def extras_failed(db: Session) -> list[str]:
+    """Los extras que fallaron en la última lectura de cifras (vacío si todo fue bien)."""
+    try:
+        data = json.loads(get_setting(db, EXTRAS_FAILED_KEY) or "[]")
+    except ValueError:
+        return ["(no se sabe cuáles)"]
+    except Exception:  # noqa: BLE001 — un aviso no debe tumbar la página de Rendimiento
+        log.exception("No se pudo leer qué extras de Rendimiento fallaron")
+        return []
+    return [str(x) for x in data] if isinstance(data, list) else []
+
+
 def _before_project(published: datetime | None, project: Project) -> bool:
     """¿El vídeo se publicó antes de crear el proyecto? (Con un día de margen: las fechas
     de YouTube y la del proyecto pueden ir en husos distintos.)"""
@@ -215,32 +260,7 @@ def refresh(db: Session, now: datetime | None = None) -> int:
     set_setting(db, "analytics_last", now.isoformat(timespec="seconds"))
     for key in ("analytics_error", "analytics_error_since", "analytics_error_count"):
         set_setting(db, key, "")
-    try:  # enlazar con los proyectos es un extra: las cifras ya están guardadas
-        link_projects(db)
-    except Exception:  # noqa: BLE001
-        log.exception("No se pudieron enlazar los vídeos con sus proyectos")
-        db.rollback()
-    try:  # otro extra: el aviso de vídeos viejos que vuelven a moverse
-        check_revivals(db, now)
-    except Exception:  # noqa: BLE001
-        log.exception("No se pudieron revisar los vídeos que vuelven a despertar")
-        db.rollback()
-    # Y el recordatorio de Shorts preparados que no se subieron. Va aquí (tras leer YouTube)
-    # a propósito: sin cifras nuevas no se sabe si ya están subidos.
-    try:
-        from app import coach
-
-        coach.check_forgotten_shorts(db, now)
-    except Exception:  # noqa: BLE001
-        log.exception("No se pudieron revisar los Shorts sin subir")
-        db.rollback()
-    try:  # y si hoy tocaba publicar y el vídeo listo aún no está en YouTube
-        from app import coach
-
-        coach.check_missed_publish(db, now)
-    except Exception:  # noqa: BLE001
-        log.exception("No se pudo revisar si se publicó el vídeo de hoy")
-        db.rollback()
+    run_extras(db, now)
     return read
 
 

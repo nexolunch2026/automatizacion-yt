@@ -2,6 +2,18 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-26 — Versión 0.116: Rendimiento avisa si algo falla por detrás
+
+- Después de leer las cifras de YouTube, el programa hace más cosas solo: enlazar vídeos con
+  sus proyectos y preparar los avisos de JARVIS (vídeos que despiertan, Shorts sin subir,
+  vídeo sin publicar).
+- Si alguna de esas cosas **falla**, ahora la página **Rendimiento** lo dice con un aviso
+  arriba (antes solo salía en la ventana negra y no te enterabas).
+- Si una falla, las demás siguen haciéndose igual.
+- El aviso se quita solo la próxima vez que todo vaya bien. Si no se va, díselo a Claude.
+- La lista de mejoras estaba terminada: añadí 3 nuevas (esta y dos más).
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-25 — Versión 0.115.1: revisión de salud
 
 - Arreglado: al enlazar vídeos «por la marca», un **vídeo viejo** del canal (por ejemplo

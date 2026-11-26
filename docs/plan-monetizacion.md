@@ -183,6 +183,12 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   mucho al de otro vídeo ya publicado en el mismo canal (compiten entre ellos en la búsqueda).
 - [x] **Aviso si no se publicó el día previsto** (0.115.0): si el vídeo listo no aparece en YouTube unas
   horas después de la hora de publicar, JARVIS lo recuerda (una vez).
+- [x] **Avisar si falla algo después de leer las cifras** (0.116.0): si enlazar vídeos o algún
+  aviso de JARVIS falla, Rendimiento lo dice (antes solo salía en la ventana negra).
+- [ ] **«Segunda parte» de los vídeos que despiertan**: cuando un vídeo viejo vuelve a moverse,
+  el banco de ideas de JARVIS propone primero una segunda parte o un vídeo relacionado.
+- [ ] **Mejor día para los Shorts**: como el mejor día del vídeo largo, pero con los Shorts
+  (qué día de la semana consiguen más visitas en sus primeras 48 h), en el plan de la semana.
 - [x] **Capítulos con nombres que enganchan** (0.94.0): los títulos de las secciones del
   guion se piden pensando en los capítulos de YouTube, y el control de calidad avisa si
   algún capítulo se llama «Desarrollo», «Introducción» o «Parte 2».

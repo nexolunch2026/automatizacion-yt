@@ -59,6 +59,8 @@ def performance_page(request: Request, db: DB, user: CurrentUser):
         retention_notes=analytics.retention_notes(analytics.retention_summary(rows)),
         last=get_setting(db, "analytics_last"),
         stale=analytics.stale_status(db),
+        # Si la última lectura falló, el aviso de «se leyeron bien» sería mentira.
+        extras_failed=[] if get_setting(db, "analytics_error") else analytics.extras_failed(db),
         has_key=api_key_hint(db, "youtube") is not None,
         has_gemini=api_key_hint(db, "gemini") is not None,
         projects=projects,

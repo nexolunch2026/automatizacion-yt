@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (26 de noviembre de 2026: leer bien las estadísticas)
+
+- [YouTube Analytics Tutorial for Beginners (2026 Complete ...)](https://www.youtube.com/watch?v=RECe__VM01U)
+  — recorrido completo por las estadísticas de YouTube Studio, para principiantes.
+- [Most Creators Misread This and Stay Small](https://www.youtube.com/watch?v=XTZgKnonm_k)
+  — el error más común al leer las cifras, para no sacar conclusiones equivocadas.
+- [YouTube Audience Retention Analytics. How to Read the Data? [Tutorial]](https://www.youtube.com/watch?v=g1JOdK8Oi0k)
+  — cómo leer la gráfica de retención y ver en qué segundo se va la gente.
+
 ## Nuevos (25 de noviembre de 2026: publicar a tu hora)
 
 - [Best Time to Upload on YouTube in 2026 (Most Creators Get This WRONG!)](https://www.youtube.com/watch?v=1670PGNEE6o)
