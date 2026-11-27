@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-27 — Versión 0.117: segunda parte de los vídeos que despiertan
+
+- Cuando JARVIS te avisa de que un vídeo viejo **vuelve a tener visitas**, a partir de ahora
+  el **banco de ideas** te propone en primer lugar su **segunda parte** («Kodak: la segunda
+  parte (lo que pasó después)»).
+- Es buen momento: YouTube ya está enseñando ese tema y la gente quiere más.
+- Funciona en los dos canales: cada uno solo ve las segundas partes de sus propios vídeos.
+- Desaparece del banco en cuanto empiezas ese vídeo, y también pasado un mes del aviso.
+- Dónde verlo: escribe a JARVIS **«banco de ideas»** (o «banco de ideas ModoOffside»).
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-26 — Versión 0.116: Rendimiento avisa si algo falla por detrás
 
 - Después de leer las cifras de YouTube, el programa hace más cosas solo: enlazar vídeos con

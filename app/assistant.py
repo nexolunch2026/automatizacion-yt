@@ -1727,6 +1727,38 @@ def channel_by_name(db: Session, text: str):
     return None
 
 
+SEQUEL_HOOK = "Ese vídeo tuyo vuelve a tener visitas: la gente quiere más de esta historia."
+
+
+def _sequel_idea(db: Session, channel, done: list[str]) -> dict | None:
+    """Si un vídeo viejo de este canal ha vuelto a despertar, su segunda parte (va la
+    primera en el banco de ideas: YouTube ya está enseñando ese tema)."""
+    from app import analytics
+
+    try:
+        revived = analytics.recent_revivals(db)
+    except Exception:  # noqa: BLE001 — es un extra del banco
+        log.exception("No se pudieron leer los vídeos que despiertan")
+        db.rollback()  # solo lee: deja la sesión usable para guardar las ideas después
+        return None
+    single = len(_channels(db)) <= 1
+    made = " ".join(ideas_bank._key(t) for t in done)
+    for video in revived:
+        project = db.get(Project, video.project_id) if video.project_id else None
+        if project is not None and channel is not None and project.channel_id != channel.id:
+            continue  # de otro canal
+        if project is None and not single:
+            continue  # sin proyecto no se sabe de qué canal es
+        raw = project.topic if project else video.title
+        # Lo de antes de «:», «|» o «—» (los títulos de YouTube usan de todo), sin «¿?».
+        base = re.split(r"[:|—]| - ", raw or "")[0].strip(" ¿?¡!.")[:60].strip()
+        topic = f"{base}: la segunda parte (lo que pasó después)"
+        key = ideas_bank._key(f"{base}: la segunda parte")
+        if base and key not in made:
+            return {"topic": topic, "hook": SEQUEL_HOOK, "brand": ideas_bank._key(base)}
+    return None
+
+
 def bank_replies(db: Session, region: str = "", channel=None) -> list[Reply]:
     """Historias reales del banco de ideas que aún no se han hecho, con formatos variados.
     En canales de marcas, el banco fijo de 80; en otros nichos, uno de 30 que crea Gemini
@@ -1736,7 +1768,15 @@ def bank_replies(db: Session, region: str = "", channel=None) -> list[Reply]:
     if not niche.is_brands(kit.niche):
         return niche_bank_replies(db, channel)
     done = _done_topics(db, channel)
-    ideas = ideas_bank.fresh_ideas(done, region)
+    sequel = None if region else _sequel_idea(db, channel, done)
+    ideas = ideas_bank.fresh_ideas(done, region, limit=6 if sequel else 5)
+    if sequel:  # sin repetir la misma marca justo debajo
+        others = [
+            i
+            for i in ideas
+            if not (b := ideas_bank._brand(i["topic"])) or not sequel["brand"].startswith(b)
+        ]
+        ideas = [{**sequel, "format": "cronologia", "region": "tu canal"}, *others[:4]]
     if not ideas:
         return [Reply("📚 Ya hiciste todas las ideas del banco. Di «ideas» y pienso nuevas.")]
     _save_ideas(db, [i["topic"] for i in ideas], channel)
@@ -1788,6 +1828,10 @@ def niche_bank_replies(db: Session, channel=None) -> list[Reply]:
             return [Reply("📚 Gemini no me dio temas útiles. Prueba otra vez en un rato.")]
     done = _done_topics(db, channel)
     fresh = niche_bank.fresh(ideas, done)
+    sequel = _sequel_idea(db, channel, done)
+    if sequel:  # sin repetir el mismo tema justo debajo
+        others = [i for i in fresh if sequel["brand"][:40] not in ideas_bank._key(i["topic"])]
+        fresh = [{**sequel, "format": "Segunda parte"}, *others[:4]]
     if not fresh:
         return [Reply("📚 Ya hiciste todos los temas del banco. Di «ideas» y pienso nuevas.")]
     _save_ideas(db, [i["topic"] for i in fresh], channel)

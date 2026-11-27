@@ -343,6 +343,27 @@ def revivals(db: Session, now: datetime | None = None) -> list[dict]:
     return sorted(found, key=lambda r: -r["recent"])
 
 
+def recent_revivals(db: Session, now: datetime | None = None) -> list[Video]:
+    """Los vídeos que JARVIS avisó que despertaban en el último mes, el más reciente antes."""
+    now = now or datetime.now()
+    try:
+        alerted = json.loads(get_setting(db, REVIVAL_KEY) or "{}")
+    except ValueError:
+        log.warning("Lista de vídeos que despiertan dañada: no se usa")
+        return []
+    if not isinstance(alerted, dict):
+        log.warning("Lista de vídeos que despiertan con otro formato: no se usa")
+        return []
+    recent = []
+    for video_id, raw in alerted.items():
+        when = _when(raw) if isinstance(raw, str) else None
+        if when is None or not timedelta(0) <= now - when < REVIVAL_REPEAT:
+            continue
+        if video := db.get(Video, video_id):
+            recent.append((when, video))
+    return [video for _, video in sorted(recent, key=lambda r: r[0], reverse=True)]
+
+
 def check_revivals(db: Session, now: datetime | None = None) -> int:
     """Avisa (por Telegram y en la pantalla de JARVIS) de los vídeos que vuelven a despertar,
     como mucho una vez al mes por vídeo. Devuelve cuántos avisos dejó."""

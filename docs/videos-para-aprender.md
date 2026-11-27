@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (27 de noviembre de 2026: segundas partes y vídeos que duran)
+
+- [Post this ONE video if you want YouTube views for YEARS (Just copy me)](https://www.youtube.com/watch?v=tUo3HhVEsuM)
+  — el tipo de vídeo que sigue sumando visitas durante años (como tus vídeos que despiertan).
+- [How to Make a YouTube Video End Screen to Get More Views](https://www.youtube.com/watch?v=vN76823jYdM)
+  — usar la pantalla final para llevar de la primera parte a la segunda.
+- [How to Make a YouTube Video that gets LOTS of Views](https://www.youtube.com/watch?v=g3rslox-l8E)
+  — planificar el vídeo antes de hacerlo para que tenga muchas visitas.
+
 ## Nuevos (26 de noviembre de 2026: leer bien las estadísticas)
 
 - [YouTube Analytics Tutorial for Beginners (2026 Complete ...)](https://www.youtube.com/watch?v=RECe__VM01U)
