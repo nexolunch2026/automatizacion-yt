@@ -1646,6 +1646,9 @@ def week_plan_reply(db: Session) -> Reply:
         lines.append(f"📈 {escape(best['text'])}")
     if hour and hour["status"] == "best":
         lines.append(f"🕒 {escape(hour['text'])}")
+    shorts_day = best_day.short_advice(db)
+    if shorts_day and shorts_day["status"] == "best":
+        lines.append(f"📱 {escape(shorts_day['text'])}")
     buttons = [[("👉 ¿Qué hago ahora?", "next")]]
     if plan.get("today_short_key"):
         buttons.insert(0, [("📋 Textos del Short de hoy", f"shorttxt:{plan['today_short_key']}")])

@@ -4,6 +4,15 @@ Vídeos de YouTube encontrados para mejorar el canal. Claude no puede ver los v�
 elige por el título, el canal y lo que dicen de ellos las búsquedas. Si alguno no te sirve,
 díselo y busca otros. La sesión de cada noche añade 2 o 3 nuevos arriba.
 
+## Nuevos (28 de noviembre de 2026: cuándo subir los Shorts)
+
+- [Best Time to Post YouTube Shorts](https://www.youtube.com/watch?v=iVgGgby-2B8)
+  — cómo encontrar con tus propias cifras a qué hora te van mejor los Shorts.
+- [Post at This Time To Go Viral on YouTube Shorts in 2026](https://www.youtube.com/watch?v=bnX_XxXms8g)
+  — horarios de los Shorts en 2026 (úsalo como punto de partida y compáralo con tus cifras).
+- [Post At These Times To Go Viral on YouTube Shorts FAST in 2026](https://www.youtube.com/watch?v=7Yip7p0o8yw)
+  — otra mirada a los horarios, para probar unas semanas y quedarte con lo que funcione.
+
 ## Nuevos (27 de noviembre de 2026: segundas partes y vídeos que duran)
 
 - [Post this ONE video if you want YouTube views for YEARS (Just copy me)](https://www.youtube.com/watch?v=tUo3HhVEsuM)

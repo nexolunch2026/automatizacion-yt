@@ -187,7 +187,7 @@ añadir ideas cuando quiera (escribiéndoselo a Claude).
   aviso de JARVIS falla, Rendimiento lo dice (antes solo salía en la ventana negra).
 - [x] **«Segunda parte» de los vídeos que despiertan** (0.117.0): cuando un vídeo viejo vuelve a moverse,
   el banco de ideas de JARVIS propone primero una segunda parte o un vídeo relacionado.
-- [ ] **Mejor día para los Shorts**: como el mejor día del vídeo largo, pero con los Shorts
+- [x] **Mejor día para los Shorts** (0.118.0): como el mejor día del vídeo largo, pero con los Shorts
   (qué día de la semana consiguen más visitas en sus primeras 48 h), en el plan de la semana.
 - [x] **Capítulos con nombres que enganchan** (0.94.0): los títulos de las secciones del
   guion se piden pensando en los capítulos de YouTube, y el control de calidad avisa si

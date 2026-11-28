@@ -2,6 +2,17 @@
 
 Lo que se ha hecho en cada sesión, explicado para Simón. Lo más nuevo, arriba.
 
+## 2026-11-28 — Versión 0.118: mejor día para los Shorts
+
+- Igual que ya hacía con el vídeo largo, el programa mira ahora **qué día de la semana les va
+  mejor a tus Shorts** (las visitas de sus primeras 48 horas).
+- Si un día destaca claramente (al menos un 30 % más), el **plan de la semana** de JARVIS te
+  lo dice: «📱 Tus Shorts que salen en martes consiguen unas 900 visitas…».
+- Si ese día no está entre tus días de Shorts, te propone probar a subir uno ese día.
+- Necesita al menos **8 Shorts** con sus cifras para fiarse; antes no dice nada.
+- Dónde verlo: escribe a JARVIS **«plan de la semana»**.
+- Todavía **no llega con «Actualizar»**: escribe «publícalo» y te llega todo junto.
+
 ## 2026-11-27 — Versión 0.117: segunda parte de los vídeos que despiertan
 
 - Cuando JARVIS te avisa de que un vídeo viejo **vuelve a tener visitas**, a partir de ahora
